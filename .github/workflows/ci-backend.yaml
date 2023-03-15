@@ -26,6 +26,8 @@ jobs:
         run: npm i -g npm@7
 
       - name: Create .npmrc
+        env:
+          DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
         run: |
           echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
 
