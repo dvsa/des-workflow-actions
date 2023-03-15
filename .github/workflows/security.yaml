@@ -24,6 +24,3 @@ jobs:
           npx snyk test --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          json: true
-          command: true
