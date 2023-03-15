@@ -1,14 +1,10 @@
 name: CI
 
 on:
-  pull_request:
-    branches:
-      - develop
-      - 'release-**'
-
-env:
-  CI: true
-  DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
+  workflow_call:
+    secrets:
+      DES_ACCESS_TOKEN:
+        required: true
 
 jobs:
   run-ci:
