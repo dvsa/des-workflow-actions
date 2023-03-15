@@ -1,0 +1,19 @@
+{
+  "name": "des-workflow-actions",
+  "version": "1.0.0",
+  "description": "DES Workflow Actions --- This repository contains shared GitHub actions used within DES repositories.",
+  "bugs": {
+    "url": "https://github.com/dvsa/des-workflow-actions/issues"
+  },
+  "devDependencies": {
+    "snyk": "^1.1118.0"
+  },
+  "homepage": "https://github.com/dvsa/des-workflow-actions#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvsa/des-workflow-actions.git"
+  },
+  "keywords": ["github", "actions", "workflows"],
+  "author": "",
+  "license": "ISC"
+}
