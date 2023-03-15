@@ -5,25 +5,14 @@ on: push
 jobs:
   security:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [ 16.11.x ]
-
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Snyk monitor
-        run: |
-          npx snyk test --severity-threshold=high
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        continue-on-error: false
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           json: true
-          command: true
+          command: test
