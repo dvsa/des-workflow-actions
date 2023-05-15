@@ -18,10 +18,10 @@ jobs:
         run: |          
           echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
-      - name: Setup Node.js - ${{ steps.NVMRC }}
+      - name: Setup Node.js - ${{ env.NVMRC }}
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ steps.NVMRC }}
+          node-version: ${{ env.NVMRC }}
           cache: 'npm'
 
       - name: Confirm Node and NPM versions
