@@ -15,13 +15,13 @@ jobs:
 
       - name: Read .nvmrc
         id: nvm
-        run: |
-          echo ::set-output name=NVMRC::$(cat .nvmrc)
+        run: |          
+          echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
-      - name: Setup Node.js - ${{ steps.nvm.outputs.NVMRC }}
+      - name: Setup Node.js - ${{ steps.NVMRC }}
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ steps.nvm.outputs.NVMRC }}
+          node-version: ${{ steps.NVMRC }}
           cache: 'npm'
 
       - name: Confirm Node and NPM versions
