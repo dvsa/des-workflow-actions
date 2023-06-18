@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: ${{ github.event.inputs.WORKING_DIRECTORY }}
+        working-directory: ${{ inputs.WORKING_DIRECTORY }}
 
     steps:
       - name: Checkout code
@@ -54,7 +54,7 @@ jobs:
       - name: Version bump check
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          PREVIOUS_VERSION=$(npm view ${{ github.event.inputs.PACKAGE_NAME }} version)
+          PREVIOUS_VERSION=$(npm view ${{ inputs.PACKAGE_NAME }} version)
           
           if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
             echo "VERSION_BUMPED=false" >> $GITHUB_ENV
