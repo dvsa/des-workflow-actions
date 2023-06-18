@@ -13,13 +13,14 @@ on:
       ACCESS_TOKEN:
         required: true
 
-defaults:
-  run:
-    working-directory: ${{ github.event.inputs.WORKING_DIRECTORY }}
-
 jobs:
   publish:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ github.event.inputs.WORKING_DIRECTORY }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
