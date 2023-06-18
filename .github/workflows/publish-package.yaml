@@ -1,0 +1,63 @@
+name: Publish package
+
+on:
+  workflow_call:
+    inputs:
+      PACKAGE_NAME:
+        required: true
+        type: string
+    secrets:
+      ACCESS_TOKEN:
+        required: true
+
+jobs:
+  run-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Read .nvmrc
+        id: nvm
+        run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
+
+      - name: Setup Node.js ${{ env.NVMRC }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NVMRC }}
+          cache: 'npm'
+
+      - name: Create .npmrc
+        run: echo "//npm.pkg.github.com/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
+        env:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: |
+          npm run test --if-present
+          npm run unit-test --if-present
+
+      - name: Version bump check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PREVIOUS_VERSION=$(npm view ${{ inputs.PACKAGE_NAME }} version)
+          
+          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "VERSION_BUMPED=false" >> $GITHUB_ENV
+          else
+            echo "VERSION_BUMPED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Publish
+        if: ${{ env.VERSION_BUMPED == true }}
+        #        run: npm publish
+        run: |
+          echo "This would have published"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
