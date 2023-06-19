@@ -54,9 +54,9 @@ jobs:
       - name: Version bump check
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          PREVIOUS_VERSION=$(npm view ${{ inputs.PACKAGE_NAME }} version)
+          PUBLISHED_VERSION=$(npm view ${{ inputs.PACKAGE_NAME }} version)
           
-          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+          if [ "$CURRENT_VERSION" = "PUBLISHED_VERSION" ]; then
             echo "VERSION_BUMPED=false" >> $GITHUB_ENV
           else
             echo "VERSION_BUMPED=true" >> $GITHUB_ENV
@@ -64,8 +64,6 @@ jobs:
 
       - name: Publish
         if: ${{ env.VERSION_BUMPED == true }}
-        #        run: npm publish
-        run: |
-          echo "This would have published"
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
