@@ -32,7 +32,7 @@ jobs:
           | "https://github.com/dvsa/mes-user-service/pull/" + (.number | tostring) as $url
           | [$url, .title]
           | @tsv' |
-          awk -F $'\t' 'BEGIN { printf "| %-55s | %-110s |\n", "PR", "Title"} { printf "| %-55s | %-110s |\n", $1, $2 }')" >> $GITHUB_OUTPUT
+          awk -F $'\t' 'BEGIN { printf "| %-55s | %-110s |\n", "PR", "Title"} { printf "| %-55s | %-110s |\n", $1, $2 }')" >> $GITHUB_SUMMARY
 
       - name: Use that table
         run: |
