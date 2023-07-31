@@ -21,21 +21,22 @@ jobs:
         run: |
           LIST=$(gh pr list --repo dvsa/mes-user-service --json number,title,author --jq '.[]
           | select(.author.login | contains("snyk") or contains("dependabot"))
-          | "https://github.com/dvsa/mes-user-service/pull/" + (.number | tostring) as $url 
+          | "https://github.com/dvsa/mes-user-service/pull/" + (.number) as $url 
           | [$url, .title]
           | @csv'
           )
           
           echo $LIST
           
-          pull_number=$(echo "$LIST" | sed -E 's/.*\/"([0-9]+)",.*/\1/')
+          pull_number=$(echo "$LIST" | sed -E 's/.*\/([0-9]+),".*/\1/')
           message=$(echo "$LIST" | grep -oE ',".*"$' | tr -d '",')
+          github_url="https://github.com/dvsa/mes-user-service/pull/$pull_number"
 
           {
             echo "### :rocket: Pr's"
-            echo "| PR                  | Title |"
-            echo "| ------------------- | ----- |"
-            echo "| $pull_number | $message     |"
+            echo "| PR                  | Title    |"
+            echo "| ------------------- | -------- |"
+            echo "| github_url          | $message |"
           } >> $GITHUB_STEP_SUMMARY
 
 #        - name: Get Open PR's
