@@ -31,7 +31,7 @@ jobs:
 
       - name: Use that table
         run: |
-          echo hello
+          echo ${{ steps.prs.outputs.LIST }}
 
 #      - name: 🔔 Microsoft Teams Notification
 #        uses: skitionek/notify-microsoft-teams@v1.0.4
