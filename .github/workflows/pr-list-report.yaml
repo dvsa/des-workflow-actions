@@ -27,7 +27,7 @@ jobs:
            | @tsv' |
            awk -F $'\t' 'BEGIN { printf "| %-55s | %-110s |\n", "PR", "Title"} { printf "| %-55s | %-110s |\n", $1, $2 }')
           
-         echo "LIST=$LIST" >> $GITHUB_STEP_SUMMARY
+         echo "$LIST" >> $GITHUB_STEP_SUMMARY
 
       - name: Use that table
         run: |
