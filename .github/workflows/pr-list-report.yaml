@@ -32,15 +32,17 @@ jobs:
               | @csv'
             )
           
+          echo $LIST
+          
           pull_number=$(echo "$LIST" | sed -E 's/.*\/([0-9]+),".*/\1/')
-          message=$(echo "$LIST" | grep -oE ',".*"$' | tr -d '",')
+          title=$(echo "$LIST" | grep -oE ',".*"$' | tr -d '",')
           github_url="https://github.com/$repo/pull/$pull_number"
 
           {
             echo "### :rocket: Pr's"
             echo "| PR                  | Title    |"
             echo "| ------------------- | -------- |"
-            echo "| $github_url         | $message |"
+            echo "| $github_url         | $title   |"
           } >> $GITHUB_STEP_SUMMARY
           
           done
