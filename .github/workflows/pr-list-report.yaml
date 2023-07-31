@@ -1,10 +1,11 @@
 name: Create PR list report
 
-on:
-  workflow_call:
-    secrets:
-      MSTEAMS_WEBHOOK:
-        required: true
+on: push
+#on:
+#  workflow_call:
+#    secrets:
+#      MSTEAMS_WEBHOOK:
+#        required: true
 
 jobs:
   create-pr-list:
