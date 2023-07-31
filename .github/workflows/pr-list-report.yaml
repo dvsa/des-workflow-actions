@@ -16,6 +16,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Test table
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           LIST=$(gh pr list --repo dvsa/mes-user-service --json number,title,author --jq '.[] | select(.author.login | contains("snyk") or contains("dependabot")) | "https://github.com/dvsa/mes-user-service/pull/" + (.number | tostring) as $url | [$url, .title]  | @csv')
           pull_number=$(echo "$LIST" | grep -oE '/[0-9]+,' | tr -d ',"/')
