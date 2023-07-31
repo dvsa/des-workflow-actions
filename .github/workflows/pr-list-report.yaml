@@ -25,6 +25,8 @@ jobs:
           )
           
           for repo in "${REPOS[@]}"; do
+            echo "Loop start"
+          
             LIST=$(gh pr list --repo $repo --json number,title,author --jq '.[]
               | select(.author.login | contains("snyk") or contains("dependabot"))
               | "https://github.com/$repo/pull/" + (.number) as $url 
@@ -32,7 +34,13 @@ jobs:
               | @csv'
             )
           
-          echo $LIST
+          array=($(awk -F '["/]' '{print $5}' <<EOF
+            $LIST
+          ))
+          
+          echo "$array"
+          
+          
           
           pull_number=$(echo "$LIST" | sed -E 's/.*\/([0-9]+),".*/\1/')
           echo "$pull_number"
