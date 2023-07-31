@@ -19,18 +19,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LIST=$(gh pr list --repo dvsa/mes-user-service --json number,title,author --jq '.[]
-          | select(.author.login | contains("snyk") or contains("dependabot"))
-          | "https://github.com/dvsa/mes-user-service/pull/" + (.number) as $url 
-          | [$url, .title]
-          | @csv'
+          REPOS=(
+            dvsa/mes-user-service
+            dvsa/mes-logs-service
           )
           
-          echo $LIST
+          for repo in "${REPOS[@]}"; do
+            LIST=$(gh pr list --repo $repo --json number,title,author --jq '.[]
+              | select(.author.login | contains("snyk") or contains("dependabot"))
+              | "https://github.com/$repo/pull/" + (.number) as $url 
+              | [$url, .title]
+              | @csv'
+            )
           
           pull_number=$(echo "$LIST" | sed -E 's/.*\/([0-9]+),".*/\1/')
           message=$(echo "$LIST" | grep -oE ',".*"$' | tr -d '",')
-          github_url="https://github.com/dvsa/mes-user-service/pull/$pull_number"
+          github_url="https://github.com/$repo/pull/$pull_number"
 
           {
             echo "### :rocket: Pr's"
@@ -38,20 +42,8 @@ jobs:
             echo "| ------------------- | -------- |"
             echo "| $github_url         | $message |"
           } >> $GITHUB_STEP_SUMMARY
-
-#        - name: Get Open PR's
-#          id: prs
-#          env:
-#            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          run: |
-#            LIST=$(gh pr list --repo dvsa/mes-user-service --json number,title,author --jq '.[]
-#              | select(.author.login | contains("snyk") or contains("dependabot"))
-#              | "https://github.com/dvsa/mes-user-service/pull/" + (.number | tostring) as $url
-#              | [$url, .title]
-#              | @tsv' |
-#              awk -F $'\t' 'BEGIN { printf "| %-55s | %-110s |\n", "PR", "Title"} { printf "| %-55s | %-110s |\n", $1, $2 }')
-#
-#            echo "${LIST}" >> $GITHUB_STEP_SUMMARY
+          
+          done
 
 #      - name: 🔔 Microsoft Teams Notification
 #        uses: skitionek/notify-microsoft-teams@v1.0.4
