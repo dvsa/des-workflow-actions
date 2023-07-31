@@ -36,7 +36,7 @@ jobs:
             echo "### :rocket: Pr's"
             echo "| PR                  | Title    |"
             echo "| ------------------- | -------- |"
-            echo "| github_url          | $message |"
+            echo "| $github_url         | $message |"
           } >> $GITHUB_STEP_SUMMARY
 
 #        - name: Get Open PR's
