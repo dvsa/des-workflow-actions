@@ -48,7 +48,7 @@ jobs:
         run: npm run test
 
       - name: 🧪 Execute integration tests with DynamoDB
-        if: ${{ inputs.dynamodb == 'true' }}
+        if: ${{ inputs.dynamodb == true }}
         run: |
           npx sls dynamodb install
           npm run test:integration --if-present
