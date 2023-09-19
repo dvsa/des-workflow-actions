@@ -6,6 +6,15 @@ on:
       service-name:
         type: string
         required: true
+      audit:
+        type: boolean
+        default: true
+        required: false
+      audit-level:
+        type: string
+        required: false
+        default: high
+        
     secrets:
       DES_ACCESS_TOKEN:
         required: true
@@ -40,7 +49,11 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
 
       - name: ➕ Install dependencies
-        run: npm ci
+        run: npm ci    
+
+      - name: 🕵️‍♀️ Audit production dependencies
+        if: ${{ inputs.audit == true }}
+        run: npm audit --omit=dev --audit-level=${{ inputs.audit-level }}
 
       - name: ⚒️ Build project
         run: npm run compile-no-emit
