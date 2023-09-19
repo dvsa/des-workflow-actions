@@ -8,6 +8,9 @@ on:
       AWS_ACCOUNT_ID:
         required: true
 
+permissions:
+  id-token: write
+  contents: write
 jobs:
   run-deploy:
     runs-on: ubuntu-latest
