@@ -41,8 +41,13 @@ jobs:
       - name: ⚒️ Build project
         run: npm run compile-no-emit
 
+      - name: 🧪️ Execute unit tests
+        run: |
+          mkdir -p reports
+          npm run test:jasmine-coverage
+
       - name: Package for Lambda
-        run: npm run package # Lambda Package in artefacts
+        run: ls -la reports && npm run package # Lambda Package in artefacts
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -73,5 +78,6 @@ jobs:
             mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
             | sort -r | head -n 1 | cut -d '-' -f 4-
           done
+          
 # aws s3 cp journal_0.1.1685086807730.manifest \
 # s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
