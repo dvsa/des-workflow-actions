@@ -95,9 +95,9 @@ jobs:
         id: manifest
         run: |
           version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
-          echo "VERSION=${version}" >> $GITHUB_OUTPUT
           file_name="${{inputs.service-name}}_${version}.$(date +%s).manifest"
-         
+          echo "file_name=${file_name}" >> $GITHUB_OUTPUT
+          
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
             aws s3 ls \
             mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
@@ -111,7 +111,8 @@ jobs:
 
       - name: ☁️ Upload Test Reports to S3
         run: |
-          zip -r TestReports-${{ inputs.service-name }}-${{steps.manifest.outputs.VERSION}}.zip reports
-          aws s3 ls \
+          FILE="TestReports-${${{steps.manifest.outputs.file_name}}/manifest/"zip"}"
+          zip -r $FILE reports/
+          aws s3 cp $FILE \
           mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{inputs.service-name}}/test-reports/
-          echo "✅ Uploaded TestReports-${{ inputs.service-name }}-${{steps.manifest.outputs.VERSION}}.zip to S3 " >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded ${FILE} to S3 " >> $GITHUB_STEP_SUMMARY
