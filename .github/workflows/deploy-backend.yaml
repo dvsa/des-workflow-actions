@@ -60,20 +60,18 @@ jobs:
       - name: ☁️ Upload to S3
         run: |
           for artefact in "artefacts"/*; do
-            echo ${artefact#artefacts/}
-            
             aws s3 cp "$artefact" \
             s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"${artefact#artefacts/}"
           done
 
-      # - name: ☁️️ Manifest
-      #   run: |
-      #     version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
+      - name: ☁️️ Manifest
+        run: |
+          version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
          
-      #     for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-      #       aws s3 ls \
-      #       mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/functions/"$func" \
-      #       | sort -r | head -n 1 | cut -d '-' -f 4-
-      #     done
-      #    aws s3 cp journal_0.1.1685086807730.manifest \
-      #    s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
+          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+            aws s3 ls \
+            mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
+            | sort -r | head -n 1 | cut -d '-' -f 4-
+          done
+# aws s3 cp journal_0.1.1685086807730.manifest \
+# s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
