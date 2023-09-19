@@ -74,7 +74,7 @@ jobs:
       - name: ☁️️ Manifest
         run: |
           version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
-          file_name="${{inputs.service-name}}_${version}.${date +%s}.manifest"
+          file_name="${{inputs.service-name}}_${version}.$(date +%s).manifest"
          
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
             aws s3 ls \
