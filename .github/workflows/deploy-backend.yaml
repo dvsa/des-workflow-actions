@@ -1,0 +1,73 @@
+name: Deploy
+
+on:
+  workflow_call:
+    secrets:
+      DES_ACCESS_TOKEN:
+        required: true
+
+jobs:
+  run-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v3
+
+      - name: 🔍 Read .nvmrc
+        id: nvm
+        run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
+
+      - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NVMRC }}
+          cache: 'npm'
+
+      - name: 🔧 Create .npmrc
+        env:
+          DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
+
+      - name: ➕ Install dependencies
+        run: npm ci
+
+      - name: ⚒️ Build project
+        run: npm run compile-no-emit
+
+      - name: Package for Lambda
+        run: npm run package # Lambda Package in artefacts
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: eu-west-1
+
+      - name: upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: 'lambda-packages-${{github.run_id}}'
+          path: artefacts/*
+
+      - name: Run AWS Command
+        run: aws sts get-caller-id
+
+      # - name: ☁️ Upload to S3
+      #   run: |
+      #     for artefact in "artefacts"/*; do
+      #       aws s3 cp artefacts/code/"$artefact" \
+      #       s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/functions/"$artefact"
+      #     done
+
+      # - name: ☁️️ Manifest
+      #   run: |
+      #     version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
+         
+      #     for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+      #       aws s3 ls \
+      #       mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/functions/"$func" \
+      #       | sort -r | head -n 1 | cut -d '-' -f 4-
+      #     done
+      #    aws s3 cp journal_0.1.1685086807730.manifest \
+      #    s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
