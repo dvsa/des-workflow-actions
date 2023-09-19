@@ -51,23 +51,28 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
 
       - name: ➕ Install dependencies
+        id: npm-ci
         run: npm ci    
 
       - name: 🕵️‍♀️ Audit production dependencies
         if: ${{ inputs.audit == true }}
+        id: npm-audit
         run: |
           mkdir reports
           npm audit --omit=dev --audit-level=${{ inputs.audit-level }} | tee reports/npm_audit.output
 
       - name: ⚒️ Build project
+        id: npm-compile
         run: npm run compile-no-emit
 
       - name: 🧪️ Execute unit tests
         run: | 
+          id: npm-test
           mkdir -p reports
           npm run test:jasmine-coverage | tee reports/unit_tests.output
 
       - name: 📦 Package for Lambda
+        id: npm-package
         run: npm run package
 
       - name: 🔑 Configure AWS Credentials
@@ -86,6 +91,7 @@ jobs:
           retention-days: 3
 
       - name: ☁️ Upload to S3
+        id: s3-upload-artefacts
         run: |
           for artefact in "artefacts"/*; do
             aws s3 cp "$artefact" \
@@ -94,7 +100,7 @@ jobs:
           done
 
       - name: ☁️️ Manifest
-        id: manifest
+        id: create_manifest
         run: |
           version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
           file_name="${{inputs.service-name}}_${version}.$(date +%s).manifest"
@@ -112,8 +118,9 @@ jobs:
           echo "✅ Uploaded: $file_name" >> $GITHUB_STEP_SUMMARY
 
       - name: ☁️ Upload Test Reports to S3
+        id: s3-upload-reports
         run: |
-          name=${{steps.manifest.outputs.file_name}}
+          name=${{steps.create_manifest.outputs.file_name}}
           FILE="TestReports-${name/"manifest"/"zip"}"
           zip -r $FILE reports/
           aws s3 cp $FILE \
