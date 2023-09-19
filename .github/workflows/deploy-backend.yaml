@@ -50,21 +50,19 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: eu-west-1
 
-      - name: upload
+      - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v3
         with:
           name: 'lambda-packages-${{github.run_id}}'
           path: artefacts/*
+          retention-days: 3
 
-      - name: Run AWS Command
-        run: aws sts get-caller-id
-
-      # - name: ☁️ Upload to S3
-      #   run: |
-      #     for artefact in "artefacts"/*; do
-      #       aws s3 cp artefacts/code/"$artefact" \
-      #       s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/functions/"$artefact"
-      #     done
+      - name: ☁️ Upload to S3
+        run: |
+          for artefact in "artefacts"/*; do
+            aws s3 cp artefacts/"$artefact" \
+            s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$artefact"
+          done
 
       # - name: ☁️️ Manifest
       #   run: |
