@@ -60,7 +60,7 @@ jobs:
       - name: ☁️ Upload to S3
         run: |
           for artefact in "artefacts"/*; do
-            aws s3 cp artefacts/"$artefact" \
+            aws s3 cp "$artefact" \
             s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$artefact"
           done
 
