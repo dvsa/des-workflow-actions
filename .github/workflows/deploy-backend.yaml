@@ -66,8 +66,8 @@ jobs:
         run: npm run compile-no-emit
 
       - name: 🧪️ Execute unit tests
-        run: | 
-          id: npm-test
+        id: npm-test
+        run: |
           mkdir -p reports
           npm run test:jasmine-coverage | tee reports/unit_tests.output
 
