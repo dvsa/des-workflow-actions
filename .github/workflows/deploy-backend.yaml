@@ -53,13 +53,17 @@ jobs:
 
       - name: 🕵️‍♀️ Audit production dependencies
         if: ${{ inputs.audit == true }}
-        run: npm audit --omit=dev --audit-level=${{ inputs.audit-level }}
+        run: |
+          mkdir reports
+          npm audit --omit=dev --audit-level=${{ inputs.audit-level }} | tee reports/npm_audit.output
 
       - name: ⚒️ Build project
         run: npm run compile-no-emit
 
       - name: 🧪️ Execute unit tests
-        run: npm run test:jasmine-coverage
+        run: | 
+          mkdir -p reports
+          npm run test:jasmine-coverage | tee reports/unit_tests.output
 
       - name: Package for Lambda
         run: npm run package
@@ -73,8 +77,10 @@ jobs:
       - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v3
         with:
-          name: 'lambda-packages-${{github.run_id}}'
-          path: artefacts/*
+          name: '${{inputs.service-name}}-artefacts-${{github.run_id}}'
+          path: |
+            artefacts/*
+            reports/*
           retention-days: 3
 
       - name: ☁️ Upload to S3
@@ -86,8 +92,10 @@ jobs:
           done
 
       - name: ☁️️ Manifest
+        id: manifest
         run: |
           version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
+          echo "VERSION=${version}" >> $GITHUB_OUTPUT
           file_name="${{inputs.service-name}}_${version}.$(date +%s).manifest"
          
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
@@ -100,3 +108,10 @@ jobs:
 
           aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
           echo "✅ Uploaded: $file_name" >> $GITHUB_STEP_SUMMARY
+
+      - name: ☁️ Upload Test Reports to S3
+        run: |
+          zip -r TestReports-${{ inputs.service-name }}-${{steps.manifest.outputs.VERSION}}.zip reports
+          aws s3 ls \
+          mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{inputs.service-name}}/test-reports/
+          echo "✅ Uploaded TestReports-${{ inputs.service-name }}-${{steps.manifest.outputs.VERSION}}.zip to S3 " >> $GITHUB_STEP_SUMMARY
