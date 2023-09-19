@@ -111,7 +111,8 @@ jobs:
 
       - name: ☁️ Upload Test Reports to S3
         run: |
-          FILE="TestReports-${${{steps.manifest.outputs.file_name}}/manifest/"zip"}"
+          name=${{steps.manifest.outputs.file_name}}
+          FILE="TestReports-${name/"manifest"/"zip"}"
           zip -r $FILE reports/
           aws s3 cp $FILE \
           mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{inputs.service-name}}/test-reports/
