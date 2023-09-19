@@ -96,6 +96,7 @@ jobs:
           for artefact in "artefacts"/*; do
             aws s3 cp "$artefact" \
             s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"${artefact#artefacts/}"
+            echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
             echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
 
@@ -115,7 +116,8 @@ jobs:
           done
 
           aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
-          echo "✅ Uploaded: $file_name" >> $GITHUB_STEP_SUMMARY
+          echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
 
       - name: ☁️ Upload Test Reports to S3
         id: s3-upload-reports
@@ -125,7 +127,8 @@ jobs:
           zip -r $FILE reports/
           aws s3 cp $FILE \
           s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{inputs.service-name}}/test-reports/
-          echo "✅ Uploaded ${FILE} to S3 " >> $GITHUB_STEP_SUMMARY
+          echo "## Reports" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
