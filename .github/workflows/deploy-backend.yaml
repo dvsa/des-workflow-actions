@@ -2,6 +2,10 @@ name: Deploy
 
 on:
   workflow_call:
+    inputs:
+      service-name:
+        type: string
+        required: true
     secrets:
       DES_ACCESS_TOKEN:
         required: true
@@ -42,12 +46,10 @@ jobs:
         run: npm run compile-no-emit
 
       - name: 🧪️ Execute unit tests
-        run: |
-          mkdir -p reports
-          npm run test:jasmine-coverage
+        run: npm run test:jasmine-coverage
 
       - name: Package for Lambda
-        run: ls -la reports && npm run package # Lambda Package in artefacts
+        run: npm run package # Lambda Package in artefacts
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -72,12 +74,14 @@ jobs:
       - name: ☁️️ Manifest
         run: |
           version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
+          file_name="${{inputs.service-name}}_${version}.${date +%s}.manifest"
          
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
             aws s3 ls \
             mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
             | sort -r | head -n 1 | cut -d '-' -f 4-
+            
+            echo "${func}_version = ${version}" >> $file_name
           done
-          
-# aws s3 cp journal_0.1.1685086807730.manifest \
-# s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
+
+          aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
