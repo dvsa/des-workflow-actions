@@ -20,6 +20,8 @@ on:
         required: true
       AWS_ACCOUNT_ID:
         required: true
+      MSTEAMS_WEBHOOK:
+        required: true
 
 permissions:
   id-token: write
@@ -117,3 +119,11 @@ jobs:
           aws s3 cp $FILE \
           s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{inputs.service-name}}/test-reports/
           echo "✅ Uploaded ${FILE} to S3 " >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔔 Send MS Teams Notification
+        uses: skitionek/notify-microsoft-teams@v1.0.4
+        with:
+          webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
+          job: ${{ toJson(job) }}
+          needs: ${{ toJson(needs) }}
+          steps: ${{ toJson(steps) }}
