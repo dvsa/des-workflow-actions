@@ -5,6 +5,8 @@ on:
     secrets:
       DES_ACCESS_TOKEN:
         required: true
+      AWS_ACCOUNT_ID:
+        required: true
 
 jobs:
   run-deploy:
