@@ -93,10 +93,10 @@ jobs:
       - name: ☁️ Upload to S3
         id: s3-upload-artefacts
         run: |
+          echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
           for artefact in "artefacts"/*; do
             aws s3 cp "$artefact" \
             s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"${artefact#artefacts/}"
-            echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
             echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
 
