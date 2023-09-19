@@ -49,7 +49,7 @@ jobs:
         run: npm run test:jasmine-coverage
 
       - name: Package for Lambda
-        run: npm run package # Lambda Package in artefacts
+        run: npm run package
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -69,6 +69,7 @@ jobs:
           for artefact in "artefacts"/*; do
             aws s3 cp "$artefact" \
             s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"${artefact#artefacts/}"
+            echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
 
       - name: ☁️️ Manifest
@@ -85,3 +86,4 @@ jobs:
           done
 
           aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
+          echo "✅ Uploaded: $file_name" >> $GITHUB_STEP_SUMMARY
