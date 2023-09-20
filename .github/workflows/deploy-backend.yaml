@@ -3,18 +3,17 @@ name: Deploy
 on:
   workflow_call:
     inputs:
-      service-name:
-        type: string
-        required: true
       audit:
+        description: Whether an audit should be run to detect vulnerabilities in packages
         type: boolean
         default: true
         required: false
       audit-level:
+        description: Minimum level at which the audit check should fail if detected
         type: string
         required: false
         default: high
-        
+
     secrets:
       DES_ACCESS_TOKEN:
         required: true
@@ -38,6 +37,9 @@ jobs:
         id: nvm
         run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
+      - name: 🔍 Determine service name
+        run: echo "SERVICE_NAME=$(jq '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
       - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
         uses: actions/setup-node@v3
         with:
@@ -52,7 +54,7 @@ jobs:
 
       - name: ➕ Install dependencies
         id: npm-ci
-        run: npm ci    
+        run: npm ci
 
       - name: 🕵️‍♀️ Audit production dependencies
         if: ${{ inputs.audit == true }}
@@ -84,7 +86,7 @@ jobs:
       - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v3
         with:
-          name: '${{inputs.service-name}}-artefacts-${{github.run_id}}'
+          name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
           path: |
             artefacts/*
             reports/*
@@ -104,14 +106,14 @@ jobs:
         id: create_manifest
         run: |
           version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
-          file_name="${{inputs.service-name}}_${version}.$(date +%s).manifest"
+          file_name="${{env.SERVICE_NAME}}_${version}.$(date +%s).manifest"
           echo "file_name=${file_name}" >> $GITHUB_OUTPUT
           
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
             aws s3 ls \
             mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
             | sort -r | head -n 1 | cut -d '-' -f 4-
-            
+          
             echo "${func}_version = ${version}" >> $file_name
           done
 
@@ -126,7 +128,7 @@ jobs:
           FILE="TestReports-${name/"manifest"/"zip"}"
           zip -r $FILE reports/
           aws s3 cp $FILE \
-          s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{inputs.service-name}}/test-reports/
+          s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
           echo "## Reports" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
 
