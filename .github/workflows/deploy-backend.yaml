@@ -131,7 +131,7 @@ jobs:
         run: |
           major_minor_version='0.0'
           component_version=${major_minor_version}.$(node -e 'console.log(Date.now())')
-          component_manifest_file="${component}_${component_version}.tfvars"
+          component_manifest_file="${{ inputs.component }}_${component_version}.tfvars"
 
           declare -A COMPONENT_MICROSERVICES
           COMPONENT_MICROSERVICES=(${{ vars.DES_COMPONENT_SERVICES }})
