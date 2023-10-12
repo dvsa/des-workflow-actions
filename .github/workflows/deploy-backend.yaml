@@ -133,12 +133,8 @@ jobs:
           component_version=${major_minor_version}.$(node -e 'console.log(Date.now())')
           component_manifest_file="${component}_${component_version}.tfvars"
 
-          declare -A COMPONENT_MICROSERVICES
-          COMPONENT_MICROSERVICES=(${{ vars.DES_COMPONENT_SERVICES }})
-          echo ${{ vars.DES_COMPONENT_SERVICES }}
-          echo ${{ vars.DES_COMPONENT_SERVICES }}[${{ inputs.component }}]
-          component_services=$COMPONENT_MICROSERVICES[${{ inputs.component }}]
-          echo $component_services
+          declare -A component_services
+          component_services=${${{ vars.DES_COMPONENT_SERVICES }}[${{ inputs.component }}]}
 
           IFS=" " read -ra services <<< "$component_services"
 
