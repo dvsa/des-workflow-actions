@@ -13,6 +13,10 @@ on:
         type: string
         required: false
         default: high
+      component:
+        description: The associated Terraform component for the service
+        type: string
+        required: true
 
     secrets:
       DES_ACCESS_TOKEN:
@@ -29,6 +33,7 @@ permissions:
 jobs:
   run-deploy:
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v3
@@ -120,7 +125,29 @@ jobs:
           aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
+          
+      - name: ☁️️ Component Manifest
+        id: create_component_manifest
+        run: |
+          major_minor_version='0.0'
+          component_version=$major_minor_version.$(node -e 'console.log(Date.now())')
+          component_manifest_file="${{ inputs.component }}_${component_version}.tfvars"
+          component_services=${{ vars.COMPONENT_SERVICES['$component'] }}
 
+          IFS=" " read -ra services <<< "$component_services"
+
+          for service in "${services[@]}"; do
+            manifest_version=$(aws s3 ls s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/$service_ |
+            sort -r | grep --invert-match release | head -n 1 | cut -d '_' -f 2) | cut -d '.' -f 1-3
+
+            aws s3 cp s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_${manifest_version}.manifest $service.tfvars
+            cat $service.tfvars >> $component_manifest_file
+          done
+
+          aws s3 cp $component_manifest_file s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
+          echo "## Component Manifests:" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded $component_manifest_file to S3" >> $GITHUB_STEP_SUMMARY
+            
       - name: ☁️ Upload Test Reports to S3
         id: s3-upload-reports
         run: |
