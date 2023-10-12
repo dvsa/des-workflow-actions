@@ -134,7 +134,7 @@ jobs:
           component_manifest_file="${component}_${component_version}.tfvars"
 
           declare -A component_services
-          component_services=${${{ vars.DES_COMPONENT_SERVICES }}[${{ inputs.component }}]}
+          component_services=${(${{ vars.DES_COMPONENT_SERVICES }})[${{ inputs.component }}]}
 
           IFS=" " read -ra services <<< "$component_services"
 
