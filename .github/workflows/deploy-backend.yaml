@@ -135,7 +135,10 @@ jobs:
 
           declare -A COMPONENT_MICROSERVICES
           COMPONENT_MICROSERVICES=(${{ vars.COMPONENT_SERVICES }})
-          component_services=${COMPONENT_MICROSERVICES}[${{ inputs.component }}]
+          echo ${{ vars.COMPONENT_SERVICES }}
+          echo ${{ vars.COMPONENT_SERVICES }}[${{ inputs.component }}]
+          component_services=$COMPONENT_MICROSERVICES[${{ inputs.component }}]
+          echo $component_services
 
           IFS=" " read -ra services <<< "$component_services"
 
