@@ -126,12 +126,11 @@ jobs:
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
           
-      - name: Get Component Microservices
-        uses: dvsa/des-workflow-actions/.github/actions/get-component-microservices@MES-9097-add-component-manifest-for-deploy-be
-        id: get-component-microservices
-        with:
-          component: ${{ inputs.component }}
-      - run: echo "${{ steps.get-component-microservices.outputs.microservices }}"
+      # - name: Get Component Microservices
+      #   uses: dvsa/des-workflow-actions/.github/actions/get-component-microservices@MES-9097-add-component-manifest-for-deploy-be
+      #   id: get-component-microservices
+      #   with:
+      #     component: ${{ inputs.component }}
 
       - name: ☁️️ Create Component Manifest
         id: create_component_manifest
