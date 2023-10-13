@@ -126,8 +126,7 @@ jobs:
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
           
-      - name: ☁️️ Component Manifest
-        id: create_component_manifest
+      - name: ☁️️ Create Component Manifest
         run: |
           major_minor_version='0.0'
           component_version=${major_minor_version}.$(node -e 'console.log(Date.now())')
@@ -135,10 +134,7 @@ jobs:
 
           declare -A COMPONENT_MICROSERVICES
           COMPONENT_MICROSERVICES=(${{ vars.DES_COMPONENT_SERVICES }})
-          component_services=${COMPONENT_MICROSERVICES[${{ inputs.component }}]}
-          echo $component_services
-
-          IFS=" " read -ra services <<< "$component_services"
+          IFS=" " read -ra services <<< "${COMPONENT_MICROSERVICES[${{ inputs.component }}]}"
 
           for service in "${services[@]}"; do
             manifest_version=$(aws s3 ls s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_ |
@@ -149,7 +145,7 @@ jobs:
           done
 
           aws s3 cp $component_manifest_file s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
-          echo "## Component Manifests:" >> $GITHUB_STEP_SUMMARY
+          echo "## Create Component Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $component_manifest_file to S3" >> $GITHUB_STEP_SUMMARY
             
       - name: ☁️ Upload Test Reports to S3
