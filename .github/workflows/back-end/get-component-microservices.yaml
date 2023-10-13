@@ -1,0 +1,38 @@
+name: Get Component Microservices
+
+inputs:
+  component:
+    description: Component Name
+    required: true
+
+outputs:
+  list:
+    description: Component Microservices
+    value: ${{ steps.service.outputs.list }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Determine services
+      id: service
+      shell: bash
+      run: |
+        declare -A services
+
+        services=(
+            ["api"]="journal authoriser configuration logs result documents user delegated-booking driver reference-data"
+            ["drs"]="data-poller result-processing mi-export"
+            ["dms"]="data-migration"
+        )
+
+        component=${{ inputs.component }}
+
+        if [[ -z $component ]] || [[ -z ${services[$component]} ]]; then
+            echo "Invalid component or component not found."
+            exit 1
+        fi
+
+        IFS=' ' read -r -a service_array <<< "${services[$component]}"
+
+        echo "microservices=${service_array[@]}" >> $GITHUB_OUTPUT
+ 

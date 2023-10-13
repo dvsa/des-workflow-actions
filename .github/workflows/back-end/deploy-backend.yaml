@@ -126,19 +126,24 @@ jobs:
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
           
+      - name: Get Component Microservices
+        uses: ./.github/workflows/back-end/get-component-microservices
+        id: get-component-microservices
+        with:
+          component: ${{ inputs.component }}
+      - run: echo "${{ steps.get-component-microservices.outputs.microservices }}"
+
       - name: ☁️️ Create Component Manifest
+        id: create_component_manifest
         run: |
           major_minor_version='0.0'
           component_version=${major_minor_version}.$(node -e 'console.log(Date.now())')
           component_manifest_file="${{ inputs.component }}_${component_version}.tfvars"
+          echo "component_manifest_file=${component_manifest_file}" >> $GITHUB_OUTPUT
 
-          declare -A COMPONENT_MICROSERVICES
-          COMPONENT_MICROSERVICES=(${{ vars.DES_COMPONENT_SERVICES }})
-          IFS=" " read -ra services <<< "${COMPONENT_MICROSERVICES[${{ inputs.component }}]}"
-
-          for service in "${services[@]}"; do
-            manifest_version=$(aws s3 ls s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_ |
-            sort -r | grep --invert-match release | head -n 1 | cut -d '_' -f 2 | cut -d '.' -f 1-3 )
+          for service in "${{ steps.get-component-microservices.outputs.microservices }}"; do
+            manifest_version=$(aws s3 ls s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_ \
+            | sort -r | grep --invert-match release | head -n 1 | cut -d '_' -f 2 | cut -d '.' -f 1-3 )
 
             aws s3 cp s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_${manifest_version}.manifest ${service}.tfvars
             cat $service.tfvars >> $component_manifest_file
@@ -158,6 +163,14 @@ jobs:
           s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
           echo "## Reports" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚀 Deploy ${{ inputs.component }} Component to Dev
+        uses: dvsa/des-terraform/.github/workflows/plan.yaml@MES-9097-gh-actions-deploy-be
+        with:
+          tf-component: ${{ inputs.component }}
+          tf-environment: dev
+          tf-region: eu-west-1
+          tf_component_version: ${{ steps.create_component_manifest.outputs.component_manifest_file }}
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
