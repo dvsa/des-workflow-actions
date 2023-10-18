@@ -141,9 +141,9 @@ jobs:
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do            
-            lambda_function_name=$(aws lambda list-functions --query \
-            "Functions[?Handler == '${func}.handler'].FunctionName" \
-            | jq -r ".[] | select(startswith(\"mes-dev-${{ inputs.component }}\"))")
+            lambda_function_name=$(aws lambda list-functions \
+            --query "Functions[?starts_with(FunctionName, 'mes-dev-${{ inputs.component }}') \
+            && Handler == '${func}.handler'].FunctionName"
             
             if [[ -z $lambda_function_name ]]; then
               echo "No equivalent Lambda function found for ${func}. Deployment aborted."
