@@ -115,42 +115,16 @@ jobs:
           echo "file_name=${file_name}" >> $GITHUB_OUTPUT
           
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-            aws s3 ls \
+            function_version=$(aws s3 ls \
             mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
-            | sort -r | head -n 1 | cut -d '-' -f 4-
+            | sort -r | head -n 1 | cut -d '-' -f 4-)
           
-            echo "${func}_version = ${version}" >> $file_name
+            echo "${func}_version = ${function_version}" >> $file_name
           done
 
           aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
-          
-# - name: Get Component Microservices
-#   uses: dvsa/des-workflow-actions/.github/actions/get-component-microservices@MES-9097-add-component-manifest-for-deploy-be
-#   id: get-component-microservices
-#   with:
-#     component: ${{ inputs.component }}
-
-      # - name: ☁️️ Create Component Manifest
-      #   id: create_component_manifest
-      #   run: |
-      #     major_minor_version='0.0'
-      #     component_version=${major_minor_version}.$(node -e 'console.log(Date.now())')
-      #     component_manifest_file="${{ inputs.component }}_${component_version}.tfvars"
-      #     echo "component_manifest_file=${component_manifest_file}" >> $GITHUB_OUTPUT
-
-      #     for service in "${{ steps.get-component-microservices.outputs.microservices }}"; do
-      #       manifest_version=$(aws s3 ls s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_ \
-      #       | sort -r | grep --invert-match release | head -n 1 | cut -d '_' -f 2 | cut -d '.' -f 1-3 )
-
-      #       aws s3 cp s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/${service}_${manifest_version}.manifest ${service}.tfvars
-      #       cat $service.tfvars >> $component_manifest_file
-      #     done
-
-      #     aws s3 cp $component_manifest_file s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/releases/
-      #     echo "## Create Component Manifests:" >> $GITHUB_STEP_SUMMARY
-      #     echo "✅ Uploaded $component_manifest_file to S3" >> $GITHUB_STEP_SUMMARY
             
       - name: ☁️ Upload Test Reports to S3
         id: s3-upload-reports
@@ -163,14 +137,25 @@ jobs:
           echo "## Reports" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
 
-# Can't do this here, it is a reusable workflow not an action
-# - name: 🚀 Deploy ${{ inputs.component }} Component to Dev
-#   uses: dvsa/des-terraform/.github/workflows/plan.yaml@MES-9097-gh-actions-deploy-be
-#   with:
-#     tf-component: ${{ inputs.component }}
-#     tf-environment: dev
-#     tf-region: eu-west-1
-#     tf_component_version: ${{ steps.create_component_manifest.outputs.component_manifest_file }}
+      - name: 🚀 Deploy Lambda Package
+        run: |
+          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
+          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do            
+            lambda_function_name=$(aws lambda list-functions --query \
+            "Functions[?Handler == '${func}.handler'].FunctionName" \
+            | jq -r ".[] | select(startswith(\"mes-dev-${{ inputs.component }}\"))")
+            
+            if [[ -z $lambda_function_name ]]; then
+              echo "No equivalent Lambda function found for ${func}. Deployment aborted."
+              exit 1
+            fi
+
+            artefact_file_name=$(find artefacts -type f -name ${func}*)
+            aws lambda update-function-code \
+            --function-name $lambda_function_name \
+            --zip-file fileb://${artefact_file_name}
+            echo "✅ Deployed ${artefact_file_name} to Lambda" >> $GITHUB_STEP_SUMMARY
+          done
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
