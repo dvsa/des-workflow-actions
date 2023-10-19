@@ -13,13 +13,9 @@ on:
         type: string
         required: false
         default: high
-
-    secrets:
-      DES_ACCESS_TOKEN:
-        required: true
-      AWS_ACCOUNT_ID:
-        required: true
-      MSTEAMS_WEBHOOK:
+      component:
+        description: The associated Terraform component for the service
+        type: string
         required: true
 
 permissions:
@@ -81,7 +77,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: eu-west-1
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-aws/env
+          parse-json-secrets: true
 
       - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v3
@@ -98,7 +100,7 @@ jobs:
           echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
           for artefact in "artefacts"/*; do
             aws s3 cp "$artefact" \
-            s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"${artefact#artefacts/}"
+            s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
             echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
 
@@ -110,14 +112,14 @@ jobs:
           echo "file_name=${file_name}" >> $GITHUB_OUTPUT
           
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-            aws s3 ls \
-            mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/functions/"$func" \
-            | sort -r | head -n 1 | cut -d '-' -f 4-
+            function_version=$(aws s3 ls \
+            ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"$func" \
+            | sort -r | head -n 1 | cut -d '-' -f 4-)
           
-            echo "${func}_version = ${version}" >> $file_name
+            echo "${func}_version = ${function_version}" >> $file_name
           done
 
-          aws s3 cp $file_name s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/releases/
+          aws s3 cp $file_name s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
 
@@ -128,9 +130,46 @@ jobs:
           FILE="TestReports-${name/"manifest"/"zip"}"
           zip -r $FILE reports/
           aws s3 cp $FILE \
-          s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
+          s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
           echo "## Reports" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔑 Configure NonProd AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🚀 Deploy Lambda Package
+        run: |
+          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
+          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do       
+            artefact_file_name=$(find artefacts -type f -name ${func}*)     
+            lambda_function_name=$(aws lambda list-functions \
+            --query "Functions[?starts_with(FunctionName, 'mes-dev-${{ inputs.component }}') \
+            && Handler == '${func}.handler'].FunctionName" | jq -r '.[]')
+            
+            if [[ -z $lambda_function_name ]]; then
+              echo "No equivalent Lambda function found for ${func}. Deployment aborted."
+              exit 1
+            fi
+
+            aws lambda update-function-code --function-name $lambda_function_name \
+            --zip-file fileb://${artefact_file_name} \
+            --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
+            
+            aws lambda wait function-updated --function-name $lambda_function_name
+            status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
+            --query "LastUpdateStatus" --output text)
+
+            if [ $status == "Failed" ]; then
+              echo "Failed to update ${lambda_function_name}."
+              exit 1
+            fi
+            
+            echo "Successfully updated ${lambda_function_name}."
+            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
+          done
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
