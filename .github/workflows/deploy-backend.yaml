@@ -148,7 +148,8 @@ jobs:
       - name: 🚀 Deploy Lambda Package
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
-          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do            
+          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do       
+            artefact_file_name=$(find artefacts -type f -name ${func}*)     
             lambda_function_name=$(aws lambda list-functions \
             --query "Functions[?starts_with(FunctionName, 'mes-dev-${{ inputs.component }}') \
             && Handler == '${func}.handler'].FunctionName" | jq -r '.[]')
@@ -158,14 +159,21 @@ jobs:
               exit 1
             fi
 
-            artefact_file_name=$(find artefacts -type f -name ${func}*)
-            aws lambda update-function-code \
-            --function-name $lambda_function_name \
+            aws lambda update-function-code --function-name $lambda_function_name \
             --zip-file fileb://${artefact_file_name} \
-            --query "[FunctionName, LastUpdateStatus]"
+            --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
             
             aws lambda wait function-updated --function-name $lambda_function_name
-            echo "✅ Deployed ${artefact_file_name} to Lambda" >> $GITHUB_STEP_SUMMARY
+            status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
+            --query "LastUpdateStatus" --output text)
+
+            if [ $status == "Failed" ]; then
+              echo "Failed to update ${lambda_function_name}."
+              exit 1
+            fi
+            
+            echo "Successfully updated ${lambda_function_name}."
+            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
           done
 
       - name: 🔔 Send MS Teams Notification
