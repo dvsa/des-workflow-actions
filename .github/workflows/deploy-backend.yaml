@@ -161,7 +161,10 @@ jobs:
             artefact_file_name=$(find artefacts -type f -name ${func}*)
             aws lambda update-function-code \
             --function-name $lambda_function_name \
-            --zip-file fileb://${artefact_file_name}
+            --zip-file fileb://${artefact_file_name} \
+            --query "[FunctionName, LastUpdateStatus]"
+            
+            aws lambda wait function-updated --function-name $lambda_function_name
             echo "✅ Deployed ${artefact_file_name} to Lambda" >> $GITHUB_STEP_SUMMARY
           done
 
