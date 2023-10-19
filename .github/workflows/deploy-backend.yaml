@@ -80,7 +80,7 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: Get AWS Secrets
+      - name: 🤫 Get AWS Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
           secret-ids: des-aws/env
