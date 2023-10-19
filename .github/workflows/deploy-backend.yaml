@@ -25,7 +25,6 @@ permissions:
 jobs:
   run-deploy:
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v3
@@ -123,7 +122,7 @@ jobs:
           aws s3 cp $file_name s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
-            
+
       - name: ☁️ Upload Test Reports to S3
         id: s3-upload-reports
         run: |
