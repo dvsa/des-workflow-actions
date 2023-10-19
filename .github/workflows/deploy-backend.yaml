@@ -23,6 +23,8 @@ on:
         required: true
       AWS_ACCOUNT_ID:
         required: true
+      AWS_NONPROD_ACCOUNT_ID:
+        required: true
       MSTEAMS_WEBHOOK:
         required: true
 
@@ -136,6 +138,12 @@ jobs:
           s3://mes-${{ secrets.AWS_ACCOUNT_ID }}-mgmt-mgmt-artefacts-repository/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
           echo "## Reports" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔑 Configure NonProd AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+          aws-region: eu-west-1
 
       - name: 🚀 Deploy Lambda Package
         run: |
