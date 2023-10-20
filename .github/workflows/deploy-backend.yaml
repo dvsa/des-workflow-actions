@@ -141,6 +141,7 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🚀 Deploy Lambda Package
+        id: deploy-lambda-package
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do       
@@ -172,6 +173,7 @@ jobs:
           done
 
       - name: 🔔 Send MS Teams Notification
+        if: always()
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
