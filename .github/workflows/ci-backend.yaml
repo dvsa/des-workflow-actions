@@ -23,6 +23,9 @@ jobs:
         id: nvm
         run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
+      - name: 🔍 Determine service name
+        run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
       - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
         uses: actions/setup-node@v3
         with:
@@ -52,3 +55,14 @@ jobs:
         run: |
           npx sls dynamodb install
           npm run test:integration --if-present
+
+      - name: 📦 Package for Lambda
+        run: npm run package
+
+      - name: ☁️ Upload to GitHub Summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
+          retention-days: 3
+          path: |
+            artefacts/*
