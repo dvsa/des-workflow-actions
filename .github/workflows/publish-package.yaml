@@ -23,14 +23,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Read .nvmrc
         id: nvm
         run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
       - name: Setup Node.js ${{ env.NVMRC }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NVMRC }}
           cache: 'npm'
