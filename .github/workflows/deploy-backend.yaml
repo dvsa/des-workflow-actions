@@ -88,7 +88,7 @@ jobs:
           SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
           args: >
-            "-Dsonar.projectKey=mes-${{ env.SERVICE_NAME }}-service"
+            -Dsonar.projectKey=mes-journal-service
             -Dsonar.sources=src
             -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
             -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
