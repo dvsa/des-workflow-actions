@@ -69,6 +69,24 @@ jobs:
           mkdir -p reports
           npm run test:jasmine-coverage | tee reports/unit_tests.output
 
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 🧐 SonarQube Scan
+        id: sonarqube-scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          args: >
+            -Dsonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
+            -Dsonar.sources=src
+            -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+
       - name: 📦 Package for Lambda
         id: npm-package
         run: npm run package
@@ -78,12 +96,6 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
-
-      - name: 🤫 Get AWS Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v1
-        with:
-          secret-ids: des-aws/env
-          parse-json-secrets: true
 
       - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v3
@@ -100,7 +112,7 @@ jobs:
           echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
           for artefact in "artefacts"/*; do
             aws s3 cp "$artefact" \
-            s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
+            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
             echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
 
@@ -113,13 +125,13 @@ jobs:
           
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
             function_version=$(aws s3 ls \
-            ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"$func" \
+            ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"$func" \
             | sort -r | head -n 1 | cut -d '-' -f 4-)
           
             echo "${func}_version = ${function_version}" >> $file_name
           done
 
-          aws s3 cp $file_name s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
+          aws s3 cp $file_name s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
 
@@ -130,7 +142,7 @@ jobs:
           FILE="TestReports-${name/"manifest"/"zip"}"
           zip -r $FILE reports/
           aws s3 cp $FILE \
-          s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
+          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
           echo "## Reports" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
 
