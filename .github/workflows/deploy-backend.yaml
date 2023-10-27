@@ -69,6 +69,12 @@ jobs:
           mkdir -p reports
           npm run test:jasmine-coverage | tee reports/unit_tests.output
 
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
       - name: 🤫 Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
@@ -90,12 +96,6 @@ jobs:
       - name: 📦 Package for Lambda
         id: npm-package
         run: npm run package
-
-      - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v3
