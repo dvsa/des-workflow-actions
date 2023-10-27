@@ -85,8 +85,8 @@ jobs:
         id: sonarqube-scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
           args: >
             -Dsonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
             -Dsonar.sources=src
