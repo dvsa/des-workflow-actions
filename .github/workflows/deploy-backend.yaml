@@ -81,6 +81,12 @@ jobs:
           secret-ids: des-globals/env
           parse-json-secrets: true
 
+          
+      - name: ⚙️ Set SonarQube Properties
+        id: set-sonarqube-properties
+        run: |
+          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
+
       - name: 🧐 SonarQube Scan
         id: sonarqube-scan
         uses: sonarsource/sonarqube-scan-action@master
