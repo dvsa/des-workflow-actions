@@ -81,23 +81,18 @@ jobs:
           secret-ids: des-globals/env
           parse-json-secrets: true
 
-          
-      - name: ⚙️ Set SonarQube Properties
-        id: set-sonarqube-properties
-        run: |
-          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
-
       - name: 🧐 SonarQube Scan
         id: sonarqube-scan
         uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
+        with:
           args: >
             -sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
             -Dsonar.sources=src
             -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
             -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+        env:
+          SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
 
       - name: 📦 Package for Lambda
         id: npm-package
