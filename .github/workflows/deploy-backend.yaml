@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   run-deploy:
-    runs-on: ubuntu-latest
+    runs-on: mito-2
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v3
