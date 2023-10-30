@@ -86,7 +86,7 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@master
         with:
           args: >
-            -sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
+            -Dsonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
             -Dsonar.sources=src
             -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
             -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
