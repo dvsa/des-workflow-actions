@@ -83,16 +83,15 @@ jobs:
 
       - name: 🧐 SonarQube Scan
         id: sonarqube-scan
-        uses: sonarsource/sonarqube-scan-action@master
-        with:
-          args: >
-            -Dsonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
-            -Dsonar.sources=src
-            -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
-            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
-        env:
-          SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
+        run: |
+          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
+          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+
+          sonar-scanner \
+          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
+          -Dsonar.sources=src \
+          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
+          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
 
       - name: 📦 Package for Lambda
         id: npm-package
