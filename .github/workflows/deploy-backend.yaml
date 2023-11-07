@@ -17,6 +17,12 @@ on:
         description: The associated Terraform component for the service
         type: string
         required: true
+      branch:
+        description: The branch of the service to build the artefact/s from
+        type: string
+        required: true
+        default: develop
+
 
 permissions:
   id-token: write
@@ -33,6 +39,8 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
 
       - name: ⚙️ Set Up Node
         id: node-setup

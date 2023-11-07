@@ -1,0 +1,89 @@
+name: Create Microservice Release tfvars
+description: "Creates the release tfvars for a microservice"
+inputs:
+  component:
+    description: The associated Terraform component for the service
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Get Branch
+      shell: bash
+      run: |
+        echo "BRANCH=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_ENV
+
+    - name: 📨 Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.BRANCH }}
+
+    - name: 🔍 Determine service name
+      shell: bash
+      run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
+    - name: 🔑 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+    - name: 🤫 Get AWS Secrets
+      uses: aws-actions/aws-secretsmanager-get-secrets@v1
+      with:
+        secret-ids: des-aws/env
+        parse-json-secrets: true
+
+    - name: Get Short Commit
+      shell: bash
+      run: echo "SHORT_COMMIT=$(git rev-parse --short HEAD) >> $GITHUB_ENV"
+
+    - name: Check S3 for Files
+      id: s3_files
+      shell: bash
+      run: |
+        build_required=false
+        release_tfvars_s3=$(aws s3 ls |
+        ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ inputs.component }}_${{ github.ref_name }}.tfvars)
+        
+        if [[ -n release_tfvars_s3 ]]; then
+          echo "tfvars for ${{ github.ref_name }} already exist, this job will not override existing tfvars."
+          exit 1
+        fi
+        
+        if [[ -z ${{ env.SHORT_COMMIT }} ]]; then
+          echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} for commit ${{ env.SHORT_COMMIT }}."
+          echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}
+          build_required=true
+        fi
+        
+        echo "build_required=$build_required >> $GITHUB_OUTPUT"
+
+    - name: Release Build
+      if: ${{ steps.s3_files.outputs.build_required }}
+      uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend.yaml@main
+      with:
+        component: ${{ inputs.component }}
+        branch: ${{ env.BRANCH }}
+
+    - name: Create Release tfvars
+      id: create_tfvars
+      shell: bash
+      run: |
+        file_name=${{ inputs.component }}_${{ github.ref_name }}.tfvars
+        echo "file_name=$file_name >> $GITHUB_OUTPUT"
+        
+        version=$(aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
+        grep ${{ env.SHORT_COMMIT }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
+        
+        for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+          echo "${function}_version = \"${version}-${{ env.SHORT_COMMIT }}.zip\"" >> $file_name
+        done  
+
+    - name: Upload Release tfvars
+      shell: bash
+      run: |
+        aws s3 cp ${{ steps.create_tfvars.outputs.file_name }} \
+        s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/"${{ steps.create_tfvars.outputs.file_name }}"
+        
+        
