@@ -224,6 +224,7 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🚀 Deploy Lambda Package
+        if: ${{ inputs.branch  == 'develop' }}
         id: deploy-lambda-package
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY

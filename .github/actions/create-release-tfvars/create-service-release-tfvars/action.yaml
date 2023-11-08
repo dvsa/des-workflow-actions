@@ -1,0 +1,40 @@
+name: Create Microservice Release tfvars
+description: "Creates and uploads the release tfvars for a microservice"
+inputs:
+  component:
+    description: The associated Terraform component for the service
+    required: true
+  secrets:
+    description: "Organization secrets toJSON"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 🔑 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ fromJSON(inputs.secrets).AWS_ACCOUNT_ID }}:role/github-actions
+        aws-region: ${{ fromJSON(inputs.secrets).DVSA_AWS_REGION }}
+
+    - name: Create Release tfvars
+      id: create_tfvars
+      shell: bash
+      run: |
+        file_name=${{ inputs.component }}_${{ github.ref_name }}.tfvars
+        echo "file_name=$file_name >> $GITHUB_OUTPUT"
+        
+        version=$(aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
+        grep ${{ env.SHORT_COMMIT }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
+        
+        for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+          echo "${function}_version = \"${version}-${{ env.SHORT_COMMIT }}.zip\"" >> $file_name
+        done  
+
+    - name: Upload Release tfvars
+      shell: bash
+      run: |
+        aws s3 cp ${{ steps.create_tfvars.outputs.file_name }} \
+        s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/"${{ steps.create_tfvars.outputs.file_name }}"
+        
+        
