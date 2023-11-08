@@ -4,6 +4,8 @@ inputs:
   component:
     description: The associated Terraform component for the service
     required: true
+  secrets:
+    description: 'Organization secrets toJSON'
 
 runs:
   using: composite
@@ -25,8 +27,8 @@ runs:
     - name: 🔑 Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+        role-to-assume: arn:aws:iam::${{ fromJSON(inputs.secrets).AWS_ACCOUNT_ID }}:role/github-actions
+        aws-region: ${{ fromJSON(inputs.secrets).DVSA_AWS_REGION }}
 
     - name: 🤫 Get AWS Secrets
       uses: aws-actions/aws-secretsmanager-get-secrets@v1
