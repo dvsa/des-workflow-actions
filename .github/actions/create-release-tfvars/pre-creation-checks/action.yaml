@@ -52,9 +52,9 @@ runs:
       run: |
         release_build_required=false
         release_tfvars_s3=$(aws s3 ls |
-        ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ inputs.component }}_${{ github.ref_name }}.tfvars)
+        ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ inputs.component }}_${{ github.ref_name }}.tfvars 2>/dev/null)
         
-        if [[ -n release_tfvars_s3 ]]; then
+        if [[ -n $release_tfvars_s3 ]]; then
           echo "tfvars for ${{ github.ref_name }} already exist, this job will not override existing tfvars."
           exit 1
         fi
