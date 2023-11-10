@@ -59,10 +59,13 @@ runs:
           exit 1
         fi
         
-        if [[ -z ${{ env.SHORT_COMMIT }} ]]; then
+        release_build_s3=$(aws s3 ls \
+        mes-138206776401-mgmt-mgmt-artefacts-repository/mes/gha/functions/ | grep env.SHORT_COMMIT 2>/dev/null)
+        
+        if [[ -z $release_build_s3 ]]; then
           echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} for commit ${{ env.SHORT_COMMIT }}."
           echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}
-          build_required=true
+          release_build_required=true
         fi
         
         echo "release_build_required=$release_build_required" >> $GITHUB_OUTPUT
