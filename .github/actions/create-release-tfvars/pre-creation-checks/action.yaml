@@ -65,4 +65,4 @@ runs:
           build_required=true
         fi
         
-        echo "release_build_required=$release_build_required >> $GITHUB_OUTPUT"
+        echo "release_build_required=$release_build_required" >> $GITHUB_OUTPUT
