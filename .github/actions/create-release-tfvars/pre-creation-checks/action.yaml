@@ -32,7 +32,7 @@ runs:
 
     - name: Get Short Commit
       shell: bash
-      run: echo "SHORT_COMMIT=$(git rev-parse --short HEAD) >> $GITHUB_ENV"
+      run: echo "SHORT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
     - name: 🔑 Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
