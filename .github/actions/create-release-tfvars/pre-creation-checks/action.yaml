@@ -72,9 +72,7 @@ runs:
       id: set_outputs
       shell: bash
       run: |
-        {
-          "branch=${{ env.BRANCH }}"
-          "service_name=${{ env.SERVICE_NAME }}"
-          "short_commit=${{ env.SHORT_COMMIT }}"
-          "release_build_required=$release_build_required"
-        } >> $GITHUB_OUTPUT
+          echo "branch=${{ env.BRANCH }}" >> $GITHUB_OUTPUT
+          echo "service_name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
+          echo "short_commit=${{ env.SHORT_COMMIT }}" >> $GITHUB_OUTPUT
+          echo "release_build_required=$release_build_required >> $GITHUB_OUTPUT
