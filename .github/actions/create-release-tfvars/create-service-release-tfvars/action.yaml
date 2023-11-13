@@ -31,7 +31,7 @@ runs:
       shell: bash
       run: |
         file_name=${{ inputs.component }}_${{ github.ref_name }}.tfvars
-        echo "file_name=$file_name >> $GITHUB_OUTPUT"
+        echo "file_name=$file_name" >> $GITHUB_OUTPUT
         
         version=$(aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
         grep ${{ inputs.short_commit }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
@@ -44,6 +44,6 @@ runs:
       shell: bash
       run: |
         aws s3 cp ${{ steps.create_tfvars.outputs.file_name }} \
-        s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/"${{ steps.create_tfvars.outputs.file_name }}"
+        s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ steps.create_tfvars.outputs.file_name }}
         
         
