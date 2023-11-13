@@ -30,13 +30,14 @@ runs:
       id: create_tfvars
       shell: bash
       run: |
-        echo "FILE_NAME=${{ inputs.service_name }}_${{ github.ref_name }}.tfvars" >> $GITHUB_ENV
+        file_name=${{ inputs.service_name }}_${{ github.ref_name }}.tfvars
+        echo "FILE_NAME=$file_name" >> $GITHUB_ENV
         
         version=$(aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
         grep ${{ inputs.short_commit }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
         
         for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-          echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> ${{ env.FILE_NAME }}
+          echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> $file_name
         done  
 
     - name: Upload Release tfvars
