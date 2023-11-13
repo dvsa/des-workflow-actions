@@ -8,6 +8,9 @@ inputs:
     description: "Organization secrets toJSON"
     required: true
 outputs:
+  branch:
+    description: "The release branch name"
+    value: ${{ steps.get_branch.outputs.BRANCH }}
   release_build_required:
     description: "Whether a release build is required for the microservice or not"
     value: ${{ steps.s3_files.outputs.release_build_required }}
