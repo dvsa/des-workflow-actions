@@ -1,8 +1,8 @@
 name: Create Microservice Release tfvars
 description: "Creates and uploads the release tfvars for a microservice"
 inputs:
-  component:
-    description: "The associated Terraform component for the service"
+  service_name:
+    description: "The name of the microservice"
     required: true
   short_commit:
     description: "The short commit for the release branch"
@@ -30,20 +30,19 @@ runs:
       id: create_tfvars
       shell: bash
       run: |
-        file_name=${{ inputs.component }}_${{ github.ref_name }}.tfvars
-        echo "file_name=$file_name" >> $GITHUB_OUTPUT
+        echo "FILE_NAME=${{ inputs.service_name }}_${{ github.ref_name }}.tfvars" >> $GITHUB_ENV
         
         version=$(aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
         grep ${{ inputs.short_commit }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
         
         for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-          echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> $file_name
+          echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> ${{ env.FILE_NAME }}
         done  
 
     - name: Upload Release tfvars
       shell: bash
       run: |
-        aws s3 cp ${{ steps.create_tfvars.outputs.file_name }} \
-        s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ steps.create_tfvars.outputs.file_name }}
-        
+        aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ env.FILE_NAME }}
+        echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Uploaded ${{ env.FILE_NAME }} to S3" >> $GITHUB_STEP_SUMMARY
         
