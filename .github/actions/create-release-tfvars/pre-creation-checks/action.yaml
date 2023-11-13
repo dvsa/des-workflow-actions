@@ -2,7 +2,7 @@ name: Check for Release tfvars
 description: "Checks if the release tfvars have already been created for a microservice"
 inputs:
   component:
-    description: The associated Terraform component for the service
+    description: "The associated Terraform component for the service"
     required: true
   secrets:
     description: "Organization secrets toJSON"
@@ -11,6 +11,9 @@ outputs:
   branch:
     description: "The release branch name"
     value: ${{ steps.get_branch.outputs.BRANCH }}
+  short_commit:
+    description: "The short commit for the release branch"
+    value: ${{ steps.get_short_commit.outputs.short_commit }}
   release_build_required:
     description: "Whether a release build is required for the microservice or not"
     value: ${{ steps.s3_files.outputs.release_build_required }}
@@ -22,20 +25,21 @@ runs:
       id: get_branch
       shell: bash
       run: |
-        echo "BRANCH=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
+        echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
 
     - name: 📨 Checkout
       uses: actions/checkout@v4
       with:
-        ref: ${{ steps.get_branch.outputs.BRANCH }}
+        ref: ${{ steps.get_branch.outputs.branch }}
 
     - name: 🔍 Determine service name
       shell: bash
       run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
 
     - name: Get Short Commit
+      id: get_short_commit
       shell: bash
-      run: echo "SHORT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      run: echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
     - name: 🔑 Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -61,8 +65,9 @@ runs:
           exit 1
         fi
         
-        if ! aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | grep env.SHORT_COMMIT; then
-          echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} for commit ${{ env.SHORT_COMMIT }}."
+        if ! aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ \
+        | grep ${{ steps.get_short_commit.outputs.short_commit }}; then
+          echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} for commit ${{ steps.get_short_commit.outputs.short_commit }}."
           echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}."
           release_build_required=true
         fi

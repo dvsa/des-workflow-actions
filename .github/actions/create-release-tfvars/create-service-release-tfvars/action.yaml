@@ -2,7 +2,10 @@ name: Create Microservice Release tfvars
 description: "Creates and uploads the release tfvars for a microservice"
 inputs:
   component:
-    description: The associated Terraform component for the service
+    description: "The associated Terraform component for the service"
+    required: true
+  short_commit:
+    description: "The short commit for the release branch"
     required: true
   secrets:
     description: "Organization secrets toJSON"
@@ -25,10 +28,10 @@ runs:
         echo "file_name=$file_name >> $GITHUB_OUTPUT"
         
         version=$(aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
-        grep ${{ env.SHORT_COMMIT }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
+        grep ${{ inputs.short_commit }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
         
         for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-          echo "${function}_version = \"${version}-${{ env.SHORT_COMMIT }}.zip\"" >> $file_name
+          echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> $file_name
         done  
 
     - name: Upload Release tfvars
