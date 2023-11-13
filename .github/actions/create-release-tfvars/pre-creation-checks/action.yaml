@@ -63,7 +63,7 @@ runs:
         
         if ! aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | grep env.SHORT_COMMIT; then
           echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} for commit ${{ env.SHORT_COMMIT }}."
-          echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}
+          echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}."
           release_build_required=true
         fi
         
