@@ -49,20 +49,16 @@ runs:
     - name: Check S3 for Files
       id: s3_files
       shell: bash
+      continue-on-error: true
       run: |
         release_build_required=false
-        release_tfvars_s3=$(aws s3 ls \
-        ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ inputs.component }}_${{ github.ref_name }}.tfvars 2>/dev/null)
-        
-        if [[ -n $release_tfvars_s3 ]]; then
+
+        if aws s3 ls s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ inputs.component }}_${{ github.ref_name }}.tfvars; then
           echo "tfvars for ${{ github.ref_name }} already exist, this job will not override existing tfvars."
           exit 1
         fi
         
-        release_build_s3=$(aws s3 ls \
-        mes-138206776401-mgmt-mgmt-artefacts-repository/mes/gha/functions/ | grep env.SHORT_COMMIT 2>/dev/null)
-        
-        if [[ -z $release_build_s3 ]]; then
+        if ! aws s3 ls ${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | grep env.SHORT_COMMIT; then
           echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} for commit ${{ env.SHORT_COMMIT }}."
           echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}
           release_build_required=true
