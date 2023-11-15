@@ -57,7 +57,7 @@ runs:
       run: |
         release_build_required=false
         if aws s3 ls s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/${{ env.SERVICE_NAME }}_${{ github.ref_name }}.manifest; then
-          echo "The manifest for ${{ github.ref_name }} already exist, this job will not override the existing manifest."
+          echo "The manifest for ${{ github.ref_name }} already exists, this job will not override the existing manifest."
           exit 1
         fi
         
