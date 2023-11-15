@@ -108,14 +108,15 @@ jobs:
       - name: 📝 Create Release manifest
         shell: bash
         run: |
-          file_name=${{ inputs.service_name }}_${{ github.ref_name }}.manifest
+          file_name=${{ needs.pre_creation_checks.outputs.service_name }}_${{ github.ref_name }}.manifest
           echo "FILE_NAME=$file_name" >> $GITHUB_ENV
           
           version=$(aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
-          grep ${{ inputs.short_commit }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
+          grep ${{ needs.pre_creation_checks.outputs.short_commit }} | grep --invert-match coverage | sort -r \
+          | cut -d '-' -f 4 | head -n 1)
           
           for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-            echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> $file_name
+            echo "${function}_version = \"${version}-${{ needs.pre_creation_checks.outputs.short_commit }}.zip\"" >> $file_name
           done  
 
       - name: ☁️ Upload Release manifest
