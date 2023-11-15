@@ -1,5 +1,5 @@
-name: Check for Release tfvars
-description: "Checks if the release tfvars have already been created for a microservice"
+name: Pre Creation Checks
+description: "Checks if the release manifest has already been created for a microservice and if the artefact has been built"
 inputs:
   secrets:
     description: "Organization secrets toJSON"
@@ -21,7 +21,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Get Branch
+    - name: 🔍 Get Branch
       shell: bash
       run: |
         echo "BRANCH=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_ENV
@@ -35,7 +35,7 @@ runs:
       shell: bash
       run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
 
-    - name: Get Short Commit
+    - name: 🔍 Get Short Commit
       shell: bash
       run: echo "SHORT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
@@ -56,9 +56,8 @@ runs:
       shell: bash
       run: |
         release_build_required=false
-
-        if aws s3 ls s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/releases/${{ env.SERVICE_NAME }}_${{ github.ref_name }}.tfvars; then
-          echo "The tfvars for ${{ github.ref_name }} already exist, this job will not override existing tfvars."
+        if aws s3 ls s3://${{ env.DES_AWS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/${{ env.SERVICE_NAME }}_${{ github.ref_name }}.manifest; then
+          echo "The manifest for ${{ github.ref_name }} already exist, this job will not override the existing manifest."
           exit 1
         fi
         
