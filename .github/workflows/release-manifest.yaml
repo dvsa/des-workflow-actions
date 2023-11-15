@@ -1,0 +1,136 @@
+name: Create Release Manifest
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: The associated Terraform component for the service if a release build is required
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  pre_creation_checks:
+    outputs:
+      branch: ${{ steps.get_branch.outputs.branch }}
+      service_name: ${{ steps.get_service.outputs.service_name }}
+      short_commit: ${{ steps.get_short_commit.outputs.short_commit }}
+      release_build_required: ${{ steps.s3_files.outputs.release_build_required }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Get Branch
+        id: get_branch
+        shell: bash
+        run: |
+          echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
+
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.get_branch.outputs.branch }}
+
+      - name: 🔍 Determine service name
+        id: get_service
+        shell: bash
+        run: echo "service_name=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Get Short Commit
+        id: get_short_commit
+        shell: bash
+        run: echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ fromJSON(inputs.secrets).AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ fromJSON(inputs.secrets).DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 🧐 Check S3 for Files
+        id: s3_files
+        shell: bash
+        env:
+          SERVICE_NAME: ${{ steps.get_service.outputs.service_name }}
+          SHORT_COMMIT: ${{ steps.get_short_commit.outputs.short_commit }}
+        run: |
+          release_build_required=false
+          s3_key="mes/gha/manifests/releases/${{ env.SERVICE_NAME }}_${{ github.ref_name }}.manifest"
+          if aws s3 ls s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/$s3_key; then
+            echo "The manifest for ${{ github.ref_name }} already exists, this job will not override the existing manifest."
+            exit 1
+          fi
+          
+          if ! aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | grep ${{ env.SHORT_COMMIT }}; then
+            echo "Artefacts do not exist for ${{ env.SERVICE_NAME }} service for commit ${{ env.SHORT_COMMIT }}."
+            echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}."
+            release_build_required=true
+          fi
+          
+          echo "RELEASE_BUILD_REQUIRED=$release_build_required" >> $GITHUB_OUTPUT
+
+  build_artefact_for_release:
+    needs: pre_creation_checks
+    if: ${{ needs.pre_creation_checks.outputs.release_build_required }}
+    uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend.yaml@MES-9153-gha-release-tfvars
+    with:
+      branch: ${{ needs.pre_creation_checks.outputs.branch }}
+      component: $${{ inputs.component }}
+    secrets: inherit
+
+  create_release_manifest:
+    needs: [pre_creation_checks, build_artefact_for_release]
+    if: |
+      always() &&
+      needs.pre_creation_checks.result == 'success' &&
+      (needs.build_artefact_for_release.result == 'success' || needs.build_artefact_for_release.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ fromJSON(inputs.secrets).AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ fromJSON(inputs.secrets).DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 📝 Create Release manifest
+        shell: bash
+        run: |
+          file_name=${{ inputs.service_name }}_${{ github.ref_name }}.manifest
+          echo "FILE_NAME=$file_name" >> $GITHUB_ENV
+          
+          version=$(aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
+          grep ${{ inputs.short_commit }} | grep --invert-match coverage | sort -r | cut -d '-' -f 4 | head -n 1)
+          
+          for function in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+            echo "${function}_version = \"${version}-${{ inputs.short_commit }}.zip\"" >> $file_name
+          done  
+
+      - name: ☁️ Upload Release manifest
+        shell: bash
+        run: |
+          aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/${{ env.FILE_NAME }}
+          echo "## Release Manifest:" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded ${{ env.FILE_NAME }} to S3" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔔 Send MS Teams Notification
+        if: always()
+        uses: skitionek/notify-microsoft-teams@v1.0.4
+        with:
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_RELEASE_MANIFEST}}
+          job: ${{ toJson(job) }}
+          needs: ${{ toJson(needs) }}
+          steps: ${{ toJson(steps) }}
+          overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
