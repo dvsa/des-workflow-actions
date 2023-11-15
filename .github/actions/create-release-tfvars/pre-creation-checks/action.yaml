@@ -66,6 +66,8 @@ runs:
           echo "Building an artefact for ${{ env.SERVICE_NAME }} service for ${{ github.ref_name }}."
           release_build_required=true
         fi
+        
+        echo "RELEASE_BUILD_REQUIRED=$release_build_required" >> $GITHUB_ENV
 
     - name: Set Outputs
       id: set_outputs
@@ -74,4 +76,4 @@ runs:
           echo "branch=${{ env.BRANCH }}" >> $GITHUB_OUTPUT
           echo "service_name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
           echo "short_commit=${{ env.SHORT_COMMIT }}" >> $GITHUB_OUTPUT
-          echo "release_build_required=$release_build_required" >> $GITHUB_OUTPUT
+          echo "release_build_required=${{ env.RELEASE_BUILD_REQUIRED }}" >> $GITHUB_OUTPUT
