@@ -101,6 +101,11 @@ jobs:
       (needs.build_artefact_for_release.result == 'success' || needs.build_artefact_for_release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.pre_creation_checks.outputs.branch }}
+
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
