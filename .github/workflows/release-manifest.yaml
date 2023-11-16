@@ -76,8 +76,16 @@ jobs:
           
           echo "release_build_required=$release_build_required" >> $GITHUB_OUTPUT
 
-  build_artefact_for_release:
+  build_artefact_for_release-check:
     needs: pre_creation_checks
+    if: ${{ needs.pre_creation_checks.outputs.release_build_required }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: echo ${{ needs.pre_creation_checks.outputs.release_build_required }}
+
+  build_artefact_for_release:
+    needs: [pre_creation_checks, build_artefact_for_release-check]
     if: ${{ needs.pre_creation_checks.outputs.release_build_required }}
     uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend.yaml@MES-9153-gha-release-tfvars
     with:
