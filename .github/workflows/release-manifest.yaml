@@ -82,7 +82,7 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend.yaml@main
     with:
       branch: ${{ needs.pre_creation_checks.outputs.branch }}
-      component: $${{ inputs.component }}
+      component: ${{ inputs.component }}
     secrets: inherit
 
   create_release_manifest:
