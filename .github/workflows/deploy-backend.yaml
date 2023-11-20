@@ -13,6 +13,11 @@ on:
         type: string
         required: false
         default: high
+      env:
+        description: The environment to deploy to
+        type: string
+        required: true
+        default: dev
       component:
         description: The associated Terraform component for the service
         type: string
@@ -145,11 +150,11 @@ jobs:
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
           for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do       
-            artefact_file_name=$(find artefacts -type f -name ${func}*)     
+            artefact_file_name=$(find artefacts -type f -name ${func}*)
             lambda_function_name=$(aws lambda list-functions \
-            --query "Functions[?starts_with(FunctionName, 'mes-dev-${{ inputs.component }}') \
+            --query "Functions[?starts_with(FunctionName, 'mes-${{ inputs.env }}-${{ inputs.component }}') \
             && Handler == '${func}.handler'].FunctionName" | jq -r '.[]')
-            
+          
             if [[ -z $lambda_function_name ]]; then
               echo "No equivalent Lambda function found for ${func}. Deployment aborted."
               exit 1
@@ -158,7 +163,7 @@ jobs:
             aws lambda update-function-code --function-name $lambda_function_name \
             --zip-file fileb://${artefact_file_name} \
             --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
-            
+          
             aws lambda wait function-updated --function-name $lambda_function_name
             status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
             --query "LastUpdateStatus" --output text)
@@ -167,7 +172,7 @@ jobs:
               echo "Failed to update ${lambda_function_name}."
               exit 1
             fi
-            
+          
             echo "Successfully updated ${lambda_function_name}."
             echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
           done
