@@ -215,7 +215,6 @@ jobs:
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          job: ${{ toJson(needs.run-deploy.outputs.job_context) }}
+          job: ${{ toJson(job) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(needs.run-deploy.outputs.steps) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
