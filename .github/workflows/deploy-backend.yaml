@@ -210,5 +210,5 @@ jobs:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           job: ${{ toJson(job) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(needs.run-deploy-steps) }}
+          steps: ${{ toJson(needs.run-deploy.steps) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
