@@ -25,6 +25,9 @@ permissions:
 jobs:
   run-deploy:
     runs-on: ubuntu-latest
+    outputs:
+      steps: steps
+
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v3
@@ -210,5 +213,5 @@ jobs:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           job: ${{ toJson(job) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(jobs.run-deploy.steps) }}
+          steps: ${{ toJson(needs.run-deploy.outputs.steps) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
