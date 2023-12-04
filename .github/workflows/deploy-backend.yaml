@@ -188,6 +188,9 @@ jobs:
           node-version: 'latest'
           cache: 'npm'
 
+      - name: 🔍 Determine service name
+        run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -203,14 +206,21 @@ jobs:
       - name: 🧐 SonarQube Scan
         id: sonarqube-scan
         run: |
-          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
-          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
-
-          sonar-scanner \
-          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
-          -Dsonar.sources=src \
-          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
-          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" >> sonar-project.properties
+          echo "sonar.login=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}" >> sonar-project.properties
+          echo "sonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}" >> sonar-project.properties
+          echo "sonar.sources=src" >> sonar-project.properties
+          echo "sonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*" >> sonar-project.properties
+          echo "sonar.typescript.lcov.reportPaths=coverage/lcov.info" >> sonar-project.properties
+          
+          npm run sonar-scanner
+#          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+#
+#          sonar-scanner \
+#          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
+#          -Dsonar.sources=src \
+#          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
+#          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
 
   send-teams-notification:
     needs: [run-deploy, run-sonar-scan]
