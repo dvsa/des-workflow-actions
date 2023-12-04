@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       steps: steps
+      job_context: job
 
     steps:
       - name: 📨 Checkout
@@ -175,35 +176,35 @@ jobs:
 #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
 #          done
 
-#  run-sonar-scan:
-#    runs-on: mito-2
-#    steps:
-#      - name: 🔑 Configure AWS Credentials
-#        uses: aws-actions/configure-aws-credentials@v3
-#        with:
-#          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-#          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-#
-#      - name: 🤫 Get Secrets
-#        uses: aws-actions/aws-secretsmanager-get-secrets@v1
-#        with:
-#          secret-ids: des-globals/env
-#          parse-json-secrets: true
-#
-#      - name: 🧐 SonarQube Scan
-#        id: sonarqube-scan
-#        run: |
-#          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
-#          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
-#
-#          sonar-scanner \
-#          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
-#          -Dsonar.sources=src \
-#          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
-#          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+  run-sonar-scan:
+    runs-on: mito-2
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 🧐 SonarQube Scan
+        id: sonarqube-scan
+        run: |
+          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
+          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+
+          sonar-scanner \
+          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
+          -Dsonar.sources=src \
+          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
+          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
 
   send-teams-notification:
-    needs: [run-deploy]
+    needs: [run-deploy, run-sonar-scan]
     runs-on: ubuntu-latest
     steps:
       - name: 🔔 Send MS Teams Notification
@@ -211,7 +212,7 @@ jobs:
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          job: ${{ toJson(job) }}
+          job: ${{ toJson(needs.run-deploy.outputs.job_context) }}
           needs: ${{ toJson(needs) }}
           steps: ${{ toJson(needs.run-deploy.outputs.steps) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
