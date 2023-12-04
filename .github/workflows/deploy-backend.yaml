@@ -179,6 +179,9 @@ jobs:
   run-sonar-scan:
     runs-on: mito-2
     steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v3
+
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
