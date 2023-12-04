@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   run-deploy:
-    runs-on: mito-2
+    runs-on: ubuntu-latest
     outputs:
       steps: steps
       job_context: job
@@ -85,18 +85,6 @@ jobs:
           secret-ids: des-globals/env
           parse-json-secrets: true
 
-      - name: 🧐 SonarQube Scan
-        id: sonarqube-scan
-        run: |
-          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
-          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
-
-          sonar-scanner \
-          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
-          -Dsonar.sources=src \
-          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
-          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
-
       - name: 📦 Package for Lambda
         id: npm-package
         run: npm run package
@@ -110,83 +98,124 @@ jobs:
             reports/*
           retention-days: 3
 
-#      - name: ☁️ Upload to S3
-#        id: s3-upload-artefacts
-#        run: |
-#          echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
-#          for artefact in "artefacts"/*; do
-#            aws s3 cp "$artefact" \
-#            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
-#            echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
-#          done
-#
-#      - name: ☁️️ Manifest
-#        id: create_manifest
-#        run: |
-#          version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
-#          file_name="${{env.SERVICE_NAME}}_${version}.$(date +%s).manifest"
-#          echo "file_name=${file_name}" >> $GITHUB_OUTPUT
-#
-#          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-#            function_version=$(aws s3 ls \
-#            ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"$func" \
-#            | sort -r | head -n 1 | cut -d '-' -f 4-)
-#
-#            echo "${func}_version = ${function_version}" >> $file_name
-#          done
-#
-#          aws s3 cp $file_name s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
-#          echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
-#          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
-#
-#      - name: ☁️ Upload Test Reports to S3
-#        id: s3-upload-reports
-#        run: |
-#          name=${{steps.create_manifest.outputs.file_name}}
-#          FILE="TestReports-${name/"manifest"/"zip"}"
-#          zip -r $FILE reports/
-#          aws s3 cp $FILE \
-#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
-#          echo "## Reports" >> $GITHUB_STEP_SUMMARY
-#          echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
-#
-#      - name: 🔑 Configure NonProd AWS Credentials
-#        uses: aws-actions/configure-aws-credentials@v3
-#        with:
-#          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
-#          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-#
-#      - name: 🚀 Deploy Lambda Package
-#        id: deploy-lambda-package
-#        run: |
-#          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
-#          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
-#            artefact_file_name=$(find artefacts -type f -name ${func}*)
-#            lambda_function_name=$(aws lambda list-functions \
-#            --query "Functions[?starts_with(FunctionName, 'mes-dev-${{ inputs.component }}') \
-#            && Handler == '${func}.handler'].FunctionName" | jq -r '.[]')
-#
-#            if [[ -z $lambda_function_name ]]; then
-#              echo "No equivalent Lambda function found for ${func}. Deployment aborted."
-#              exit 1
-#            fi
-#
-#            aws lambda update-function-code --function-name $lambda_function_name \
-#            --zip-file fileb://${artefact_file_name} \
-#            --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
-#
-#            aws lambda wait function-updated --function-name $lambda_function_name
-#            status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
-#            --query "LastUpdateStatus" --output text)
-#
-#            if [ $status == "Failed" ]; then
-#              echo "Failed to update ${lambda_function_name}."
-#              exit 1
-#            fi
-#
-#            echo "Successfully updated ${lambda_function_name}."
-#            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
-#          done
+  #      - name: ☁️ Upload to S3
+  #        id: s3-upload-artefacts
+  #        run: |
+  #          echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
+  #          for artefact in "artefacts"/*; do
+  #            aws s3 cp "$artefact" \
+  #            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
+  #            echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
+  #          done
+  #
+  #      - name: ☁️️ Manifest
+  #        id: create_manifest
+  #        run: |
+  #          version=$(jq -r ".version" < package.json | cut -d . -f 1,2)
+  #          file_name="${{env.SERVICE_NAME}}_${version}.$(date +%s).manifest"
+  #          echo "file_name=${file_name}" >> $GITHUB_OUTPUT
+  #
+  #          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+  #            function_version=$(aws s3 ls \
+  #            ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"$func" \
+  #            | sort -r | head -n 1 | cut -d '-' -f 4-)
+  #
+  #            echo "${func}_version = ${function_version}" >> $file_name
+  #          done
+  #
+  #          aws s3 cp $file_name s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
+  #          echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
+  #          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
+  #
+  #      - name: ☁️ Upload Test Reports to S3
+  #        id: s3-upload-reports
+  #        run: |
+  #          name=${{steps.create_manifest.outputs.file_name}}
+  #          FILE="TestReports-${name/"manifest"/"zip"}"
+  #          zip -r $FILE reports/
+  #          aws s3 cp $FILE \
+  #          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/microservices/${{env.SERVICE_NAME}}/test-reports/
+  #          echo "## Reports" >> $GITHUB_STEP_SUMMARY
+  #          echo "✅ Uploaded ${FILE} to S3" >> $GITHUB_STEP_SUMMARY
+  #
+  #      - name: 🔑 Configure NonProd AWS Credentials
+  #        uses: aws-actions/configure-aws-credentials@v3
+  #        with:
+  #          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+  #          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+  #
+  #      - name: 🚀 Deploy Lambda Package
+  #        id: deploy-lambda-package
+  #        run: |
+  #          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
+  #          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+  #            artefact_file_name=$(find artefacts -type f -name ${func}*)
+  #            lambda_function_name=$(aws lambda list-functions \
+  #            --query "Functions[?starts_with(FunctionName, 'mes-dev-${{ inputs.component }}') \
+  #            && Handler == '${func}.handler'].FunctionName" | jq -r '.[]')
+  #
+  #            if [[ -z $lambda_function_name ]]; then
+  #              echo "No equivalent Lambda function found for ${func}. Deployment aborted."
+  #              exit 1
+  #            fi
+  #
+  #            aws lambda update-function-code --function-name $lambda_function_name \
+  #            --zip-file fileb://${artefact_file_name} \
+  #            --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
+  #
+  #            aws lambda wait function-updated --function-name $lambda_function_name
+  #            status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
+  #            --query "LastUpdateStatus" --output text)
+  #
+  #            if [ $status == "Failed" ]; then
+  #              echo "Failed to update ${lambda_function_name}."
+  #              exit 1
+  #            fi
+  #
+  #            echo "Successfully updated ${lambda_function_name}."
+  #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
+  #          done
+
+  run-sonar-scan:
+    runs-on: mito-2
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v3
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          cache: 'npm'
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 🧐 SonarQube Scan
+        id: sonarqube-scan
+        run: |
+          echo "sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service" > sonar-project.properties
+          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+
+          sonar-scanner \
+          -Dsonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }} \
+          -Dsonar.sources=src \
+          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
+          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+
+  send-teams-notification:
+    needs: [run-deploy, run-sonar-scan]
+    runs-on: ubuntu-latest
+    steps:
       - name: 🔔 Send MS Teams Notification
         if: always()
         uses: skitionek/notify-microsoft-teams@v1.0.4
@@ -194,31 +223,4 @@ jobs:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           job: ${{ toJson(job) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(steps) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
-
-
-#  run-sonar-scan:
-#    runs-on: mito-2
-#    steps:
-#      - name: 📨 Checkout
-#        uses: actions/checkout@v3
-#
-#      - name: 🔑 Configure AWS Credentials
-#        uses: aws-actions/configure-aws-credentials@v3
-#        with:
-#          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-#          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-#
-#      - name: 🤫 Get Secrets
-#        uses: aws-actions/aws-secretsmanager-get-secrets@v1
-#        with:
-#          secret-ids: des-globals/env
-#          parse-json-secrets: true
-#
-#
-#
-#  send-teams-notification:
-#    needs: [run-deploy, run-sonar-scan]
-#    runs-on: ubuntu-latest
-#    steps:
