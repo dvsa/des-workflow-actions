@@ -250,8 +250,8 @@ jobs:
       - name: Set Outputs
         id: set-outputs
         run: |
-          echo job_context=${{ job }} >> $GITHUB_OUTPUT
-          echo steps=${{ steps }} >> $GITHUB_OUTPUT
+          echo job_context=${{ fromJson(job) }} >> $GITHUB_OUTPUT
+          echo steps=${{ fromJson(steps) }} >> $GITHUB_OUTPUT
 
   send-teams-notification:
     if: always()
