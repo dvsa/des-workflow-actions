@@ -26,8 +26,8 @@ jobs:
   run-deploy:
     runs-on: ubuntu-latest
     outputs:
-      steps: toJson(steps)
-      job_context: toJson(job)
+      steps: steps.set-outputs.outputs.steps
+      job_context: steps.set-outputs.outputs.job_context
 
     steps:
       - name: 📨 Checkout
@@ -175,12 +175,17 @@ jobs:
   #            echo "Successfully updated ${lambda_function_name}."
   #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
   #          done
+      - name: Set Outputs
+        id: set-outputs
+        run: |
+          echo job_context=${{ toJson(job) }} >> $GITHUB_OUTPUT
+          echo steps=${{ toJson(steps) }} >> $GITHUB_OUTPUT
 
   run-sonar-scan:
     runs-on: mito-2
     outputs:
-      steps: toJson(steps)
-      job_context: toJson(job)
+      steps: steps.set-outputs.outputs.steps
+      job_context: steps.set-outputs.outputs.job_context
 
     steps:
       - name: 📨 Checkout
@@ -242,6 +247,12 @@ jobs:
 #          -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/* \
 #          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
 
+      - name: Set Outputs
+        id: set-outputs
+        run: |
+          echo job_context=${{ toJson(job) }} >> $GITHUB_OUTPUT
+          echo steps=${{ toJson(steps) }} >> $GITHUB_OUTPUT
+
   send-teams-notification:
     if: always()
     needs: [run-deploy, run-sonar-scan]
@@ -249,7 +260,7 @@ jobs:
     steps:
       - name: Echo Jobs Context
         run: |
-          echo ${{ needs.run-depoloy.outputs.job_context }}
+          echo ${{ needs.run-deploy.outputs.job_context }}
           echo ${{ needs.run-sonar-scan.outputs.steps }}
 
       - name: 🔔 Send MS Teams Notification
