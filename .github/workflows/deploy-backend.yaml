@@ -26,8 +26,8 @@ jobs:
   run-deploy:
     runs-on: ubuntu-latest
     outputs:
-      steps: steps.set-outputs.outputs.steps
-      job_context: steps.set-outputs.outputs.job_context
+      steps: ${{ steps.set-outputs.outputs.steps }}
+      job_context: ${{ steps.set-outputs.outputs.job_context }}
 
     steps:
       - name: 📨 Checkout
@@ -184,8 +184,8 @@ jobs:
   run-sonar-scan:
     runs-on: mito-2
     outputs:
-      steps: steps.set-outputs.outputs.steps
-      job_context: steps.set-outputs.outputs.job_context
+      steps: ${{ steps.set-outputs.outputs.steps }}
+      job_context: ${{ steps.set-outputs.outputs.job_context }}
 
     steps:
       - name: 📨 Checkout
