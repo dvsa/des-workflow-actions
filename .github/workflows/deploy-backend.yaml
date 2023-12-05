@@ -26,8 +26,8 @@ jobs:
   run-deploy:
     runs-on: ubuntu-latest
     outputs:
-      steps: steps
-      job_context: job
+      steps: toJson(steps)
+      job_context: toJson(job)
 
     steps:
       - name: 📨 Checkout
@@ -178,6 +178,10 @@ jobs:
 
   run-sonar-scan:
     runs-on: mito-2
+    outputs:
+      steps: toJson(steps)
+      job_context: toJson(job)
+
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v3
@@ -243,6 +247,11 @@ jobs:
     needs: [run-deploy, run-sonar-scan]
     runs-on: ubuntu-latest
     steps:
+      - name: Echo Jobs Context
+        run: |
+          echo ${{ needs.run-depoloy.outputs.job_context }}
+          echo ${{ needs.run-sonar-scan.outputs.steps }}
+
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
