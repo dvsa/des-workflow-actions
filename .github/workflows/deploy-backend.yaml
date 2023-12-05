@@ -250,8 +250,8 @@ jobs:
       - name: Set Outputs
         id: set-outputs
         run: |
-          echo job_context=${{ toJson(job) }} >> $GITHUB_OUTPUT
-          echo steps=${{ toJson(steps) }} >> $GITHUB_OUTPUT
+          echo job_context=${{ job }} >> $GITHUB_OUTPUT
+          echo steps=${{ steps }} >> $GITHUB_OUTPUT
 
   send-teams-notification:
     if: always()
@@ -260,8 +260,8 @@ jobs:
     steps:
       - name: Echo Jobs Context
         run: |
-          echo ${{ needs.run-deploy.outputs.job_context }}
-          echo ${{ needs.run-sonar-scan.outputs.steps }}
+          echo ${{ toJson(needs.run-deploy.outputs.job_context) }}
+          echo ${{ toJson(needs.run-sonar-scan.outputs.steps) }}
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
