@@ -273,12 +273,13 @@ jobs:
             echo $job_status
             ls -al
             ls -al ./steps/
-            echo "$job" | jq -r '.outputs.steps_context' > steps/job-${count}.json
+            echo "$job" | jq -r '.outputs.steps_context' > job-0.json
             if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
               result=$job_status
             fi
             let count++
           done
+          cat job-0.json
           echo "end of loop"
           if [ $result ]; then
             job_context="{\"status\":\"${result}\"}"
