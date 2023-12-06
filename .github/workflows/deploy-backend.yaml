@@ -311,8 +311,8 @@ jobs:
           echo "test step"
           echo "${{ toJson(steps.context.outputs.job_context) }}"
 #          echo ${{ steps.context.outputs.steps_context }}
-#          echo ${{ toJson(steps.context.outputs.steps_context) }}
-#          echo ${{ fromJson(steps.context.outputs.steps_context) }}
+          echo ${{ toJson(steps.context.outputs.steps_context) }}
+          echo ${{ fromJson(steps.context.outputs.steps_context) }}
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
