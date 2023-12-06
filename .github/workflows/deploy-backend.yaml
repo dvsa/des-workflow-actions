@@ -198,11 +198,11 @@ jobs:
       - name: 🔍 Determine service name
         run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
 
-      - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NVMRC }}
-          cache: 'npm'
+#      - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
+#        uses: actions/setup-node@v3
+#        with:
+#          node-version: ${{ env.NVMRC }}
+#          cache: 'npm'
 
 #      - name: 🔧 Create .npmrc
 #        env:
@@ -264,22 +264,26 @@ jobs:
         run: |
           count=0
           mkdir steps
-
+          echo "start"
           for job in $(jq -c '.[]' <<< ${{ toJSON(needs) }}); do
+            echo $job
             job_status=$(echo "$job" | jq -r '.result')
+            echo $job_status
             echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
             if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
               result=$job_status
             fi
             let count++
           done
-
+          echo "end of loop"
           if [ $result ]; then
             job_context="{\"status\":\"${result}\"}"
           else
             job_context="{\"status\":\"success\"}"
           fi
-
+          
+          echo $job_context
+          
           echo "job_context=$job_context" >> $GITHUB_OUTPUT
           echo "steps_context=$(jq -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json)" >> $GITHUB_OUTPUT
 #          echo '${{ toJSON(needs) }}' | jq -c >> needs_context.json
