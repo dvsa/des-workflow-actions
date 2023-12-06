@@ -269,12 +269,8 @@ jobs:
           for job in $(jq -c '.[]' needs.json); do
             job_status=$(echo "$job" | jq -r '.result')
             echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
-            cat ./steps/job-${count}.json
             if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
               result=$job_status
-            fi
-            if [ $job_status == 'success' ]; then
-              echo "this statement works" 
             fi
             count=$((count + 1))
           done
@@ -287,7 +283,8 @@ jobs:
           fi
           
           echo $job_context
-          
+          steps_combined=$(jq -c -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json)
+          echo $steps_combined
           echo "job_context=$job_context" >> $GITHUB_OUTPUT
           echo "steps_context=$(jq -c -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json)" >> $GITHUB_OUTPUT
 #          echo '${{ toJSON(needs) }}' | jq -c >> needs_context.json
@@ -317,5 +314,5 @@ jobs:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           job: ${{ toJson(steps.context.job_context) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ steps.context.steps_context }}
+          steps: ${{ toJson(steps.context.steps_context) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
