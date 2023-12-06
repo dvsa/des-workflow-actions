@@ -267,16 +267,16 @@ jobs:
           echo '${{ toJSON(needs) }}' | jq -c >> needs.json
 
           for job in $(jq -c '.[]' needs.json); do
-            echo $job
             job_status=$(echo "$job" | jq -r '.result')
-            echo $job_status
-
             echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
             cat ./steps/job-${count}.json
             if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
               result=$job_status
             fi
-            let count++
+            if [ $job_status == 'success' ]; then
+              echo "this statement works" 
+            fi
+            ((count++))
           done
           cat job-0.json
           echo "end of loop"
