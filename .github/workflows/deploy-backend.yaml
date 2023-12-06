@@ -309,7 +309,7 @@ jobs:
       - name: test
         run: |
           echo ${{ steps.context.outputs.steps_context }}
-          echo ${{ toJson(steps.context..outputs.steps_context) }}
+          echo ${{ toJson(steps.context.outputs.steps_context) }}
           echo ${{ fromJson(steps.context.outputs.steps_context) }}
 
       - name: 🔔 Send MS Teams Notification
