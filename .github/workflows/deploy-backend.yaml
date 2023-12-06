@@ -262,6 +262,26 @@ jobs:
       - name: Get Job Context
         id: context
         run: |
+          count=0
+          mkdir steps
+
+          for job in $(jq -c '.[]' <<< ${{ toJSON(needs) }}); do
+            job_status=$(echo "$job" | jq -r '.result')
+            echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
+            if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
+              result=$job_status
+            fi
+            let count++
+          done
+
+          if [ $result ]; then
+            job_context="{\"status\":\"${result}\"}"
+          else
+            job_context="{\"status\":\"success\"}"
+          fi
+
+          echo "job_context=$job_context" >> $GITHUB_OUTPUT
+          jq -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json >> $GITHUB_OUTPUT
 #          echo '${{ toJSON(needs) }}' | jq -c >> needs_context.json
 #          jq 'to_entries | map({(.key): .value})' needs_context.json
 
@@ -281,26 +301,7 @@ jobs:
 #
 #          echo $combined_json
 #
-          count=0
-          mkdir steps
-          
-          for job in $(jq -c '.[]' <<< ${{ toJSON(needs) }}); do
-            job_status=$(echo "$job" | jq -r '.result')
-            echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
-            if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
-              result=$job_status
-            fi
-            let count++
-          done
-          
-          if [ $result ]; then
-            job_context="{\"status\":\"${result}\"}"
-          else
-            job_context="{\"status\":\"success\"}"
-          fi
-          
-          echo "job_context=$job_context" >> $GITHUB_OUTPUT
-          jq -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json >> $GITHUB_OUTPUT
+
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
