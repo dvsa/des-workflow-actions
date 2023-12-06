@@ -276,9 +276,8 @@ jobs:
             if [ $job_status == 'success' ]; then
               echo "this statement works" 
             fi
-#            ((count++))
           done
-          cat job-0.json
+          
           echo "end of loop"
           if [ $result ]; then
             job_context="{\"status\":\"${result}\"}"
