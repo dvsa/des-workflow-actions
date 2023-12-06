@@ -251,6 +251,7 @@ jobs:
       - name: Set Outputs
         id: set-outputs
         run: |
+          echo ${{ job }}
           echo job_context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
           echo steps_context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
