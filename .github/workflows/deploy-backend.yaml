@@ -275,7 +275,6 @@ jobs:
             count=$((count + 1))
           done
           
-          echo "end of loop"
           if [ $result ]; then
             job_context="{\"status\":\"${result}\"}"
           else
@@ -309,15 +308,15 @@ jobs:
 
       - name: test
         run: |
-          echo ${{ steps.context.steps_context }}
-          echo ${{ toJson(steps.context.steps_context) }}
-          echo ${{ fromJson(steps.context.steps_context) }}
+          echo ${{ steps.context.outputs.steps_context }}
+          echo ${{ toJson(steps.context..outputs.steps_context) }}
+          echo ${{ fromJson(steps.context.outputs.steps_context) }}
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          job: ${{ toJson(steps.context.job_context) }}
+          job: ${{ toJson(steps.context.outputs.job_context) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(steps.context.steps_context) }}
+          steps: ${{ toJson(steps.context.outputs.steps_context) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
