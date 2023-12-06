@@ -281,7 +281,7 @@ jobs:
           fi
 
           echo "job_context=$job_context" >> $GITHUB_OUTPUT
-          jq -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json >> $GITHUB_OUTPUT
+          echo "steps_context=$(jq -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json)" >> $GITHUB_OUTPUT
 #          echo '${{ toJSON(needs) }}' | jq -c >> needs_context.json
 #          jq 'to_entries | map({(.key): .value})' needs_context.json
 
@@ -309,5 +309,5 @@ jobs:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           job: ${{ toJson(steps.context.job_context) }}
           needs: ${{ toJson(needs) }}
-          steps: ${{  }}
+          steps: ${{ steps.context.steps_context }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
