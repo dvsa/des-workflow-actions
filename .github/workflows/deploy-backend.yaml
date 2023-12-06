@@ -26,8 +26,8 @@ jobs:
   run-deploy:
     runs-on: ubuntu-latest
     outputs:
-      steps: ${{ steps.set-outputs.outputs.steps }}
       job_context: ${{ steps.set-outputs.outputs.job_context }}
+      steps_context: ${{ steps.set-outputs.outputs.steps_context }}
 
     steps:
       - name: 📨 Checkout
@@ -178,14 +178,14 @@ jobs:
       - name: Set Outputs
         id: set-outputs
         run: |
-          echo job_context=${{ toJson(job) }} >> $GITHUB_OUTPUT
-          echo steps=${{ toJson(steps) }} >> $GITHUB_OUTPUT
+          echo job_context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
+          echo steps_context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
   run-sonar-scan:
     runs-on: mito-2
     outputs:
-      steps: ${{ steps.set-outputs.outputs.steps }}
       job_context: ${{ steps.set-outputs.outputs.job_context }}
+      steps_context: ${{ steps.set-outputs.outputs.steps_context }}
 
     steps:
       - name: 📨 Checkout
@@ -237,8 +237,9 @@ jobs:
           sonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
           sonar.typescript.lcov.reportPaths=coverage/lcov.info
           EOF
-          
-          npm run sonar-scanner
+
+#          npm run sonar-scanner
+
 #          export SONAR_TOKEN=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
 #
 #          sonar-scanner \
@@ -250,23 +251,62 @@ jobs:
       - name: Set Outputs
         id: set-outputs
         run: |
-          echo job_context=${{ fromJson(job) }} >> $GITHUB_OUTPUT
-          echo steps=${{ fromJson(steps) }} >> $GITHUB_OUTPUT
+          echo job_context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
+          echo steps_context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
   send-teams-notification:
     if: always()
     needs: [run-deploy, run-sonar-scan]
     runs-on: ubuntu-latest
     steps:
-      - name: Echo Jobs Context
+      - name: Get Job Context
+        id: context
         run: |
-          echo ${{ toJson(needs.run-deploy.outputs.job_context) }}
-          echo ${{ toJson(needs.run-sonar-scan.outputs.steps) }}
+#          echo '${{ toJSON(needs) }}' | jq -c >> needs_context.json
+#          jq 'to_entries | map({(.key): .value})' needs_context.json
+
+#          for job in $(jq -c '.[]' <<< ${{ toJSON(needs) }}); do
+#            job_status=$(echo "$job" | jq -r '.outputs.job_context')
+#            if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
+#              break
+#            fi
+#          done
+#
+#          echo "job=${job_status}" >> $GITHUB_OUTPUT
+#
+#          echo '${{ needs.build.outputs.steps_context }}' >> file1.json
+#          echo '${{ needs.job-2.outputs.steps_context }}'  >> file2.json
+#
+#          combined_json=$(jq -s '.[0] * .[1]' file1.json file2.json)
+#
+#          echo $combined_json
+#
+          count=0
+          mkdir steps
+          
+          for job in $(jq -c '.[]' <<< ${{ toJSON(needs) }}); do
+            job_status=$(echo "$job" | jq -r '.result')
+            echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
+            if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
+              result=$job_status
+            fi
+            let count++
+          done
+          
+          if [ $result ]; then
+            job_context="{\"status\":\"${result}\"}"
+          else
+            job_context="{\"status\":\"success\"}"
+          fi
+          
+          echo "job_context=$job_context" >> $GITHUB_OUTPUT
+          jq -s 'reduce .[] as $item ({}; . * $item)' ./steps/*.json >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          job: ${{ toJson(job) }}
+          job: ${{ toJson(steps.context.job_context) }}
           needs: ${{ toJson(needs) }}
+          steps: ${{  }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
