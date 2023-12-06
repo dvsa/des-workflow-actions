@@ -265,7 +265,9 @@ jobs:
           count=0
           mkdir steps
           echo "start"
-          for job in $(jq -c '.[]' <<< "${{ toJSON(needs)" }}); do
+          echo '${{ toJSON(needs) }}' | jq -c >> needs.json
+
+          for job in $(jq -c '.[]' needs.json }}); do
             echo $job
             job_status=$(echo "$job" | jq -r '.result')
             echo $job_status
