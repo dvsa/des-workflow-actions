@@ -272,7 +272,7 @@ jobs:
             echo $job_status
 
             echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
-            cat /steps/job-${count}.json
+            cat ./steps/job-${count}.json
             if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
               result=$job_status
             fi
