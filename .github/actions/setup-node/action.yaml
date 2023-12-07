@@ -10,7 +10,6 @@ runs:
   steps:
     - name: 🔍 Read .nvmrc
       shell: bash
-      id: nvm
       run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
     - name: 🔍 Determine service name
@@ -32,5 +31,4 @@ runs:
 
     - name: ➕ Install dependencies
       shell: bash
-      id: npm-ci
       run: npm ci
