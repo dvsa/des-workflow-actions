@@ -322,7 +322,7 @@ jobs:
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          job: $( echo steps.context.outputs.job_context | sed "s/"/\\\"/g")
+          job: ${{ $(echo steps.context.outputs.job_context | sed "s/"/\\\"/g") }}
           needs: ${{ toJson(needs) }}
           steps: ${{ toJson(steps.context.outputs.steps_context) }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
