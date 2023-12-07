@@ -18,21 +18,21 @@ runs:
       shell: bash
       run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
 
-#    - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
-#      shell: bash
-#      uses: actions/setup-node@v3
-#      with:
-#        node-version: ${{ env.NVMRC }}
-#        cache: 'npm'
-#
-#    - name: 🔧 Create .npmrc
-#      shell: bash
-#      env:
-#        DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
-#      run: |
-#        echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
-#
-#    - name: ➕ Install dependencies
-#      shell: bash
-#      id: npm-ci
-#      run: npm ci
+    - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
+      shell: bash
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NVMRC }}
+        cache: 'npm'
+
+    - name: 🔧 Create .npmrc
+      shell: bash
+      env:
+        DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
+      run: |
+        echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
+
+    - name: ➕ Install dependencies
+      shell: bash
+      id: npm-ci
+      run: npm ci
