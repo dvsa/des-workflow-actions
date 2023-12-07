@@ -176,7 +176,6 @@ jobs:
   #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
   #          done
       - name: Set Outputs
-        if: always()
         id: set-outputs
         run: |
           echo job_context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
@@ -266,9 +265,8 @@ jobs:
         run: |
           count=0
           mkdir steps
-          echo '${{ toJSON(needs) }}' | jq -c >> needs.json
   
-          for job in $(jq -c '.[]' needs.json); do
+          for job in $(echo '${{ toJSON(needs) }}' | jq -c '.[]'); do
             job_status=$(echo "$job" | jq -r '.result')
             echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
             if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
