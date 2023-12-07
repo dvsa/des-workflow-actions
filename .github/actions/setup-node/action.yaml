@@ -1,5 +1,9 @@
 name: Set Up NodeJS
 description: "Action to set up NodeJS for the backend services"
+inputs:
+  access-token:
+    required: true
+    description: "The access token for the DVSA packages"
 
 runs:
   using: composite
@@ -22,7 +26,7 @@ runs:
     - name: 🔧 Create .npmrc
       shell: bash
       env:
-        DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
+        DES_ACCESS_TOKEN: ${{ inputs.access-token }}
       run: |
         echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
 
