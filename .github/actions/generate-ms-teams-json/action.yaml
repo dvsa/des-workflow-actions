@@ -31,6 +31,7 @@ runs:
           steps_context=$(echo "$job" | jq -r '.outputs.steps_context')
           if [ $steps_context != 'null' ]; then
             echo $steps_context > ./steps/job-${count}.json
+            cat ./steps/job-${count}.json
           fi
         
           count=$((count + 1))
