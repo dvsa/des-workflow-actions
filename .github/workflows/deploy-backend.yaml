@@ -60,6 +60,7 @@ jobs:
         if: ${{ inputs.audit == true }}
         id: npm-audit
         run: |
+          exit 1
           mkdir reports
           npm audit --omit=dev --audit-level=${{ inputs.audit-level }} | tee reports/npm_audit.output
 
@@ -176,6 +177,7 @@ jobs:
   #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
   #          done
       - name: Set Outputs
+        if: always()
         id: set-outputs
         run: |
           echo job_context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
@@ -249,6 +251,7 @@ jobs:
 #          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
 
       - name: Set Outputs
+        if: always()
         id: set-outputs
         run: |
           echo job_context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
