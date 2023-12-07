@@ -310,8 +310,8 @@ jobs:
       - name: test
         run: |
           echo "test step"
-          echo "${{ toJson(steps.context.outputs.job_context) }}"
-          echo "${{ toJson(steps.context.outputs.steps_context) }}"
+          echo ${{ toJson(steps.context.outputs.job_context) }}
+          echo ${{ toJson(steps.context.outputs.steps_context) }}
 #          echo ${{ steps.context.outputs.steps_context }}
 #          echo "${{ toJson(steps.context.outputs.steps_context) }}"
 #          echo ${{ fromJson(steps.context.outputs.steps_context) }}
