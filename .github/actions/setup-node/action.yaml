@@ -1,0 +1,38 @@
+name: TF PLAN
+description: "TF PLAN"
+inputs:
+  component:
+    required: true
+  release-tag:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 🔍 Read .nvmrc
+      shell: bash
+      id: nvm
+      run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
+
+    - name: 🔍 Determine service name
+      shell: bash
+      run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
+#    - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
+#      shell: bash
+#      uses: actions/setup-node@v3
+#      with:
+#        node-version: ${{ env.NVMRC }}
+#        cache: 'npm'
+#
+#    - name: 🔧 Create .npmrc
+#      shell: bash
+#      env:
+#        DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
+#      run: |
+#        echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
+#
+#    - name: ➕ Install dependencies
+#      shell: bash
+#      id: npm-ci
+#      run: npm ci
