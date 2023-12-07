@@ -229,6 +229,8 @@ jobs:
     steps:
       - name: Generate MS Teams Notify JSON
         uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@MES-9133-add-sonarqube
+        with:
+          needs-context: ${{ toJSON(needs) }}
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4

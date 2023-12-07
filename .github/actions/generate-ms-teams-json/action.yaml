@@ -1,6 +1,9 @@
 name: Generate Microsoft Teams Notify JSON
 description: "Action to combine the steps of multiple workflow jobs into one object for the notify-microsoft-teams to consume"
-
+inputs:
+  needs-context:
+    required: true
+    description: "The context containing the jobs to combine"
 
 runs:
   using: composite
@@ -11,7 +14,7 @@ runs:
         count=0
         mkdir steps
         
-        for job in $(echo '${{ toJSON(needs) }}' | jq -c '.[]'); do
+        for job in $(echo '${{ inputs.needs-context }}' | jq -c '.[]'); do
           job_status=$(echo "$job" | jq -r '.result')
           if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
             result=$job_status
