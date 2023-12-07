@@ -265,7 +265,7 @@ jobs:
           count=0
           mkdir steps
           echo '${{ toJSON(needs) }}' | jq -c >> needs.json
-
+  
           for job in $(jq -c '.[]' needs.json); do
             job_status=$(echo "$job" | jq -r '.result')
             echo "$job" | jq -r '.outputs.steps_context' > ./steps/job-${count}.json
@@ -276,9 +276,9 @@ jobs:
           done
           
           if [ $result ]; then
-            job_context="{\"status\":\"${result}\"}"
+            job_context=$(echo "{\"status\":\"${result}\"}" | jq -c)
           else
-            job_context="{\"status\":\"success\"}"
+            job_context=$(echo "{\"status\":\"success\"}" | jq -c)
           fi
           
           echo $job_context
@@ -286,42 +286,18 @@ jobs:
           echo $steps_combined
           echo "job_context=$job_context" >> $GITHUB_OUTPUT
           echo "steps_context=$steps_combined" >> $GITHUB_OUTPUT
-#          echo steps_context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
-#          echo '${{ toJSON(needs) }}' | jq -c >> needs_context.json
-#          jq 'to_entries | map({(.key): .value})' needs_context.json
-
-#          for job in $(jq -c '.[]' <<< ${{ toJSON(needs) }}); do
-#            job_status=$(echo "$job" | jq -r '.outputs.job_context')
-#            if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
-#              break
-#            fi
-#          done
-#
-#          echo "job=${job_status}" >> $GITHUB_OUTPUT
-#
-#          echo '${{ needs.build.outputs.steps_context }}' >> file1.json
-#          echo '${{ needs.job-2.outputs.steps_context }}'  >> file2.json
-#
-#          combined_json=$(jq -s '.[0] * .[1]' file1.json file2.json)
-#
-#          echo $combined_json
-#
 
       - name: test
         run: |
           echo "test step"
-          echo ${{ toJson(steps.context.outputs.job_context) }}
-          echo ${{ toJson(steps.context.outputs.steps_context) }}
-#          echo ${{ steps.context.outputs.steps_context }}
-#          echo "${{ toJson(steps.context.outputs.steps_context) }}"
-#          echo ${{ fromJson(steps.context.outputs.steps_context) }}
-#          echo "${{ toJSON(job) }}"
+          echo ${{ toJSON(steps.context.outputs.job_context) }}
+          echo ${{ toJSON(steps.context.outputs.steps_context) }}
 
       - name: 🔔 Send MS Teams Notification
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
-          job: ${{ toJson(steps.context.outputs.job_context) }}
-          needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(steps.context.outputs.steps_context) }}
+          job: ${{ steps.context.outputs.job_context }}
+          needs: ${{ toJSON(needs) }}
+          steps: ${{ steps.context.outputs.steps_context }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
