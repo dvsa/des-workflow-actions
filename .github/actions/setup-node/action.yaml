@@ -1,10 +1,5 @@
-name: TF PLAN
-description: "TF PLAN"
-inputs:
-  component:
-    required: true
-  release-tag:
-    required: true
+name: Set Up NodeJS
+description: "Action to set up NodeJS for the backend services"
 
 runs:
   using: composite
@@ -19,7 +14,6 @@ runs:
       run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
 
     - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
-      shell: bash
       uses: actions/setup-node@v3
       with:
         node-version: ${{ env.NVMRC }}
