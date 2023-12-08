@@ -244,6 +244,5 @@ jobs:
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           job: ${{ steps.ms-teams-json.outputs.job-context }}
-          needs: ${{ toJSON(needs) }}
           steps: ${{ steps.ms-teams-json.outputs.steps-context }}
           overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
