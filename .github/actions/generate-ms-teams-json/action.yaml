@@ -21,12 +21,13 @@ runs:
       run: |
         count=0
         declare -a steps_context_array=()
-        echo '${{ inputs.needs-context }}'
+
         for job in $(echo '${{ inputs.needs-context }}' | jq -c '.[]'); do
           job_status=$(echo "$job" | jq -r '.result')
           if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
             result=$job_status
           fi
+        
           steps_context=$(echo "$job" | jq -r '.outputs."steps-context"')
           if [ "$steps_context" != 'null' ]; then
             steps_context_array+=("$steps_context")
