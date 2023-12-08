@@ -165,6 +165,7 @@ jobs:
           exit 1
 
       - name: Set Outputs
+        if: always()
         id: set-outputs
         run: |
           echo job-context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
