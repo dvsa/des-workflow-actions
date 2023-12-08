@@ -27,17 +27,17 @@ runs:
           if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
             result=$job_status
           fi
-          echo $job
+          echo "$job"
           echo "$job" | jq -r '.outputs.steps-context'
           steps_context=$(echo "$job" | jq -r '.outputs.steps-context')
-          if [ $steps_context != 'null' ]; then
+          if [ "$steps_context" != 'null' ]; then
             steps_context_array+=("$steps_context")
           fi
         
           count=$((count + 1))
         done
         
-        if [ $result ]; then
+        if [ "$result" ]; then
           job_context=$(echo "{\"status\":\"${result}\"}" | jq -c)
         else
           job_context=$(echo "{\"status\":\"success\"}" | jq -c)
