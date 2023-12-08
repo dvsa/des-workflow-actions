@@ -43,7 +43,6 @@ jobs:
         if: ${{ inputs.audit == true }}
         id: npm-audit
         run: |
-          exit 1
           mkdir reports
           npm audit --omit=dev --audit-level=${{ inputs.audit-level }} | tee reports/npm_audit.output
 
@@ -159,6 +158,11 @@ jobs:
   #            echo "Successfully updated ${lambda_function_name}."
   #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
   #          done
+
+      - name: failed step
+        id: failed-step
+        run: |
+          exit 1
 
       - name: Set Outputs
         id: set-outputs
