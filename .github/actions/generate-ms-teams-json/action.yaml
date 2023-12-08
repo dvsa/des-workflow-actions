@@ -20,17 +20,17 @@ runs:
       shell: bash
       run: |
         count=0
-        declare -a steps_context_array=()
-        
+        mkdir -p $GITHUB_WORKSPACE/steps  # Ensure the steps directory exists
+
         for job in $(echo '${{ inputs.needs-context }}' | jq -c '.[]'); do
           job_status=$(echo "$job" | jq -r '.result')
           if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
             result=$job_status
           fi
         
-          steps_context=$(echo "$job" | jq -r '.outputs.steps_context')
+          steps_context=$(echo "$job" | jq -r '.outputs.steps-context')
           if [ $steps_context != 'null' ]; then
-            steps_context_array+=("$steps_context")
+            echo $steps_context > $GITHUB_WORKSPACE/steps/job-${count}.json
           fi
         
           count=$((count + 1))
@@ -43,4 +43,4 @@ runs:
         fi
         
         echo "job-context=$job_context" >> $GITHUB_OUTPUT
-        echo "steps-context=$(jq -c -s 'reduce .[] as $item ({}; . * $item)' <<< "${steps_context_array[@]}")" >> $GITHUB_OUTPUT
+        echo "steps-context=$(jq -c -s 'reduce .[] as $item ({}; . * $item)' $GITHUB_WORKSPACE/steps/*.json)" >> $GITHUB_OUTPUT
