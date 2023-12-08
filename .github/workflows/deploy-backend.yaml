@@ -159,11 +159,6 @@ jobs:
   #            echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
   #          done
 
-      - name: failed step
-        id: failed-step
-        run: |
-          exit 1
-
       - name: Set Outputs
         if: always()
         id: set-outputs
