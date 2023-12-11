@@ -159,7 +159,7 @@ jobs:
             echo "✅ Deployed $artefact_file_name to Lambda" >> $GITHUB_STEP_SUMMARY
           done
 
-      - name: Set Outputs
+      - name: ➡️ Set Outputs
         if: always()
         id: set-outputs
         run: |
@@ -209,7 +209,7 @@ jobs:
         id: sonarqube-scan
         run: npm run sonar-scanner
 
-      - name: Set Outputs
+      - name: ➡️ Set Outputs
         if: always()
         id: set-outputs
         run: |
@@ -221,7 +221,7 @@ jobs:
     needs: [run-deploy, run-sonar-scan]
     runs-on: ubuntu-latest
     steps:
-      - name: Generate MS Teams Notify JSON
+      - name: 📝 Generate MS Teams Notify JSON
         id: ms-teams-json
         uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@MES-9133-add-sonarqube
         with:
