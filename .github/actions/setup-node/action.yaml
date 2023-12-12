@@ -1,0 +1,33 @@
+name: Set Up NodeJS
+description: "Action to set up NodeJS for the backend services"
+inputs:
+  access-token:
+    required: true
+    description: "The access token for the DVSA packages"
+
+runs:
+  using: composite
+  steps:
+    - name: 🔍 Read .nvmrc
+      shell: bash
+      run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
+
+    - name: 🔍 Determine service name
+      shell: bash
+      run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
+    - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NVMRC }}
+        cache: 'npm'
+
+    - name: 🔧 Create .npmrc
+      shell: bash
+      env:
+        DES_ACCESS_TOKEN: ${{ inputs.access-token }}
+      run: |
+        echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
+    - name: ➕ Install dependencies
+      shell: bash
+      run: npm ci
