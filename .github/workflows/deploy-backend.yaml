@@ -26,7 +26,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      service-name: ${{ steps.set-outputs.outputs.job-context }}
+      service-name: ${{ steps.set-outputs.outputs.service-name }}
       job-context: ${{ steps.set-outputs.outputs.job-context }}
       steps-context: ${{ steps.set-outputs.outputs.steps-context }}
 
