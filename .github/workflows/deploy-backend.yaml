@@ -36,7 +36,7 @@ jobs:
 
       - name: ⚙️ Set Up Node
         id: node-setup
-        uses: dvsa/des-workflow-actions/.github/actions/setup-node@MES-9133-add-sonarqube
+        uses: dvsa/des-workflow-actions/.github/actions/setup-node@main
         with:
           access-token: ${{ secrets.DES_ACCESS_TOKEN }}
 
@@ -149,7 +149,7 @@ jobs:
 
       - name: ⚙️ Set Up Node
         id: node-setup
-        uses: dvsa/des-workflow-actions/.github/actions/setup-node@MES-9133-add-sonarqube
+        uses: dvsa/des-workflow-actions/.github/actions/setup-node@main
         with:
           access-token: ${{ secrets.DES_ACCESS_TOKEN }}
 
@@ -261,7 +261,7 @@ jobs:
     steps:
       - name: 📝 Generate MS Teams Notify JSON
         id: ms-teams-json
-        uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@MES-9133-add-sonarqube
+        uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@main
         with:
           needs-context: ${{ toJSON(needs) }}
 
