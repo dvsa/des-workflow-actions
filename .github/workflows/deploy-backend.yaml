@@ -26,6 +26,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
+      service-name: ${{ steps.set-outputs.outputs.job-context }}
       job-context: ${{ steps.set-outputs.outputs.job-context }}
       steps-context: ${{ steps.set-outputs.outputs.steps-context }}
 
@@ -126,6 +127,7 @@ jobs:
         if: always()
         id: set-outputs
         run: |
+          echo service-name=${{ env.SERVICE_NAME }} >> $GITHUB_OUTPUT
           echo job-context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
           echo steps-context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
@@ -143,7 +145,7 @@ jobs:
       - name: ☁️ Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
+          name: '${{needs.build.outputs.service-name}}-artefacts-${{github.run_id}}'
 
       - name: ⚙️ Set Up Node
         id: node-setup
@@ -199,7 +201,7 @@ jobs:
       - name: ☁️ Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
+          name: '${{needs.build.outputs.service-name}}-artefacts-${{github.run_id}}'
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
