@@ -229,7 +229,7 @@ jobs:
               echo "No equivalent Lambda function found for ${func}. Deployment aborted."
               exit 1
             fi
-  
+          
             aws lambda update-function-code --function-name $lambda_function_name \
             --zip-file fileb://${artefact_file_name} \
             --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
@@ -237,7 +237,7 @@ jobs:
             aws lambda wait function-updated --function-name $lambda_function_name
             status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
             --query "LastUpdateStatus" --output text)
-  
+          
             if [ $status == "Failed" ]; then
               echo "Failed to update ${lambda_function_name}."
               exit 1
