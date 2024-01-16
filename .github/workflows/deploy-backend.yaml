@@ -105,7 +105,7 @@ jobs:
             ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"$func" \
             | sort -r | head -n 1 | cut -d '-' -f 4-)
 
-            echo "${func}_version = ${function_version}" >> $file_name
+            echo '${func}_version = "${function_version}"' >> $file_name
           done
 
           aws s3 cp $file_name s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/releases/
