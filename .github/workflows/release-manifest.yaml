@@ -77,7 +77,7 @@ jobs:
           echo "release_build_required=$release_build_required" >> $GITHUB_OUTPUT
 
   build_artefact_for_release:
-    needs: [pre_creation_checks, build_artefact_for_release-check]
+    needs: pre_creation_checks
     if: ${{ needs.pre_creation_checks.outputs.release_build_required == 'true' }}
     uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend.yaml@main
     with:
