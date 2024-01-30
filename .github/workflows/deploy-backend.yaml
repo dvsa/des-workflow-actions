@@ -103,7 +103,7 @@ jobs:
           echo "GIT_REV=$(ls artefacts/ | grep -v 'coverage' | head -n 1 | cut -d - -f 3 | cut -d . -f 1 )" >> $GITHUB_ENV
 
       - name: ☁️️ Manifest
-        if: ${{ inputs.branch  == 'develop' }}
+        if: ${{ !startsWith(inputs.branch, 'release-') }}
         id: create_manifest
         run: |
           file_name="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-${{ env.GIT_REV }}.manifest"
@@ -136,6 +136,7 @@ jobs:
 
   sonar-scan:
     needs: build
+    if: ${{ !startsWith(inputs.branch, 'release-') }}
     runs-on: mito-2
     outputs:
       job-context: ${{ steps.set-outputs.outputs.job-context }}
@@ -192,6 +193,7 @@ jobs:
 
   deploy:
     needs: build
+    if: ${{ !startsWith(inputs.branch, 'release-') }}
     runs-on: ubuntu-latest
     outputs:
       job-context: ${{ steps.set-outputs.outputs.job-context }}
@@ -213,14 +215,12 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🔑 Configure NonProd AWS Credentials
-        if: ${{ inputs.branch  == 'develop' }}
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🚀 Deploy Lambda Package
-        if: ${{ inputs.branch  == 'develop' }}
         id: deploy-lambda-package
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
