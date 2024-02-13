@@ -28,6 +28,7 @@ runs:
         DES_ACCESS_TOKEN: ${{ inputs.access-token }}
       run: |
         echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
+
     - name: ➕ Install dependencies
       shell: bash
       run: npm ci
