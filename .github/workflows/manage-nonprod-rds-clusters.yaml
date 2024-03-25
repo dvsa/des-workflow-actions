@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: ${{ inputs.action }} ${{ matrix.cluster-name }}
-        if: !contains(fromJSON('["uat", "prep", "live"]'), ${{ matrix.cluster-name }})
+        if: ${{ !contains(fromJSON('["uat", "prep", "live"]'), matrix.cluster-name ) }}
         uses: ./.github/actions/nonprod-rds-management
         with:
           cluster-name: ${{ matrix.cluster-name }}
