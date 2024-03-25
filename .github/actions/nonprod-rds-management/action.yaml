@@ -21,7 +21,7 @@ runs:
       uses: aws-actions/configure-aws-credentials@v3
       with:
         role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions
-        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+        aws-region: ${{ inputs.aws-region }}
 
     - name: 🔑 Configure NonProd AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
