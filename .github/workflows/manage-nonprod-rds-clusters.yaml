@@ -47,7 +47,7 @@ jobs:
     strategy:
       matrix:
         cluster-name: ${{ fromJSON(needs.get-nonprod-clusters.outputs.matrix) }}
-    if: !contains(fromJSON('["uat", "prep", "live"]'), ${{ matrix.cluster-name }})
+    if: contains(fromJSON('["uat", "prep", "live"]'), ${{ matrix.cluster-name }})
 
     steps:
       - name: 📨 Checkout
