@@ -38,8 +38,8 @@ jobs:
       - name: Get NonProd Clusters
         id: get-nonprod-clusters
         run: |
-          clusters='$(aws rds describe-db-clusters --region eu-west-1 | jq '[.DBClusters[].DBClusterIdentifier] | @csv' --raw-output)'
-          echo "matrix=[$(echo $clusters | sed 's/"/\\"/g')]" >> $GITHUB_OUTPUTS
+          clusters=$(aws rds describe-db-clusters --region eu-west-1 | jq "[.DBClusters[].DBClusterIdentifier] | @csv" --raw-output)
+          echo "matrix=[$(echo $clusters | sed 's/"/\\"/g')]"
 
   alter-nonprod-clusters:
     needs: get-nonprod-clusters
