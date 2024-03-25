@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cluster-name: ${{ needs.get-nonprod-clusters.outputs.matrix }}
+        cluster-name: ${{ fromJSON(needs.get-nonprod-clusters.outputs.matrix) }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
