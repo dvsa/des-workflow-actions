@@ -46,27 +46,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cluster-name: ${{ fromJSON(needs.get-nonprod-clusters.outputs.matrix) }}
-    if: contains(fromJSON('["uat", "prep", "live"]'), ${{ matrix.cluster-name }})
+         cluster-name: ${{ fromJSON(needs.get-nonprod-clusters.outputs.matrix) }}
 
     steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
+      - name: ${{ inputs.action }} ${{ matrix.cluster-name }}
+        if: !contains(fromJSON('["uat", "prep", "live"]'), ${{ matrix.cluster-name }})
+        uses: ./.github/actions/nonprod-rds-management
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          cluster-name: ${{ matrix.cluster-name }}
 
-      - name: 🔑 Configure NonProd AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: echo cluster name
-        run : echo ${{ matrix.cluster-name }}
 #
 #      - name: ☁️ Upload to GitHub Summary
 #        uses: actions/upload-artifact@v3

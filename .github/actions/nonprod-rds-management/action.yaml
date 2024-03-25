@@ -1,0 +1,28 @@
+name: Manage NonProd RDS Clusters
+description: "Action to turn nonprod RDS clusters off or on"
+inputs:
+  cluster-name:
+    required: true
+    description: "The name of the cluster to turn off or on"
+
+runs:
+  using: composite
+  steps:
+    - name: 📨 Checkout
+      uses: actions/checkout@v4
+
+    - name: 🔑 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+    - name: 🔑 Configure NonProd AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+    - name: echo cluster name
+      shell: bash
+      run : echo ${{ matrix.cluster-name }}
