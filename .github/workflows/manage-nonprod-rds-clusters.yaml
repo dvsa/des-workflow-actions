@@ -10,6 +10,10 @@ on:
           - start
           - stop
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   get-nonprod-clusters:
     runs-on: ubuntu-latest
