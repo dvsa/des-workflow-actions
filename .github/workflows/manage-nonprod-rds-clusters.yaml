@@ -49,7 +49,10 @@ jobs:
          cluster-name: ${{ fromJSON(needs.get-nonprod-clusters.outputs.matrix) }}
 
     steps:
-      - name: ${{ inputs.action }} ${{ matrix.cluster-name }}
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: ${{ inputs.action }} ${{ matrix.cluster-name }}+
         if: ${{ !contains(fromJSON('["uat", "prep", "live"]'), matrix.cluster-name ) }}
         uses: ./.github/actions/nonprod-rds-management
         with:
