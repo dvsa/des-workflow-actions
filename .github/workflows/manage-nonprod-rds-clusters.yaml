@@ -1,0 +1,71 @@
+name: Manage NonProd RDS Clusters
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Whether to start or stop the RDS instance/s
+        type: choice
+        options:
+          - start
+          - stop
+
+jobs:
+  get-nonprod-clusters:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get-nonprod-clusters.outputs.matrix }}
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🔑 Configure NonProd AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: Get NonProd Clusters
+        id: get-nonprod-clusters
+        run: |
+          clusters='$(aws rds describe-db-clusters --region eu-west-1 | jq '[.DBClusters[].DBClusterIdentifier] | @csv' --raw-output)'
+          echo "matrix=[$(echo $clusters | sed 's/"/\\"/g')]" >> $GITHUB_OUTPUTS
+
+  alter-nonprod-clusters:
+    needs: get-nonprod-clusters
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cluster-name: ${{fromJSON(needs.get-nonprod-clusters.outputs.matrix)}}
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🔑 Configure NonProd AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: echo cluster name
+        run : echo ${{ matrix.cluster-name }}
+#
+#      - name: ☁️ Upload to GitHub Summary
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
+#          retention-days: 3
+#          path: |
+#            artefacts/*
