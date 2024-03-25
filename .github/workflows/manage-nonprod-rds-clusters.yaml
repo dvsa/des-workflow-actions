@@ -57,6 +57,9 @@ jobs:
         uses: ./.github/actions/nonprod-rds-management
         with:
           cluster-name: ${{ matrix.cluster-name }}
+          aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+          aws-nonprod-account-id: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
 
 #

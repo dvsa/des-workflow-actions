@@ -4,6 +4,15 @@ inputs:
   cluster-name:
     required: true
     description: "The name of the cluster to turn off or on"
+  aws-account-id:
+    description: AWS MGMT Account ID
+    required: true
+  aws-nonprod-account-id:
+    description: AWS NONPROD Account ID
+    required: true
+  aws-region:
+    description: AWS Region
+    required: true
 
 runs:
   using: composite
@@ -11,14 +20,14 @@ runs:
     - name: 🔑 Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions
         aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
     - name: 🔑 Configure NonProd AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
-        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+        role-to-assume: arn:aws:iam::${{ inputs.aws-nonprod-account-id }}:role/github-actions
+        aws-region: ${{ inputs.aws-region }}
 
     - name: echo cluster name
       shell: bash
