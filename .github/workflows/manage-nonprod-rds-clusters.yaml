@@ -52,8 +52,11 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
+      - name: 📨 Get RDS Cluster Environment
+        run: echo CLUSTER_ENVIRONMENT=$(echo ${{ matrix.cluster-name }} | cut -d '-' -f 2 ) >> $GITHUB_ENV
+
       - name: ${{ inputs.action }} ${{ matrix.cluster-name }}+
-        if: ${{ !contains(fromJSON('["uat", "prep", "live"]'), matrix.cluster-name ) }}
+        if: ${{ !contains(fromJSON('["uat", "perf", "live"]'), env.CLUSTER_ENVIRONMENT ) }}
         uses: ./.github/actions/nonprod-rds-management
         with:
           cluster-name: ${{ matrix.cluster-name }}
