@@ -65,11 +65,11 @@ jobs:
           fi
           
           outcome=$(aws secretsmanager put-secret-value --secret-id rds-exclusions-list \
-          --secret-string "{\"ENVIRONMENTS\":\"$exclusions\"}" | jq -r '.VersionStages[]')
+          --secret-string "{\"ENVIRONMENTS\":\"$exclusions\"}" > /dev/null; echo $?)
           
-          if [ $outcome == 'AWSCURRENT' ]; then
-            echo "## Update RDS Exclusions:" >> $GITHUB_STEP_SUMMARY
-            echo "Successfully updated the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
+          if [ $outcome == 0 ]; then
+            echo "## Update RDS Exclusions" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Successfully updated the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 🔑 Configure NonProd AWS Credentials
@@ -83,13 +83,15 @@ jobs:
           clusters=($(aws rds describe-db-clusters --region eu-west-1 | jq -r '.DBClusters[] | "\(.DBClusterIdentifier),\(.Status)"'))
           action=${{ inputs.action || steps.determine-action.outputs.action }}
                     
-          echo "## NonProd RDS Cluster Action Summary:" >> $GITHUB_STEP_SUMMARY
+          echo "## NonProd RDS Cluster Action Summary" >> $GITHUB_STEP_SUMMARY
           
           for cluster in "${clusters[@]}"; do
             cluster_name=$(echo $cluster | cut -d ',' -f 1)
             cluster_status=$(echo $cluster | cut -d ',' -f 2)
             environment_name=$(echo $cluster | cut -d '-' -f 2)
           
+            if [ $action == "start" ]; then emoji="🟢"; else emoji="🔴";  fi
+
             # Ignore clusters that don't match the input environment for workflow_dispatch runs
             if [[ ${{ github.event_name }} == 'workflow_dispatch' ]] && [[ $environment_name != ${{ inputs.environment }} ]]; then
               echo "Skipping $cluster_name"
@@ -98,7 +100,7 @@ jobs:
           
             # Handle if any clusters have been manually changed in the AWS console
             if [[ $action == "start" && $cluster_status == "available" ]] || [[ $action == "stop" && $cluster_status == "stopped" ]]; then
-              echo "$cluster_name is already in the desired state" >> $GITHUB_STEP_SUMMARY
+              echo "$emoji $cluster_name is already in the desired state" >> $GITHUB_STEP_SUMMARY
               continue
             fi
           
@@ -108,13 +110,13 @@ jobs:
               grep -q "$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/ /\\|/g')"; echo $?)
               
               if [ $is_excluded == 0 ]; then
-                echo "$cluster_name is in the exclusion list so won't be actioned" >> $GITHUB_STEP_SUMMARY
+                echo "🚫 $cluster_name is in the exclusion list so won't be actioned" >> $GITHUB_STEP_SUMMARY
               else
-                echo "Starting cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
+                echo "$emoji Starting cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
               fi
             fi
           
             if [ $action == "stop" ]; then
-              echo "Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
+              echo "$emoji Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
             fi
           done
