@@ -24,9 +24,7 @@ permissions:
 
 jobs:
   manage-nonprod-clusters:
-    needs: determine-action
     runs-on: ubuntu-latest
-
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
