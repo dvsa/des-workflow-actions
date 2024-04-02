@@ -4,24 +4,42 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: Whether to start or stop the RDS instance/s
+        description: RDS Instance Action
         type: choice
         options:
           - start
           - stop
+      environment:
+        description: RDS Instance Environment
+        type: choice
+        options:
+          - uat
+          - perf
+  schedule:
+    - cron: "45 05,18 * * 1-5"
 
 permissions:
   id-token: write
   contents: write
 
 jobs:
-  get-nonprod-clusters:
+  manage-nonprod-clusters:
+    needs: determine-action
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.get-nonprod-clusters.outputs.matrix }}
+
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
+
+      - name: 🕵️ Determine Action
+        if: ${{ github.event_name == 'schedule' }}
+        id: determine-action
+        run: |
+          if [ $(date +"%H") -lt 12 ]; then
+            echo "action=start" >> $GITHUB_OUTPUT
+          else
+            echo "action=stop" >> $GITHUB_OUTPUT
+          fi;
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -29,47 +47,74 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: |
+            des-globals/env
+            rds-exclusions-list
+          parse-json-secrets: true
+
+      - name: 🔄 Update Exclusions List
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ ${{ inputs.action }} == 'start' ]; then
+            exclusions=$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/${{ inputs.environment }}//; s/  */,/g')
+          fi
+          
+          if [ ${{ inputs.action }} == 'stop' ]; then
+            exclusions="${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} ${{ inputs.environment }}"
+          fi
+          
+          outcome=$(aws secretsmanager put-secret-value --secret-id rds-exclusions-list \
+          --secret-string "{\"ENVIRONMENTS\":\"$exclusions\"}" | jq -r '.VersionStages[]')
+          
+          if [ $outcome == 'AWSCURRENT' ]; then
+            echo "Successfully updated the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: 🔑 Configure NonProd AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: Get NonProd Clusters
-        id: get-nonprod-clusters
+      - name: 🛠️ Manage NonProd Clusters
         run: |
-          clusters=$(aws rds describe-db-clusters --region eu-west-1 | jq "[.DBClusters[].DBClusterIdentifier] | @csv" --raw-output)
-          echo "matrix=[$clusters]" >> $GITHUB_OUTPUT
-
-  alter-nonprod-clusters:
-    needs: get-nonprod-clusters
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-         cluster-name: ${{ fromJSON(needs.get-nonprod-clusters.outputs.matrix) }}
-
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: 📨 Get RDS Cluster Environment
-        run: echo CLUSTER_ENVIRONMENT=$(echo ${{ matrix.cluster-name }} | cut -d '-' -f 2 ) >> $GITHUB_ENV
-
-      - name: ${{ inputs.action }} ${{ matrix.cluster-name }}+
-        if: ${{ !contains(fromJSON('["uat", "perf", "live"]'), env.CLUSTER_ENVIRONMENT ) }}
-        uses: ./.github/actions/nonprod-rds-management
-        with:
-          cluster-name: ${{ matrix.cluster-name }}
-          aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
-          aws-nonprod-account-id: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-
-
-#
-#      - name: ☁️ Upload to GitHub Summary
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
-#          retention-days: 3
-#          path: |
-#            artefacts/*
+          clusters=($(aws rds describe-db-clusters --region eu-west-1 | jq -r '.DBClusters[] | "\(.DBClusterIdentifier),\(.Status)"'))
+          action=${{ inputs.action || steps.determine-action.outputs.action }}
+          
+          echo "## RDS Cluster Action Summary:" >> $GITHUB_STEP_SUMMARY
+          
+          for cluster in "${clusters[@]}"; do
+            cluster_name=$(echo $cluster | cut -d ',' -f 1)
+            cluster_status=$(echo $cluster | cut -d ',' -f 2)
+            environment_name=$(echo $cluster | cut -d '-' -f 2)
+          
+            # Ignore clusters that don't match the input environment for workflow_dispatch runs
+            if [[ ${{ github.event_name }} == 'workflow_dispatch' ]] && [[ $environment != ${{ inputs.environment }} ]]; then
+                continue
+            fi
+          
+            # Handle if any clusters have been manually changed in the AWS console
+            if [[ $action == "start" && $cluster_status == "available" ]] || [[ $action == "stop" && $cluster_status == "stopped" ]]; then
+              echo "$cluster_name is already in the desired state" >> $GITHUB_STEP_SUMMARY
+              continue
+            fi
+          
+            if [ $action == "start" ]; then         
+              # Check if the environment is in the exclusion list (0 = excluded, 1 = not excluded)
+              is_excluded=$(echo $environment_name | \
+              grep -q "$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/ /\\|/g')"; echo $?)
+              
+              if [ $is_excluded == 0 ]; then
+                echo "$cluster_name is in the exclusion list so won't be actioned" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "Starting cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          
+            if [ $action == "stop" ]; then
+              echo "Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
