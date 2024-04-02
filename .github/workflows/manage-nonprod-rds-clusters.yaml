@@ -68,6 +68,7 @@ jobs:
           --secret-string "{\"ENVIRONMENTS\":\"$exclusions\"}" | jq -r '.VersionStages[]')
           
           if [ $outcome == 'AWSCURRENT' ]; then
+            echo "## Update RDS Exclusions:" >> $GITHUB_STEP_SUMMARY
             echo "Successfully updated the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -81,10 +82,8 @@ jobs:
         run: |
           clusters=($(aws rds describe-db-clusters --region eu-west-1 | jq -r '.DBClusters[] | "\(.DBClusterIdentifier),\(.Status)"'))
           action=${{ inputs.action || steps.determine-action.outputs.action }}
-          
-          echo $action
-          
-          echo "## RDS Cluster Action Summary:" >> $GITHUB_STEP_SUMMARY
+                    
+          echo "## NonProd RDS Cluster Action Summary:" >> $GITHUB_STEP_SUMMARY
           
           for cluster in "${clusters[@]}"; do
             cluster_name=$(echo $cluster | cut -d ',' -f 1)
@@ -92,14 +91,13 @@ jobs:
             environment_name=$(echo $cluster | cut -d '-' -f 2)
           
             # Ignore clusters that don't match the input environment for workflow_dispatch runs
-            if [[ ${{ github.event_name }} == 'workflow_dispatch' ]] && [[ $environment != ${{ inputs.environment }} ]]; then
-              echo "skipping $cluster_name"
+            if [[ ${{ github.event_name }} == 'workflow_dispatch' ]] && [[ $environment_name != ${{ inputs.environment }} ]]; then
+              echo "Skipping $cluster_name"
               continue
             fi
           
             # Handle if any clusters have been manually changed in the AWS console
             if [[ $action == "start" && $cluster_status == "available" ]] || [[ $action == "stop" && $cluster_status == "stopped" ]]; then
-              echo "$cluster_name is already in the desired state"
               echo "$cluster_name is already in the desired state" >> $GITHUB_STEP_SUMMARY
               continue
             fi
@@ -117,7 +115,6 @@ jobs:
             fi
           
             if [ $action == "stop" ]; then
-              echo "Stopping cluster: $cluster_name"
               echo "Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
             fi
           done
