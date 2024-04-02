@@ -82,6 +82,8 @@ jobs:
           clusters=($(aws rds describe-db-clusters --region eu-west-1 | jq -r '.DBClusters[] | "\(.DBClusterIdentifier),\(.Status)"'))
           action=${{ inputs.action || steps.determine-action.outputs.action }}
           
+          echo $action
+          
           echo "## RDS Cluster Action Summary:" >> $GITHUB_STEP_SUMMARY
           
           for cluster in "${clusters[@]}"; do
@@ -91,11 +93,13 @@ jobs:
           
             # Ignore clusters that don't match the input environment for workflow_dispatch runs
             if [[ ${{ github.event_name }} == 'workflow_dispatch' ]] && [[ $environment != ${{ inputs.environment }} ]]; then
-                continue
+              echo "skipping $cluster_name"
+              continue
             fi
           
             # Handle if any clusters have been manually changed in the AWS console
             if [[ $action == "start" && $cluster_status == "available" ]] || [[ $action == "stop" && $cluster_status == "stopped" ]]; then
+              echo "$cluster_name is already in the desired state"
               echo "$cluster_name is already in the desired state" >> $GITHUB_STEP_SUMMARY
               continue
             fi
@@ -113,6 +117,7 @@ jobs:
             fi
           
             if [ $action == "stop" ]; then
+              echo "Stopping cluster: $cluster_name"
               echo "Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
             fi
           done
