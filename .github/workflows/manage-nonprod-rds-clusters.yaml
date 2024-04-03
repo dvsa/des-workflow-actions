@@ -16,7 +16,8 @@ on:
           - uat
           - perf
   schedule:
-    - cron: "45 05,18 * * 1-5"
+#    - cron: "45 05,18 * * 1-5"
+    - cron: "45 01,13 * * 1-5" # For testing
 
 permissions:
   id-token: write
