@@ -1,0 +1,36 @@
+name: Build Mobile App Config
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Config Environment
+        type: choice
+        options:
+          - uat
+          - live
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  manage-nonprod-clusters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: dvsa/des-mobile-app
+
+      - name: Get Git Commit Hash
+        run: |
+
+      - name: Build Artefact for Config
+        run: |
+
+      - name: Upload Config to S3
+        run: |
+
+      - name: Upload Config to GitHub Summary
+        run: |
