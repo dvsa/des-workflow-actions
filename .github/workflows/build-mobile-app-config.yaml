@@ -15,22 +15,63 @@ permissions:
   contents: write
 
 jobs:
-  manage-nonprod-clusters:
+  build-mobile-app-config:
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          repository: dvsa/des-mobile-app
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: Get Git Commit Hash
-        run: |
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
 
-      - name: Build Artefact for Config
-        run: |
+      - name: 📨 Checkout Mobile App Config Repo
+        uses: actions/checkout@v4
+        with:
+          repository: dvsa/des-mobile-app-config
+          ssh-key: ${{ env.DES_GLOBALS_ENV_MOBILE_APP_CONFIG_REPO_KEY }}
 
-      - name: Upload Config to S3
+      - name: ⚙️ Set Up Environment
         run: |
+          short_commit="$(git rev-parse --short HEAD)"
+          
+          echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
+          echo "ENVIRONMENT_UPPERCASE=$(echo ${{ inputs.environment }} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_ENV
 
-      - name: Upload Config to GitHub Summary
+      - name: 📁 Move Intunes Files for ${{ env.ENVIRONMENT_UPPERCASE }}
         run: |
+          target_dir="MobileExaminerConfig-${{ env.ENVIRONMENT_UPPERCASE }}-${{ env.VERSION }}"
+          config_schema_path="intune/appconfigschema.xsd"
+          config_path="intune/config-${{ inputs.environment }}.xml"
+          
+          mkdir $target_dir
+          mv $config_schema_path $config_path $target_dir
+          
+          echo "TARGET_DIR=$target_dir" >> $GITHUB_ENV
+          echo "ZIP_FILE=${target_dir}.zip" >> $GITHUB_ENV
+
+      - name: 📁 Zip Intune Files
+        run: zip -r ${{ env.ZIP_FILE }} ${{ env.TARGET_DIR }}
+
+      - name: ☁️ Upload to S3
+        id: s3-upload-artefacts
+        run: |
+          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
+          aws s3 cp ${{ env.ZIP_FILE }} \
+          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
+          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
+
+      - name: ☁️ Upload to GitHub Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ZIP_FILE }}
+          path: ${{ env.ZIP_FILE }}
+          retention-days: 3
