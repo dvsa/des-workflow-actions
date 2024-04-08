@@ -15,9 +15,9 @@ on:
         options:
           - uat
           - perf
+          - prep
   schedule:
-#    - cron: "45 05,18 * * 1-5"
-    - cron: "45 01,13 * * 1-5" # For testing
+    - cron: "45 05,18 * * 1-5"
 
 permissions:
   id-token: write
@@ -74,9 +74,17 @@ jobs:
           fi
 
       - name: 🔑 Configure NonProd AWS Credentials
+        if: ${{ inputs.environment != 'prep' }}
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🔑 Configure Prod AWS Credentials
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'prep' }}
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_PROD_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🛠️ Manage NonProd Clusters
