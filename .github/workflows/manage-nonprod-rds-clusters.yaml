@@ -126,11 +126,13 @@ jobs:
               if [ $is_excluded -eq 0 ]; then
                 echo "🚫 $cluster_name is in the exclusion list so won't be actioned" >> $GITHUB_STEP_SUMMARY
               else
+                aws rds start-db-cluster --region ${{ secrets.DVSA_AWS_REGION }} --db-cluster-identifier $cluster_name
                 echo "$emoji Starting cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
               fi
             fi
           
             if [ "$action" == "stop" ]; then
+              aws rds stop-db-cluster --region ${{ secrets.DVSA_AWS_REGION }} --db-cluster-identifier $cluster_name
               echo "$emoji Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
             fi
           done
