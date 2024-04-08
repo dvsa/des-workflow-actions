@@ -46,7 +46,7 @@ jobs:
           echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
           echo "ENVIRONMENT_UPPERCASE=$(echo ${{ inputs.environment }} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_ENV
 
-      - name: 📁 Move Intunes Files for ${{ env.ENVIRONMENT_UPPERCASE }}
+      - name: 📁 Move Intunes Files for ${{ env.ENVIRONMENT_UPPERCASE }} Config
         run: |
           target_dir="MobileExaminerConfig-${{ env.ENVIRONMENT_UPPERCASE }}-${{ env.VERSION }}"
           config_schema_path="intune/appconfigschema.xsd"
