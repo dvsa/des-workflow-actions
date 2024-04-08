@@ -57,20 +57,25 @@ jobs:
       - name: 🔄 Update Exclusions List
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          if [ "${{ inputs.action }}" == "start" ]; then
-            exclusions=$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/${{ inputs.environment }}//; s/  */,/g')
-          fi
-          
-          if [ "${{ inputs.action }}" == "stop" ]; then
-            exclusions="${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} ${{ inputs.environment }}"
-          fi
-          
-          outcome=$(aws secretsmanager put-secret-value --secret-id rds-exclusions-list \
-          --secret-string "{\"ENVIRONMENTS\":\"$exclusions\"}" > /dev/null; echo $?)
+          echo "## Update RDS Exclusions" >> $GITHUB_STEP_SUMMARY
 
-          if [ $outcome -eq 0 ]; then
-            echo "## Update RDS Exclusions" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Successfully updated the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
+          if ! echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | grep -q ${{ inputs.environment }}; then
+            if [ "${{ inputs.action }}" == "start" ]; then
+              exclusions=$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/${{ inputs.environment }}//; s/  */,/g')
+            fi
+            
+            if [ "${{ inputs.action }}" == "stop" ]; then
+              exclusions="${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} ${{ inputs.environment }}"
+            fi
+            
+            outcome=$(aws secretsmanager put-secret-value --secret-id rds-exclusions-list \
+            --secret-string "{\"ENVIRONMENTS\":\"$exclusions\"}" > /dev/null; echo $?)
+  
+            if [ $outcome -eq 0 ]; then
+              echo "✅ Successfully updated the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
+            fi
+          else 
+            echo "✅ Environment is already in the RDS exclusions list" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 🔑 Configure NonProd AWS Credentials
