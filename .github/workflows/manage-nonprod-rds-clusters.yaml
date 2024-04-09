@@ -98,17 +98,31 @@ jobs:
           action=${{ inputs.action || steps.determine-action.outputs.action }}
                     
           echo "## NonProd RDS Cluster Action Summary" >> $GITHUB_STEP_SUMMARY
-          
           for cluster in "${clusters[@]}"; do
             cluster_name=$(echo $cluster | cut -d ',' -f 1)
             cluster_status=$(echo $cluster | cut -d ',' -f 2)
             environment_name=$(echo $cluster | cut -d '-' -f 2)
           
-            if [ "$action" == "start" ]; then emoji="🟢"; else emoji="🔴";  fi
+            if [ "$action" == "start" ]; then 
+              emoji="🟢"
+              action_message="$emoji Starting cluster: $cluster_name"
+            else 
+              emoji="🔴"
+              action_message="$emoji Stopping cluster: $cluster_name"
+            fi
 
             # Ignore clusters that don't match the input environment for workflow_dispatch runs
             if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "$environment_name" != "${{ inputs.environment }}" ]; then
               echo "Skipping $cluster_name"
+              continue
+            fi
+          
+            # Check if the environment is in the exclusion list (0 = excluded, 1 = not excluded)
+            is_excluded=$(echo $environment_name | \
+            grep -q "$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/ /\\|/g')"; echo $?)
+        
+            if [ $is_excluded -eq 0 && "$action" == "start" ]; then
+              echo "🚫 $cluster_name is in the exclusion list so won't be started" >> $GITHUB_STEP_SUMMARY
               continue
             fi
           
@@ -118,21 +132,7 @@ jobs:
               continue
             fi
 
-            if [ "$action" == "start" ]; then         
-              # Check if the environment is in the exclusion list (0 = excluded, 1 = not excluded)
-              is_excluded=$(echo $environment_name | \
-              grep -q "$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/ /\\|/g')"; echo $?)
-              
-              if [ $is_excluded -eq 0 ]; then
-                echo "🚫 $cluster_name is in the exclusion list so won't be actioned" >> $GITHUB_STEP_SUMMARY
-              else
-                aws rds start-db-cluster --region ${{ secrets.DVSA_AWS_REGION }} --db-cluster-identifier $cluster_name
-                echo "$emoji Starting cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
-              fi
-            fi
-          
-            if [ "$action" == "stop" ]; then
-              aws rds stop-db-cluster --region ${{ secrets.DVSA_AWS_REGION }} --db-cluster-identifier $cluster_name
-              echo "$emoji Stopping cluster: $cluster_name" >> $GITHUB_STEP_SUMMARY
-            fi
+            command=$(aws rds ${action}-db-cluster --region ${{ secrets.DVSA_AWS_REGION }} \
+            --db-cluster-identifier $cluster_name | jq -r '.DBCluster.DBClusterIdentifier')
+            echo "$action_message" >> $GITHUB_STEP_SUMMARY
           done
