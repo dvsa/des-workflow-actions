@@ -26,7 +26,7 @@ jobs:
   run-mobile-app-automation:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.gh-pages-deployment.outputs.page_url }}
     runs-on: mito-2
     steps:
       - name: 📨 Checkout
@@ -34,7 +34,7 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
-      - name: 🌎 Set Up Environment
+      - name: 🌎 Setup Environment
         run: |
           short_commit="$(git rev-parse --short HEAD)"          
           echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
@@ -57,7 +57,7 @@ jobs:
           secret-ids: des-globals/env
           parse-json-secrets: true
 
-      - name: Prepare App File
+      - name: 📋 Prepare App File
         run: |
           aws s3 s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/mobile-app/develop/App.app.zip \
           ./build/App.app.zip
@@ -67,7 +67,7 @@ jobs:
           
           unzip ./build/App.app.zip -d ./apps/
 
-      - name: Run Tests
+      - name: 🧪 Run Tests
         run: npm run wdio:des:ap -- --${{ inputs.test-type }}=${{ inputs.test-to-run }}
 
       - name: Generate Reports
@@ -84,14 +84,14 @@ jobs:
 #
 #          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
 
-      - name: Setup Pages
+      - name: ⚙️ Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: ☁️ Upload Artefact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'reports/'
 
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - name: 🚀 Deploy to GitHub Pages
+        id: gh-pages-deployment
         uses: actions/deploy-pages@v4
