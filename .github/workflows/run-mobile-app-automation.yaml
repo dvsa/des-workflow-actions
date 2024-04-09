@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: Branch name to build from
+        type: string
+        default: develop
+      test-type:
+        description: Test Type
+        type: string
+        choices:
+          - suite
+          - spec
+      test-to-run:
+        description: Test Suite or Spec to Run
+        type: string
+        default: desfull
+
+permissions:
+  id-token: write
+  contents: write
+
+  run-mobile-app-automation:
+    runs-on: mito-2
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set Up Environment
+        run: |
+          short_commit="$(git rev-parse --short HEAD)"          
+          echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
+
+      - name: ⚙️ Set Up Node
+        id: node-setup
+        uses: dvsa/des-workflow-actions/.github/actions/setup-node@main
+        with:
+          access-token: ${{ secrets.DES_ACCESS_TOKEN }}
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: Run Tests
+        run: npm run wdio:des:ap -- --${{ inputs.test-type }}=${{ inputs.test-to-run }}
+
+      - name: Generate Reports
+        run: npm run s3report
+
+      - name: ☁️ Upload to S3
+        run: |
+          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
+          file_name=MobileAppAutomation${{ env.VERSION }}.zip
+          zip -r $file_name reports/
+          
+          aws s3 cp $file_name \
+          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/$file_name
+          
+          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
+
+      - name: ☁️ Upload to GitHub Pages
+        uses:
