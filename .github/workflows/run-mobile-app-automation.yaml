@@ -7,28 +7,34 @@ on:
         description: Branch name to build from
         type: string
         default: develop
+        required: true
       test-type:
         description: Test Type
         type: string
-        choices:
-          - suite
-          - spec
+        required: true
       test-to-run:
         description: Test Suite or Spec to Run
         type: string
-        default: desfull
+        required: true
 
 permissions:
   id-token: write
   contents: write
+  pages: write
 
+jobs:
   run-mobile-app-automation:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: mito-2
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
 
-      - name: ⚙️ Set Up Environment
+      - name: 🌎 Set Up Environment
         run: |
           short_commit="$(git rev-parse --short HEAD)"          
           echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
@@ -51,22 +57,41 @@ permissions:
           secret-ids: des-globals/env
           parse-json-secrets: true
 
+      - name: Prepare App File
+        run: |
+          aws s3 s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/mobile-app/develop/App.app.zip \
+          ./build/App.app.zip
+          
+          aws s3 s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/jenkins/credentials.json \
+          ./creds/credentials.json
+          
+          unzip ./build/App.app.zip -d ./apps/
+
       - name: Run Tests
         run: npm run wdio:des:ap -- --${{ inputs.test-type }}=${{ inputs.test-to-run }}
 
       - name: Generate Reports
         run: npm run s3report
 
-      - name: ☁️ Upload to S3
-        run: |
-          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-          file_name=MobileAppAutomation${{ env.VERSION }}.zip
-          zip -r $file_name reports/
-          
-          aws s3 cp $file_name \
-          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/$file_name
-          
-          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
+#      - name: ☁️ Upload to S3
+#        run: |
+#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
+#          file_name=MobileAppAutomation${{ env.VERSION }}.zip
+#          zip -r $file_name reports/
+#
+#          aws s3 cp $file_name \
+#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/$file_name
+#
+#          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
 
-      - name: ☁️ Upload to GitHub Pages
-        uses:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'reports/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
