@@ -121,7 +121,7 @@ jobs:
             is_excluded=$(echo $environment_name | \
             grep -q "$(echo ${{ env.RDS_EXCLUSIONS_LIST_ENVIRONMENTS }} | sed 's/ /\\|/g')"; echo $?)
         
-            if [ $is_excluded -eq 0 && "$action" == "start" ]; then
+            if [ $is_excluded -eq 0 ] && [ "$action" == "start" ]; then
               echo "🚫 $cluster_name is in the exclusion list so won't be started" >> $GITHUB_STEP_SUMMARY
               continue
             fi
