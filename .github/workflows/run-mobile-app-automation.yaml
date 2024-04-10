@@ -59,10 +59,10 @@ jobs:
 
       - name: 📋 Prepare App File
         run: |
-          aws s3 s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/mobile-app/develop/App.app.zip \
+          aws s3 cp s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/mobile-app/develop/App.app.zip \
           ./build/App.app.zip
           
-          aws s3 s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/jenkins/credentials.json \
+          aws s3 cp s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/jenkins/credentials.json \
           ./creds/credentials.json
           
           unzip ./build/App.app.zip -d ./apps/
