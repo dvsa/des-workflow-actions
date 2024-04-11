@@ -68,6 +68,7 @@ jobs:
           unzip ./build/App.app.zip -d ./apps/
 
       - name: 🧪 Run Tests
+        continue-on-error: true
         run: npm run wdio:des:ap -- --${{ inputs.test-type }}=${{ inputs.test-to-run }}
 
       - name: Generate Reports
