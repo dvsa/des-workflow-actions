@@ -70,8 +70,8 @@ jobs:
       - name: 🧪 Run Tests
         continue-on-error: true
         run: |
-          args="${{ inputs.test-type }}=${{ inputs.test-to-run }}"
-          npm run wdio:des:ap -- --$args
+          command="run wdio:des:ap -- --${{ inputs.test-type }}=${{ inputs.test-to-run }}"
+          npm $command
 
       - name: Generate Reports
         run: npm run s3report
