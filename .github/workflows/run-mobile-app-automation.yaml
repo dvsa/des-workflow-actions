@@ -65,6 +65,7 @@ jobs:
           aws s3 cp s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/jenkins/credentials.json \
           ./creds/credentials.json
           
+          mkdir -p apps/App.app
           unzip ./build/App.app.zip -d ./apps/App.app/
 
       - name: 🧪 Run Tests
