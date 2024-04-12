@@ -94,7 +94,7 @@ jobs:
       - name: ☁️ Upload Artefact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'reports/'
+          path: 'reports/allure-results/'
 
       - name: 🚀 Deploy to GitHub Pages
         id: gh-pages-deployment
