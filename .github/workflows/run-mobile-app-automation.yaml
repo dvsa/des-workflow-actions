@@ -26,7 +26,7 @@ jobs:
   run-mobile-app-automation:
     runs-on: mito-2
     outputs:
-      env: ${{ steps.set-version.output.version }}
+      env: ${{ steps.set-version.outputs.version }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -87,7 +87,7 @@ jobs:
 #      - name: ☁️ Upload to S3
 #        run: |
 #          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          file_name=MobileAppAutomation${{ env.version }}.zip
+#          file_name=MobileAppAutomation${{ steps.set-version.outputs.version }}.zip
 #          zip -r $file_name reports/
 #
 #          aws s3 cp $file_name \
