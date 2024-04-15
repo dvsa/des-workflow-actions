@@ -80,7 +80,7 @@ jobs:
       - name: ☁️ Upload to GitHub Summary
         uses: actions/upload-artifact@v4
         with:
-          name: 'MobileAppAutomationReport-${{ steps.set-version.outputs.version }}'
+          name: MobileAppAutomationReport-${{ steps.set-version.outputs.version }}
           path: reports/*
           retention-days: 3
 
@@ -108,7 +108,8 @@ jobs:
       - name: ☁️ Download Report
         uses: actions/download-artifact@v4
         with:
-          name: 'MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}'
+          name: MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}
+          path: reports
 
       - name: ⚙️ Setup Pages
         uses: actions/configure-pages@v5
@@ -116,7 +117,7 @@ jobs:
       - name: ☁️ Upload Artefact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'allure-results/'
+          path: reports/allure-results/
 
       - name: 🚀 Deploy to GitHub Pages
         id: gh-pages-deployment
