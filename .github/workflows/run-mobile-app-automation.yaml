@@ -24,20 +24,20 @@ permissions:
 
 jobs:
   run-mobile-app-automation:
-    environment:
-      name: github-pages
-      url: ${{ steps.gh-pages-deployment.outputs.page_url }}
     runs-on: mito-2
+    outputs:
+      env: ${{ steps.set-version.output.version }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch }}
 
-      - name: 🌎 Setup Environment
+      - name: 🏷️ Set Version
+        id: set-version
         run: |
           short_commit="$(git rev-parse --short HEAD)"          
-          echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
+          echo "version=$(date +%s)-$short_commit" >> $GITHUB_OUTPUT
 
       - name: ⚙️ Set Up Node
         id: node-setup
@@ -77,10 +77,17 @@ jobs:
       - name: Generate Reports
         run: npm run s3report
 
+      - name: ☁️ Upload to GitHub Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'MobileAppAutomationReport-${{ steps.set-version.outputs.version }}'
+          path: reports/*
+          retention-days: 3
+
 #      - name: ☁️ Upload to S3
 #        run: |
 #          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          file_name=MobileAppAutomation${{ env.VERSION }}.zip
+#          file_name=MobileAppAutomation${{ env.version }}.zip
 #          zip -r $file_name reports/
 #
 #          aws s3 cp $file_name \
@@ -88,13 +95,28 @@ jobs:
 #
 #          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
 
+  deploy-pages:
+    needs: run-mobile-app-automation
+    environment:
+      name: github-pages
+      url: ${{ steps.gh-pages-deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: ☁️ Download Report
+        uses: actions/download-artifact@v4
+        with:
+          name: 'MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}'
+
       - name: ⚙️ Setup Pages
         uses: actions/configure-pages@v5
 
       - name: ☁️ Upload Artefact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'reports/allure-results/'
+          path: 'allure-results/'
 
       - name: 🚀 Deploy to GitHub Pages
         id: gh-pages-deployment
