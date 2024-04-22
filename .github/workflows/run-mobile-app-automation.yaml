@@ -71,8 +71,8 @@ jobs:
       - name: 🧪 Run Tests
         continue-on-error: true
         run: |
-          command="$(cat package.json | jq -r '.scripts.\"wdio:des:ap\"') \"--${{ inputs.test-type }}=${{ inputs.test-to-run }}\""
-          npm run $command
+          command=$(cat package.json | jq -r '.scripts."wdio:des:ap"')
+          $command "--${{ inputs.test-type }}=${{ inputs.test-to-run }}"
 
       - name: Generate Reports
         run: npm run s3report
@@ -111,7 +111,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}
-          path: reports
 
       - name: Test marketplace action
         uses: simple-elf/allure-report-action@master
@@ -119,8 +118,6 @@ jobs:
         id: allure-report
         with:
           gh_pages: gh-pages
-          allure_report: reports/allure-report
-          allure_history: reports/allure-history
 
       - name: Deploy report to Github Pages
         if: always()
