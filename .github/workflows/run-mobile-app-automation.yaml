@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MobileAppAutomationReport-${{ steps.set-version.outputs.version }}
-          path: reports/allure-report/
+          path: reports/
           retention-days: 3
 
 #      - name: ☁️ Upload to S3
@@ -111,7 +111,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}
-          path: allure-report
+          path: reports
 
       - name: Test marketplace action
         uses: simple-elf/allure-report-action@master
@@ -119,8 +119,8 @@ jobs:
         id: allure-report
         with:
           gh_pages: gh-pages
-          allure_report: allure-report
-          allure_history: allure-history
+          allure_report: reports/allure-report
+          allure_history: reports/allure-history
 
       - name: Deploy report to Github Pages
         if: always()
