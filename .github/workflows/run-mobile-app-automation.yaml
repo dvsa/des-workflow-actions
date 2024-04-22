@@ -70,9 +70,7 @@ jobs:
 
       - name: 🧪 Run Tests
         continue-on-error: true
-        run: |
-          command=$(cat package.json | jq -r '.scripts."wdio:des:ap"')
-          $command "--${{ inputs.test-type }}=${{ inputs.test-to-run }}"
+        run: npm run wdio:des:ap -- "--${{ inputs.test-type }}=${{ inputs.test-to-run }}"
 
       - name: Generate Reports
         run: npm run s3report
