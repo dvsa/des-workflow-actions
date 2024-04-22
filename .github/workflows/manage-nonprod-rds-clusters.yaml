@@ -1,4 +1,4 @@
-name: Manage NonProd RDS Clusters
+name: 🛢️ Manage NonProd RDS Clusters
 
 on:
   workflow_dispatch:

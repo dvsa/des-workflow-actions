@@ -1,4 +1,4 @@
-name: Build Mobile App Config
+name: 🧱 Build Mobile App Config
 
 on:
   workflow_dispatch:

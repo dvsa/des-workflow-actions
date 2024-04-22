@@ -1,4 +1,4 @@
-name: Create Release Manifest
+name: 📋 Create Release Manifest
 
 on:
   workflow_call:
