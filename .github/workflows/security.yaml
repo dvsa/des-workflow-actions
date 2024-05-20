@@ -1,4 +1,4 @@
-name: Snyk Security run
+name: 👮 Snyk Security run
 
 on:
   workflow_call:

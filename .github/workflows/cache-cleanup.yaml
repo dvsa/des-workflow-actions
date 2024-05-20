@@ -1,4 +1,4 @@
-name: Cache cleanup for branches
+name: 🧹 Cache cleanup for branches
 
 on: workflow_call
 

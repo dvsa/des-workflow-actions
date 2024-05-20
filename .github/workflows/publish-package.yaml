@@ -1,4 +1,4 @@
-name: Publish package
+name: 📦 Publish package
 
 on:
   workflow_call:

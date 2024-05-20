@@ -1,4 +1,4 @@
-name: Deploy
+name: 📱 Run Mobile App Automation
 
 on:
   workflow_call:
