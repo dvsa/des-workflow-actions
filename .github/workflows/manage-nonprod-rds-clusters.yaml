@@ -1,4 +1,5 @@
 name: 🛢️ Manage NonProd RDS Clusters
+run-name: "${{ github.event_name == 'schedule' && '⏰ Scheduled' || '🛢️Manual' }} ${{ inputs.action || github.event.schedule == '45 05 * * 1-5' && 'start' || 'stop' }} of ${{ inputs.environment || 'all' }} NonProd RDS Clusters"
 
 on:
   workflow_dispatch:
@@ -17,7 +18,7 @@ on:
           - perf
           - prep
   schedule:
-    - cron: "45 05,18 * * 1-5"
+    - cron: '45 05,18 * * 1-5'
 
 permissions:
   id-token: write
