@@ -18,7 +18,8 @@ on:
           - perf
           - prep
   schedule:
-    - cron: '45 05,18 * * 1-5'
+    - cron: '45 05 * * 1-5'
+    - cron: '45 18 * * 1-5'
 
 permissions:
   id-token: write
