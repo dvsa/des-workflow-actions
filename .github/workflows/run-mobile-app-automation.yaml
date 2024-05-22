@@ -81,7 +81,7 @@ jobs:
           path: reports/
           retention-days: 3
 
-      - name: ❌ Close Simulators
+      - name: 🖥️ Close Simulators
         run: xcrun simctl shutdown all
 
   deploy-pages:
