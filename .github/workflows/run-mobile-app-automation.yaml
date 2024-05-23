@@ -6,7 +6,6 @@ on:
       branch:
         description: Branch name to build from
         type: string
-        default: develop
         required: true
       test-type:
         description: Test Type
@@ -24,20 +23,20 @@ permissions:
 
 jobs:
   run-mobile-app-automation:
-    environment:
-      name: github-pages
-      url: ${{ steps.gh-pages-deployment.outputs.page_url }}
     runs-on: mito-2
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch }}
 
-      - name: 🌎 Setup Environment
+      - name: 🏷️ Set Version
+        id: set-version
         run: |
           short_commit="$(git rev-parse --short HEAD)"          
-          echo "VERSION=$(date +%s)-$short_commit" >> $GITHUB_ENV
+          echo "version=$(date +%s)-$short_commit" >> $GITHUB_OUTPUT
 
       - name: ⚙️ Set Up Node
         id: node-setup
@@ -65,33 +64,52 @@ jobs:
           aws s3 cp s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/jenkins/credentials.json \
           ./creds/credentials.json
           
-          unzip ./build/App.app.zip -d ./apps/
+          mkdir -p apps/App.app
+          unzip ./build/App.app.zip -d ./apps/App.app/
 
       - name: 🧪 Run Tests
-        run: npm run wdio:des:ap -- --${{ inputs.test-type }}=${{ inputs.test-to-run }}
+        continue-on-error: true
+        run: npm run wdio:des:ap -- --${{ inputs.test-type }} ${{ inputs.test-to-run }}
 
-      - name: Generate Reports
+      - name: 📝 Generate Reports
         run: npm run s3report
 
-#      - name: ☁️ Upload to S3
-#        run: |
-#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          file_name=MobileAppAutomation${{ env.VERSION }}.zip
-#          zip -r $file_name reports/
-#
-#          aws s3 cp $file_name \
-#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/$file_name
-#
-#          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
-
-      - name: ⚙️ Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: ☁️ Upload Artefact
-        uses: actions/upload-pages-artifact@v3
+      - name: ☁️ Upload to GitHub Summary
+        uses: actions/upload-artifact@v4
         with:
-          path: 'reports/'
+          name: MobileAppAutomationReport-${{ steps.set-version.outputs.version }}
+          path: reports/
+          retention-days: 3
 
-      - name: 🚀 Deploy to GitHub Pages
-        id: gh-pages-deployment
-        uses: actions/deploy-pages@v4
+      - name: 🖥️ Close Simulators
+        run: xcrun simctl shutdown all
+
+  deploy-pages:
+    needs: run-mobile-app-automation
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: ☁️ Download Report
+        uses: actions/download-artifact@v4
+        with:
+          name: MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}
+
+      - name: 📝 Generate Allure Report with History
+        uses: simple-elf/allure-report-action@master
+        if: always()
+        id: allure-report
+        with:
+          gh_pages: gh-pages
+
+      - name: 🚀 Deploy Report to Github Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v2
+        env:
+          PERSONAL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISH_BRANCH: gh-pages
+          PUBLISH_DIR: allure-history
