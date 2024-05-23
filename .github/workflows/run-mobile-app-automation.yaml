@@ -68,13 +68,14 @@ jobs:
           unzip ./build/App.app.zip -d ./apps/App.app/
 
       - name: 🧪 Run Tests
-        continue-on-error: true
         run: npm run wdio:des:ap -- --${{ inputs.test-type }} ${{ inputs.test-to-run }}
 
       - name: 📝 Generate Reports
+        if: always()
         run: npm run s3report
 
       - name: ☁️ Upload to GitHub Summary
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: MobileAppAutomationReport-${{ steps.set-version.outputs.version }}
@@ -82,9 +83,11 @@ jobs:
           retention-days: 3
 
       - name: 🖥️ Close Simulators
+        if: always()
         run: xcrun simctl shutdown all
 
   deploy-pages:
+    if: always()
     needs: run-mobile-app-automation
     runs-on: ubuntu-latest
     steps:
