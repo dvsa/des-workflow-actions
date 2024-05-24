@@ -138,3 +138,12 @@ jobs:
             --db-cluster-identifier $cluster_name | jq -r '.DBCluster.DBClusterIdentifier')
             echo "$action_message" >> $GITHUB_STEP_SUMMARY
           done
+
+      - name: 🔔 Send MS Teams Notification
+        if: always()
+        uses: skitionek/notify-microsoft-teams@v1.0.8
+        with:
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_RDS_MANAGEMENT}}
+          job: ${{ toJson(job) }}
+          steps: ${{ toJson(steps) }}
+          overwrite: "{title: `Action: ${{ inputs.action || steps.determine-action.outputs.action }} NonProd Clusters | BY: ${{github.actor}}`}"

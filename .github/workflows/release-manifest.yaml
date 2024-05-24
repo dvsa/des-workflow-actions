@@ -131,12 +131,23 @@ jobs:
           echo "## Release Manifest:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${{ env.FILE_NAME }} to S3" >> $GITHUB_STEP_SUMMARY
 
+  send-teams-notification:
+    if: always()
+    needs: [pre_creation_checks, build_artefact_for_release, create_release_manifest]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📝 Generate MS Teams Notify JSON
+        id: ms-teams-json
+        uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@main
+        with:
+          needs-context: ${{ toJSON(needs) }}
+
       - name: 🔔 Send MS Teams Notification
         if: always()
         uses: skitionek/notify-microsoft-teams@v1.0.4
         with:
           webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_RELEASE_MANIFEST}}
-          job: ${{ toJson(job) }}
+          job: ${{ steps.ms-teams-json.outputs.job-context }}
           needs: ${{ toJson(needs) }}
-          steps: ${{ toJson(steps) }}
-          overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
+          steps: ${{ steps.ms-teams-json.outputs.steps-context }}
+          overwrite: "{title: `${{github.repository}} | ${{ github.ref_name }} | BY: ${{github.actor}}`}"
