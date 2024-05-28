@@ -14,7 +14,7 @@ runs:
 
     - name: 🔍 Determine service name
       shell: bash
-      run: echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+      run: echo "SERVICE_NAME=$(jq -r '.name | sub("^(mes|des)-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
 
     - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
       uses: actions/setup-node@v3
