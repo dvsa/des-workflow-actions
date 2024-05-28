@@ -35,7 +35,7 @@ jobs:
       - name: 🔍 Determine service name
         id: get_service
         shell: bash
-        run: echo "service_name=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_OUTPUT
+        run: echo "service_name=$(jq -r '.name | sub("^(mes|des)-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_OUTPUT
 
       - name: 🔍 Get Short Commit
         id: get_short_commit
