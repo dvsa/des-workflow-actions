@@ -1,0 +1,49 @@
+name: Terraform Plan
+description: "Action to set up Terraform and run a plan"
+inputs:
+  aws-account:
+    description: AWS Account
+    required: true
+  aws-region:
+    description: AWS Region
+    required: true
+  tf-environment:
+    description: Terraform Environment
+    required: true
+  tf-component:
+    description: Terraform Component
+    required: true
+  tfvars:
+    description: Tfvars to be used
+    required: true
+  tf-args:
+    description: Additional Terraform arguments
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 🔍 Get Terraform Version
+      shell: bash
+      run: echo "TF_VERSION=$(cat components/${{ inputs.tf-component }}/.terraform-version)" >> $GITHUB_ENV
+
+    - name: ⚙️ Configure Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+
+    - name: 📝 Terraform Plan
+      shell: bash
+      run: |
+        bash -x bin/terraform.sh \
+        --action plan \
+        --project mes \
+        --environment ${{ inputs.tf-environment }} \
+        --component ${{ inputs.tf-component }} \
+        --group ${{ inputs.aws-account }} \
+        --bucket-prefix dvsa.mes.tf \
+        --region ${{ inputs.aws-region }} \
+        -- ${{ inputs.tfvars }} \
+        ${{ inputs.tf-args }} \
+        -out=tfplan
