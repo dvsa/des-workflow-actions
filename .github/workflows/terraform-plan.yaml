@@ -58,7 +58,7 @@ jobs:
       - name: ✍️ Generate tfvars
         id: get_tfvars
         if: contains(fromJSON('["dev", "uat", "prep", "live"]'), inputs.tf-environment)
-        uses: dvsa/des-workflow-actions/.github/actions/get-tfvars
+        uses: dvsa/des-workflow-actions/.github/actions/get-tfvars@main
         with:
           environment: ${{ inputs.tf-environment }}
           component: ${{ inputs.tf-component }}
@@ -73,7 +73,7 @@ jobs:
           role-session-name: Terraform-${{ inputs.aws-account }}-GHA
 
       - name: 📝 Terraform Plan
-        uses: dvsa/des-workflow-actions/.github/actions/terraform-plan
+        uses: dvsa/des-workflow-actions/.github/actions/terraform-plan@main
         with:
           aws-account: ${{ inputs.aws-account }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
