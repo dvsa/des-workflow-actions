@@ -61,6 +61,7 @@ jobs:
       tf-component: ${{ inputs.tf-component }}
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
+    secrets: inherit
 
   Apply:
     environment: ${{ inputs.tf-environment }}
