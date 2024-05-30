@@ -1,0 +1,85 @@
+name: Get tfvars
+description: "Gets the tfvars for a Terraform component or generates the file if it does not exist"
+inputs:
+  environment:
+    description: "The Terraform environment to return the tfvars for"
+    required: true
+  component:
+    description: "The Terraform component to return the tfvars for"
+    required: true
+  release-tag:
+    description: "The git tag created for the release version"
+    required: false
+outputs:
+  tfvars:
+    value: ${{ steps.tfvars_file.outputs.tfvars }}
+    description: "The input variables for the Terraform CLI command"
+
+runs:
+  using: composite
+  steps:
+    - name: ⚙️ Set Environment
+      shell: bash
+      run: |
+        declare -A MICROSERVICES
+        MICROSERVICES=(${{ env.DES_GLOBALS_ENV_COMPONENT_MICROSERVICES }})
+        echo "COMPONENT_SERVICES=${MICROSERVICES[${{ inputs.component }}]}" >> $GITHUB_ENV
+        echo "FILE_NAME=${{ inputs.component }}.tfvars" >> $GITHUB_ENV
+
+    - name: 📝 Collate Dev tfvars
+      if: (inputs.environment == 'dev' && inputs.release-tag == '')
+      shell: bash
+      run: |
+        s3_key=mes/gha/manifests/dev
+        
+        IFS=" " read -ra services <<< "${{ env.COMPONENT_SERVICES }}"
+        for service in "${services[@]}"; do
+          if manifest_version=$(aws s3 ls s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key}/${service}_ |
+          sort -r | grep --invert-match release | head -n 1 | cut -d '_' -f 2 | cut -d '.' -f 1-3); then
+            aws s3 cp s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/$s3_key/${service}_${manifest_version}.manifest \
+            ${service}.manifest
+            cat ${service}.manifest >> ${{ env.FILE_NAME }}
+          else
+            echo "No manifest exists for ${service} service."
+          fi
+        done
+
+    - name: 🧐 Check S3 for Existing Release Manifest
+      id: s3_check
+      if: ${{ inputs.release-tag != '' }}
+      shell: bash
+      run: |
+        s3_key="mes/gha/releases/${{ inputs.component }}_${{ inputs.release-tag }}.tfvars"
+        if aws s3 cp s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key} ${{ env.FILE_NAME }}; then
+          echo "Found the ${{ inputs.component }} release tfvars for ${{ inputs.release-tag }}."
+          echo "release_manifest_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "No ${{ inputs.component }} release tfvars found for ${{ inputs.release-tag }}."
+          echo "release_manifest_exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 📝 Collate & Upload Release tfvars
+      if: (inputs.environment == 'uat' && steps.s3_check.outputs.release_manifest_exists == 'false')
+      shell: bash
+      run: |
+        if ${{ steps.s3_check.outputs.release_manifest_exists == 'false' }}; then
+          IFS=" " read -ra services <<< "${{ env.COMPONENT_SERVICES }}"
+          for service in "${services[@]}"; do
+            s3_key=mes/gha/manifests/releases/${service}_${{ inputs.release-tag }}.manifest
+            if aws s3 cp s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key} ${service}.manifest; then
+              cat ${service}.manifest >> ${{ env.FILE_NAME }}
+            else
+              echo "No release manifest exists for ${service} service."
+            fi
+          done
+          
+          if [[ -s ${{ env.FILE_NAME }} ]]; then
+            s3_key=mes/gha/releases/${{ inputs.component }}_${{ inputs.release-tag }}.tfvars
+            aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key}
+          fi
+        fi
+
+    - name: 📝 Output Command
+      id: tfvars_file
+      shell: bash
+      run: echo "tfvars=-var-file=${{ github.workspace }}/${{ env.FILE_NAME }}" >> $GITHUB_OUTPUT

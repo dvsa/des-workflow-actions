@@ -1,0 +1,95 @@
+name: 📑 Terraform Plan
+run-name: "Environment: ${{ inputs.tf-environment }} | Component: ${{ inputs.tf-component }} | Branch: ${{ inputs.branch }}"
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: Terraform Branch
+        type: string
+        required: true
+      aws-account:
+        description: AWS Account
+        type: string
+        required: true
+      tf-environment:
+        description: Terraform Environment
+        type: string
+        required: true
+      tf-component:
+        description: Terraform Component
+        type: string
+        required: true
+      release-tag:
+        description: The release tag to run a Terraform plan against (optional)
+        type: string
+        required: false
+      tf-args:
+        description: Additional Terraform arguments (optional)
+        type: string
+        required: false
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  plan:
+    name: "📑 Plan | ${{ inputs.tf-environment }} | ${{ inputs.tf-component }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: ✍️ Generate tfvars
+        id: get_tfvars
+        if: contains(fromJSON('["dev", "uat", "prep", "live"]'), inputs.tf-environment)
+        uses: dvsa/des-workflow-actions/.github/actions/get-tfvars
+        with:
+          environment: ${{ inputs.tf-environment }}
+          component: ${{ inputs.tf-component }}
+          release-tag: ${{ inputs.release-tag }}
+
+      - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
+        if: inputs.aws-account != 'mgmt'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-${{ inputs.aws-account }}-GHA
+
+      - name: 📝 Terraform Plan
+        uses: dvsa/des-workflow-actions/.github/actions/terraform-plan
+        with:
+          aws-account: ${{ inputs.aws-account }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          tf-environment: ${{ inputs.tf-environment }}
+          tf-component: ${{ inputs.tf-component }}
+          tfvars: ${{ steps.get_tfvars.outputs.tfvars }}
+          tf-args: ${{ inputs.tf-args }}
+
+      - name: 🧐 Terraform Show
+        run: |
+          terraform init components/${{ inputs.tf-component }}
+          terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/tfplan.txt
+
+      - name: ☁️ Upload Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tfplan-${{ inputs.tf-environment }}-${{ inputs.tf-component }}"
+          path: tfplan.txt
+          retention-days: 3
