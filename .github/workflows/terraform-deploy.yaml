@@ -53,20 +53,14 @@ jobs:
           echo "Stopping DMS Tasks"
 
   plan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: 📑 Plan ${{ inputs.tf-component }}
-        uses: dvsa/des-workflow-actions/.github/workflows/terraform-plan.yaml@main
-        with:
-          branch: ${{ inputs.branch }}
-          aws-account: ${{ inputs.aws-account }}
-          tf-environment: ${{ inputs.tf-environment }}
-          tf-component: ${{ inputs.tf-component }}
-          release-tag: ${{ inputs.release-tag }}
-          tf-args: ${{ inputs.tf-args }}
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-plan.yaml@main
+    with:
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: ${{ inputs.tf-component }}
+      release-tag: ${{ inputs.release-tag }}
+      tf-args: ${{ inputs.tf-args }}
 
   Apply:
     environment: ${{ inputs.tf-environment }}
