@@ -27,11 +27,11 @@ on:
         description: Additional Terraform arguments (optional)
         type: string
         required: false
-      tars_replica_db_script_branch:
+      tars-replica-db-script-branch:
         description: mes-data-poller-service branch to run the DB scripts against TARS REPLICA
         type: string
         required: false
-      full_dms_deploy:
+      full-dms-deploy:
         description: Required when there are changes to the static task
         type: boolean
         required: false
