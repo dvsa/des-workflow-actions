@@ -1,0 +1,132 @@
+name: 🚀 Terraform Deploy
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: Terraform Branch
+        type: string
+        required: true
+      aws-account:
+        description: AWS Account
+        type: string
+        required: true
+      tf-environment:
+        description: Terraform Environment
+        type: string
+        required: true
+      tf-component:
+        description: Terraform Component
+        type: string
+        required: true
+      release-tag:
+        description: The release tag to run a Terraform plan/apply against
+        type: string
+        required: false
+      tf-args:
+        description: Additional Terraform arguments (optional)
+        type: string
+        required: false
+      tars-replica-db-script-branch:
+        description: mes-data-poller-service branch to run the DB scripts against TARS REPLICA
+        type: string
+        required: false
+      full-dms-deploy:
+        description: Required when there are changes to the static task
+        type: boolean
+        required: false
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  stop-dms-tasks:
+    if: ${{ inputs.full-dms-deploy == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⏹️ Stop DMS Tasks
+        run: |
+          echo "Stopping DMS Tasks"
+
+  plan:
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-plan.yaml@main
+    with:
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: ${{ inputs.tf-component }}
+      release-tag: ${{ inputs.release-tag }}
+      tf-args: ${{ inputs.tf-args }}
+    secrets: inherit
+
+  Apply:
+    environment: ${{ inputs.tf-environment }}
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: Echo
+        run: echo ${{ matrix.component }}
+
+      - name: 🚀 Apply
+        run: echo "Running apply (${{ inputs.tf-component }})"
+
+  create-tars-replica-users:
+    if: ${{ inputs.full-dms-deploy == 'true' && inputs.tf-component == 'drs' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: ✨ Create TARS Replica Users
+        run: |
+          echo "Creating TARS Replica Users"
+
+  run-full-dms-deploy:
+    if: ${{ inputs.full-dms-deploy == 'true' && inputs.tf-component == 'dms' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚫 Disable Pollers and DMS Task Updater
+        run: |
+          echo "Disabling Pollers and DMS Task Updater"
+
+      - name: 🔄 Initialise TARS Replica
+        run: |
+          echo "Initialising TARS Replica"
+
+      - name: ⏳ DMS - Run Static Task Full Load
+        run: |
+          echo "Running Static Full Load"
+
+      - name: 🏃 Create & Run DMS Task Updater
+        run: |
+          echo "Running DMS Task Updater"
+
+      - name: ⏹️ Stop DMS Tasks
+        run: |
+          echo "Stopping DMS Tasks"
+
+      - name: ⏳ Load TARS Replica Database Objects
+        run: |
+          echo "Loading TARS Replica Database Objects"
+
+      - name: ▶️ Resume DMS Tasks
+        run: |
+          echo "Resuming DMS Tasks"
+
+      - name: 🏃 Run Journals Poller
+        run: |
+          echo "Invoking Journals Poller"
+
+      - name: ✅ Enable Pollers and DMS Task Updater
+        run: |
+          echo "Enabling Pollers and DMS Task Updater"
