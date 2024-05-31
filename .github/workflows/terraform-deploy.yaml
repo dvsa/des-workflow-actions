@@ -41,19 +41,8 @@ permissions:
   contents: write
 
 jobs:
-  stop-dms-tasks:
-    if: ${{ inputs.full-dms-deploy == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: ⏹️ Stop DMS Tasks
-        run: |
-          echo "Stopping DMS Tasks"
-
   plan:
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-plan.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
@@ -61,9 +50,10 @@ jobs:
       tf-component: ${{ inputs.tf-component }}
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
+      tf-action: plan
     secrets: inherit
 
-  Apply:
+  apply:
     environment: ${{ inputs.tf-environment }}
     needs: plan
     runs-on: ubuntu-latest
@@ -77,56 +67,18 @@ jobs:
       - name: 🚀 Apply
         run: echo "Running apply (${{ inputs.tf-component }})"
 
-  create-tars-replica-users:
-    if: ${{ inputs.full-dms-deploy == 'true' && inputs.tf-component == 'drs' }}
+  full-dms-deploy:
+    if: ${{ inputs.full-dms-deploy == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
       - name: ✨ Create TARS Replica Users
+        if:  ${{ inputs.tf-component == 'drs' }}
         run: |
           echo "Creating TARS Replica Users"
 
-  run-full-dms-deploy:
-    if: ${{ inputs.full-dms-deploy == 'true' && inputs.tf-component == 'dms' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: 🚫 Disable Pollers and DMS Task Updater
-        run: |
-          echo "Disabling Pollers and DMS Task Updater"
-
-      - name: 🔄 Initialise TARS Replica
-        run: |
-          echo "Initialising TARS Replica"
-
-      - name: ⏳ DMS - Run Static Task Full Load
-        run: |
-          echo "Running Static Full Load"
-
-      - name: 🏃 Create & Run DMS Task Updater
-        run: |
-          echo "Running DMS Task Updater"
-
-      - name: ⏹️ Stop DMS Tasks
-        run: |
-          echo "Stopping DMS Tasks"
-
-      - name: ⏳ Load TARS Replica Database Objects
-        run: |
-          echo "Loading TARS Replica Database Objects"
-
-      - name: ▶️ Resume DMS Tasks
-        run: |
-          echo "Resuming DMS Tasks"
-
-      - name: 🏃 Run Journals Poller
-        run: |
-          echo "Invoking Journals Poller"
-
-      - name: ✅ Enable Pollers and DMS Task Updater
-        run: |
-          echo "Enabling Pollers and DMS Task Updater"
+      - name: 🚀 Full DMS Deploy
+        if: ${{ inputs.tf-component == 'dms' }}
+        uses: dvsa/des-workflow-actions/.github/actions/full-dms-deploy@main

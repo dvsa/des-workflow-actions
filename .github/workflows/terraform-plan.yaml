@@ -1,5 +1,5 @@
 name: 📑 Terraform Plan
-run-name: "Environment: ${{ inputs.tf-environment }} | Component: ${{ inputs.tf-component }} | Branch: ${{ inputs.branch }}"
+
 on:
   workflow_call:
     inputs:
@@ -27,6 +27,11 @@ on:
         description: Additional Terraform arguments (optional)
         type: string
         required: false
+      tf-action:
+        description: The Terraform action to perform (plan/apply)
+        type: string
+        required: true
+        default: plan
 
 permissions:
   id-token: write
@@ -34,7 +39,6 @@ permissions:
 
 jobs:
   plan:
-    name: "📑 Plan | ${{ inputs.tf-environment }} | ${{ inputs.tf-component }}"
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
@@ -72,22 +76,38 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-${{ inputs.aws-account }}-GHA
 
-      - name: 📝 Terraform Plan
-        uses: dvsa/des-workflow-actions/.github/actions/terraform-plan@main
+      - name: 🔍 Get Terraform Version
+        shell: bash
+        run: echo "TF_VERSION=$(cat components/${{ inputs.tf-component }}/.terraform-version)" >> $GITHUB_ENV
+
+      - name: ⚙️ Configure Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          aws-account: ${{ inputs.aws-account }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-          tf-environment: ${{ inputs.tf-environment }}
-          tf-component: ${{ inputs.tf-component }}
-          tfvars: ${{ steps.get_tfvars.outputs.tfvars }}
-          tf-args: ${{ inputs.tf-args }}
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: ${{ inputs.tf-action == 'plan' && '📝 Terraform Plan' || '🚀 Terraform Apply' }}
+        run: |
+          bash -x bin/terraform.sh \
+          --action ${{ inputs.tf-action }} \
+          --project mes \
+          --environment ${{ inputs.tf-environment }} \
+          --component ${{ inputs.tf-component }} \
+          --group ${{ inputs.aws-account }} \
+          --bucket-prefix dvsa.mes.tf \
+          --region ${{ inputs.aws-region }} \
+          -- ${{ inputs.tfvars }} \
+          ${{ inputs.tf-args }} \
+          ${{ inputs.tf-action == 'plan' && '-out=tfplan' || '' }}
 
       - name: 🧐 Terraform Show
+        if: ${{ inputs.tf-action == 'plan' }}
         run: |
           terraform init components/${{ inputs.tf-component }}
           terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/tfplan.txt
 
       - name: ☁️ Upload Plan
+        if: ${{ inputs.tf-action == 'plan' }}
         uses: actions/upload-artifact@v4
         with:
           name: "tfplan-${{ inputs.tf-environment }}-${{ inputs.tf-component }}"
