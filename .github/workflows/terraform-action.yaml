@@ -95,7 +95,7 @@ jobs:
           --component ${{ inputs.tf-component }} \
           --group ${{ inputs.aws-account }} \
           --bucket-prefix dvsa.mes.tf \
-          --region ${{ inputs.aws-region }} \
+          --region ${{ secrets.DVSA_AWS_REGION }} \
           -- ${{ steps.get-tfvars.outputs.tfvars }} \
           ${{ inputs.tf-args }} \
           ${{ inputs.tf-action == 'plan' && '-out=tfplan' || '' }}
