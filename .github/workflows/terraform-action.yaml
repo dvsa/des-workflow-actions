@@ -60,7 +60,7 @@ jobs:
           parse-json-secrets: true
 
       - name: ✍️ Generate tfvars
-        id: get_tfvars
+        id: get-tfvars
         if: ${{ contains(fromJSON('["dev", "uat", "prep", "live"]'), inputs.tf-environment) && inputs.tf-component != 'dmsbase' }}
         uses: dvsa/des-workflow-actions/.github/actions/get-tfvars@main
         with:
@@ -96,7 +96,7 @@ jobs:
           --group ${{ inputs.aws-account }} \
           --bucket-prefix dvsa.mes.tf \
           --region ${{ inputs.aws-region }} \
-          -- ${{ inputs.tfvars }} \
+          -- ${{ steps.get-tfvars.outputs.tfvars }} \
           ${{ inputs.tf-args }} \
           ${{ inputs.tf-action == 'plan' && '-out=tfplan' || '' }}
 
