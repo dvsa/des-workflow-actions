@@ -32,6 +32,10 @@ on:
         type: string
         required: true
         default: plan
+      job-index:
+        description: The index of the current job in the matrix
+        type: string
+        required: true
 
 permissions:
   id-token: write
@@ -110,6 +114,6 @@ jobs:
         if: ${{ inputs.tf-action == 'plan' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ strategy.job-index }}_${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan"
+          name: "${{ inputs.job-index }}_${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan"
           path: tfplan.txt
           retention-days: 3
