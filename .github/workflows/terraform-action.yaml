@@ -42,7 +42,7 @@ permissions:
   contents: write
 
 jobs:
-  plan:
+  run:
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
