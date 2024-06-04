@@ -42,7 +42,8 @@ permissions:
   contents: write
 
 jobs:
-  run:
+  tf-action:
+    name: ${{ inputs.tf-action }}
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
