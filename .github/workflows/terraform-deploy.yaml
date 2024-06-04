@@ -35,6 +35,10 @@ on:
         description: Required when there are changes to the static task
         type: boolean
         required: false
+      job-index:
+        description: The index of the current job in the matrix
+        type: string
+        required: true
 
 permissions:
   id-token: write
@@ -51,6 +55,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: plan
+      job-index: ${{ inputs.job-index }}
     secrets: inherit
 
   apply:
