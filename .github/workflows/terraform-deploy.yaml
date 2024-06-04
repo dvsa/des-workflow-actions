@@ -68,7 +68,7 @@ jobs:
         run: echo "Running apply (${{ inputs.tf-component }})"
 
   full-dms-deploy:
-    if: ${{ inputs.full-dms-deploy == 'true' }}
+    if: ${{ inputs.full-dms-deploy == true && contains(fromJSON('["drs", "dms"]'), inputs.component) }}
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
