@@ -110,6 +110,6 @@ jobs:
         if: ${{ inputs.tf-action == 'plan' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "tfplan-${{ inputs.tf-environment }}-${{ inputs.tf-component }}"
+          name: "${{ strategy.job-index }}_${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan"
           path: tfplan.txt
           retention-days: 3
