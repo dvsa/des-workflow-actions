@@ -46,6 +46,7 @@ permissions:
 
 jobs:
   plan:
+    name: run
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       branch: ${{ inputs.branch }}
@@ -60,6 +61,7 @@ jobs:
 
   apply:
     environment: ${{ inputs.tf-environment }}
+    name: run
     needs: plan
     runs-on: ubuntu-latest
     steps:
