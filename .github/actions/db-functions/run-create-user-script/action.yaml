@@ -1,0 +1,35 @@
+name: Run Create Database User Script
+description: "Action to run a create user script for a MySQL database from a specified repository"
+inputs:
+  db-script-repo:
+    description: The repository to run the DB script from
+    required: true
+  db-script-branch:
+    description: The branch to run the DB script from
+    required: true
+  db-script-ssh-key:
+    description: The SSH key to access a private DB script repository
+    required: false
+  db-script-path:
+    description: The path to the DB script
+    required: true
+  db-cname:
+    description: The branch to run the DB scripts from
+    required: true
+  db-password-name:
+    description: The name of the database password to be obtained from AWS parameter store
+    required: true
+  user-password-name:
+    description: The name of the user password to be obtained from AWS parameter store (uses AWSAuthenticationPlugin if omitted)
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: 📨 Checkout DB Script Repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.db-script-repo }}
+        ref: ${{ inputs.db-script-branch }}
+        ssh-key: ${{ inputs.db-script-ssh-key || '' }}
+

@@ -33,9 +33,9 @@ on:
         required: true
         default: plan
       job-index:
-        description: The index of the current job in the matrix
+        description: The index of the current job in caller workflow
         type: string
-        required: true
+        required: false
 
 permissions:
   id-token: write
