@@ -27,14 +27,14 @@ on:
         description: Additional Terraform arguments (optional)
         type: string
         required: false
-      tars-replica-db-script-branch:
-        description: mes-data-poller-service branch to run the DB scripts against TARS REPLICA
-        type: string
-        required: false
-      full-dms-deploy:
-        description: Required when there are changes to the static task
-        type: boolean
-        required: false
+#      db-script-branch:
+#        description: The branch to run the DB scripts from
+#        type: string
+#        required: false
+#      full-dms-deploy:
+#        description: Required when there are changes to the static task
+#        type: boolean
+#        required: false
       job-index:
         description: The index of the current job in the matrix
         type: string
@@ -73,19 +73,3 @@ jobs:
 
       - name: 🚀 Apply
         run: echo "Running apply (${{ inputs.tf-component }})"
-
-  full-dms-deploy:
-    if: ${{ inputs.full-dms-deploy == true && contains(fromJSON('["drs", "dms"]'), inputs.tf-component) }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: ✨ Create TARS Replica Users
-        if:  ${{ inputs.tf-component == 'drs' }}
-        run: |
-          echo "Creating TARS Replica Users"
-
-      - name: 🚀 Full DMS Deploy
-        if: ${{ inputs.tf-component == 'dms' }}
-        uses: dvsa/des-workflow-actions/.github/actions/full-dms-deploy@main
