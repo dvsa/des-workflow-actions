@@ -3,6 +3,10 @@ name: 🚀 Terraform Deploy
 on:
   workflow_call:
     inputs:
+      runner:
+        description: The EC2 GHA runner that has been spun up for deployment
+        type: string
+        required: true
       branch:
         description: Terraform Branch
         type: string
@@ -49,6 +53,7 @@ jobs:
     name: run
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
+      runner: ${{ inputs.runner }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}

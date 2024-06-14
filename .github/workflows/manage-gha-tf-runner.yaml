@@ -1,0 +1,76 @@
+name: "🖥️ EC2 GHA Runner: Start/Stop"
+
+on:
+  workflow_call:
+    inputs:
+      action:
+        description: The action to take (start/stop)
+        type: string
+        required: true
+      aws-account:
+        description: AWS Account
+        type: string
+        required: true
+      runner-label:
+        description: Name of the unique label assigned to the runner
+        type: string
+        required: false
+      ec2-instance-id:
+        description: The ID of the EC2 instance to be stopped
+        type: string
+        required: false
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  ec2-gha-runner-action:
+    name: ${{ inputs.tf-action }}-ec2-gha-runner
+    outputs:
+      runner-label: ${{ steps.setup-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.setup-ec2-runner.outputs.ec2-instance-id }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-aws/env
+          parse-json-secrets: true
+
+      - name: 🔑 Configure ${{ intputs.aws-account == 'nonprod' && 'Nonprod' || 'Prod' }} AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ intputs.aws-account == 'nonprod' && secrets.AWS_ROLE_NONPROD || secrets.AWS_ROLE_PROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: "${{ inputs.action == 'start' && '▶️ Start' || '⏹️ Stop' }} EC2 Runner"
+        id: setup-ec2-runner
+        uses: dvsa/aws-github-runner@develop
+        with:
+          mode: ${{ inputs.action }}
+          github-token: ${{ secrets.GH_TOKEN_TEMP }}
+          ec2-image-id: ${{ inputs.action == 'start' && env.DES_AWS_ENV_EC2_AMI_ID || '' }}
+          ec2-instance-type: ${{ inputs.action == 'start' && env.DES_AWS_ENV_EC2_INSTANCE_TYPE || '' }}
+          subnet-id: ${{ inputs.action == 'start' && env.DES_AWS_ENV_NONPROD_SUBNET_ID || '' }}
+          security-group-id: ${{ inputs.action == 'start' && env.DES_AWS_ENV_NONPROD_SG_ID || '' }}
+          iam-role-name: ${{ inputs.action == 'start' && env.DES_AWS_ENV_NONPROD_IAM_ROLE_NAME || '' }}
+          aws-resource-tags: >
+            [
+              {"Key": "Name", "Value": "GHA Runner"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"},
+              {"Key": "StartedBy", "Value": "${{ github.actor }}"},
+              {"Key": "RunID", "Value": "${{ github.run_id }}"},
+              {"Key": "Type", "Value": "GHA Runner"}
+            ]
+          label: ${{ inputs.action == 'stop' && inputs.github-runner || '' }}
+          ec2-instance-id: ${{ inputs.action == 'stop' && inputs.ec2_instance_id || '' }}
