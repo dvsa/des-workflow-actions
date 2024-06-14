@@ -46,10 +46,10 @@ jobs:
           secret-ids: des-aws/env
           parse-json-secrets: true
 
-      - name: 🔑 Configure ${{ intputs.aws-account == 'nonprod' && 'Nonprod' || 'Prod' }} AWS Credentials
+      - name: 🔑 Configure ${{ inputs.aws-account == 'nonprod' && 'Nonprod' || 'Prod' }} AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ intputs.aws-account == 'nonprod' && secrets.AWS_ROLE_NONPROD || secrets.AWS_ROLE_PROD }}
+          role-to-assume: ${{ inputs.aws-account == 'nonprod' && secrets.AWS_ROLE_NONPROD || secrets.AWS_ROLE_PROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
