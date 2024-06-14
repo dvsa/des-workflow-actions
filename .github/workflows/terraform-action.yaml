@@ -3,6 +3,11 @@ name: 📑 Terraform Plan/Apply
 on:
   workflow_call:
     inputs:
+      runner:
+        description: The EC2 GHA runner that has been spun up for deployment
+        type: string
+        required: false
+        default: ubuntu-latest
       branch:
         description: Terraform Branch
         type: string
@@ -44,7 +49,7 @@ permissions:
 jobs:
   tf-action:
     name: ${{ inputs.tf-action }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
