@@ -28,8 +28,8 @@ jobs:
   ec2-gha-runner-action:
     name: ${{ inputs.action }}-ec2-runner
     outputs:
-      runner-label: ${{ steps.setup-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.setup-ec2-runner.outputs.ec2-instance-id }}
+      runner-label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
     runs-on: ubuntu-latest
 
     steps:
@@ -53,17 +53,18 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
-      - name: "${{ inputs.action == 'start' && '▶️ Start' || '⏹️ Stop' }} EC2 Runner"
-        id: setup-ec2-runner
+      - name: ▶️ Start EC2 Runner
+        if: inputs.action == 'start'
+        id: start-ec2-runner
         uses: dvsa/aws-github-runner@develop
         with:
           mode: ${{ inputs.action }}
           github-token: ${{ secrets.GH_TOKEN_TEMP }}
-          ec2-image-id: ${{ inputs.action == 'start' && env.DES_AWS_ENV_EC2_AMI_ID || '' }}
-          ec2-instance-type: ${{ inputs.action == 'start' && env.DES_AWS_ENV_EC2_INSTANCE_TYPE || '' }}
-          subnet-id: ${{ inputs.action == 'start' && env.DES_AWS_ENV_NONPROD_SUBNET_ID || '' }}
-          security-group-id: ${{ inputs.action == 'start' && env.DES_AWS_ENV_NONPROD_SG_ID || '' }}
-          iam-role-name: ${{ inputs.action == 'start' && env.DES_AWS_ENV_NONPROD_IAM_ROLE_NAME || '' }}
+          ec2-image-id: ${{ env.DES_AWS_ENV_EC2_AMI_ID }}
+          ec2-instance-type: ${{ env.DES_AWS_ENV_EC2_INSTANCE_TYPE }}
+          subnet-id: ${{ env.DES_AWS_ENV_NONPROD_SUBNET_ID }}
+          security-group-id: ${{ env.DES_AWS_ENV_NONPROD_SG_ID }}
+          iam-role-name: ${{ env.DES_AWS_ENV_NONPROD_IAM_ROLE_NAME }}
           aws-resource-tags: >
             [
               {"Key": "Name", "Value": "GHA Runner"},
@@ -72,5 +73,12 @@ jobs:
               {"Key": "RunID", "Value": "${{ github.run_id }}"},
               {"Key": "Type", "Value": "GHA Runner"}
             ]
-          label: ${{ inputs.action == 'stop' && inputs.runner-label || '' }}
-          ec2-instance-id: ${{ inputs.action == 'stop' && inputs.ec2-instance-id || '' }}
+
+      - name: ⏹️ Stop EC2 Runner
+        if: inputs.action == 'stop'
+        uses: dvsa/aws-github-runner@develop
+        with:
+          mode: ${{ inputs.action }}
+          github-token: ${{ secrets.GH_TOKEN_TEMP }}
+          label: ${{ inputs.runner-label }}
+          ec2-instance-id: ${{ inputs.ec2-instance-id }}
