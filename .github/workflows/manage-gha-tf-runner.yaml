@@ -26,6 +26,7 @@ on:
       ec2-instance-id:
         description: EC2 Instance Id of the created runner.
         value: ${{ jobs.ec2-gha-runner-action.outputs.ec2-instance-id }}
+
 permissions:
   id-token: write
   contents: write
