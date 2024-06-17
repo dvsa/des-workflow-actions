@@ -73,4 +73,4 @@ jobs:
               {"Key": "Type", "Value": "GHA Runner"}
             ]
           label: ${{ inputs.action == 'stop' && inputs.runner-label || '' }}
-          ec2-instance-id: ${{ inputs.action == 'stop' && inputs.ec2_instance_id || '' }}
+          ec2-instance-id: ${{ inputs.action == 'stop' && inputs.ec2-instance-id || '' }}
