@@ -19,7 +19,13 @@ on:
         description: The ID of the EC2 instance to be stopped
         type: string
         required: false
-
+    outputs:
+      runner-label:
+        description: Name of the unique label assigned to the runner.
+        value: ${{ jobs.ec2-gha-runner-action.outputs.label }}
+      ec2-instance-id:
+        description: EC2 Instance Id of the created runner.
+        value: ${{ jobs.ec2-gha-runner-action.outputs.ec2-instance-id }}
 permissions:
   id-token: write
   contents: write
@@ -28,7 +34,7 @@ jobs:
   ec2-gha-runner-action:
     name: ${{ inputs.action }}-ec2-runner
     outputs:
-      runner-label: ${{ steps.start-ec2-runner.outputs.label }}
+      label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
     runs-on: ubuntu-latest
 
