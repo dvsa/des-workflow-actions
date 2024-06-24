@@ -45,20 +45,97 @@ jobs:
       - name: 🤫 Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
-          secret-ids: des-globals/env
+          secret-ids: |
+            des-globals/env
+            RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
           parse-json-secrets: true
+
+      - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-${{ inputs.aws-account }}-GHA
 
       - name: 🚫 Disable Pollers and DMS Task Updater
         run: |
-          echo "Disabling Pollers and DMS Task Updater"
+          IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
+          for rule in "${cw_rules[@]}"; do
+            [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
+            rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
+            aws events disable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
+          done
 
       - name: 🔄 Initialise TARS Replica
-        run: |
-          echo "Initialising TARS Replica"
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/database-initialisation
+          db-cname: ${{ env.RDS_CREDENTIALS.TARS_DB_CNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS.TARS_DB_PASSWORD }}
+          tf-environment: ${{ inputs.tf-environment }}
 
       - name: ⏳ DMS - Run Static Task Full Load
+        id: static-full-load
         run: |
-          echo "Running Static Full Load"
+          # Get the name of the replication task
+          static_task_arn=$(aws dms describe-replication-tasks --without-settings
+          --region ${{ secrets.DVSA_AWS_REGION }} | jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier | \
+          test("mes-${{ inputs.tf-environment }}-dms-static-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "static_task_arn=$static_task_arn" >> $GITHUB_OUTPUT
+          
+          # Start the replication task
+          aws dms start-replication-task --replication-task-arn ${static_task_arn} --region ${{ secrets.DVSA_AWS_REGION }} \
+          --start-replication-task-type reload-target
+          
+          # Give the task a minute to start
+          sleep 60
+          
+          timeout=300 # Timeout in seconds (5 minutes)
+          interval=10 # Interval in seconds between each check
+          elapsed=0
+  
+          Wait until replication task is running
+          until [ $(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} | jq '.ReplicationTasks[] \
+          | select(.ReplicationTaskArn == "${static_task_arn}") | .Status' --raw-output) == "running" ]; do
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout reached: Replication task did not become running within $((timeout / 60)) minutes."
+              exit 1
+            fi
+
+            echo "Waiting on replication task to become running"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+      - name: ⏳ Wait for DMS Full Load
+        run: |
+          # Give the task a minute to start
+          sleep 60
+          
+          progress_percent=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} \
+          | jq '.ReplicationTasks[] | select(.ReplicationTaskArn == "${steps.static-full-load.outputs.static_task_arn}") \
+          | .ReplicationTaskStats.FullLoadProgressPercent' --raw-output)
+          
+          timeout=6000 # Timeout in seconds (100 minutes)
+          interval=10 # Interval in seconds between each check
+          elapsed=0
+          
+          Wait until replication task is complete
+          until [ $progress_percent == "100" ]; do
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout reached: Replication task did not become running within $((timeout / 60)) minutes."
+              exit 1
+            fi
+
+            echo "Waiting on replication task to become running"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+            progress_percent=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} \
+            | jq '.ReplicationTasks[] | select(.ReplicationTaskArn == "${{ steps.static-full-load.outputs.static_task_arn }}") \
+            | .ReplicationTaskStats.FullLoadProgressPercent' --raw-output)
+          done
 
       - name: 🏃 Create & Run DMS Task Updater
         run: |
@@ -82,4 +159,9 @@ jobs:
 
       - name: ✅ Enable Pollers and DMS Task Updater
         run: |
-          echo "Enabling Pollers and DMS Task Updater"
+          IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
+          for rule in "${cw_rules[@]}"; do
+            [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
+            rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
+            aws events enable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
+          done

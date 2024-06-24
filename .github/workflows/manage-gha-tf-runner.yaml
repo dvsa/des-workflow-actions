@@ -82,6 +82,8 @@ jobs:
             ]
           pre-runner-script: | 
             sudo yum install libicu -y
+            sudo dnf update -y
+            sudo dnf install mariadb105
 
       - name: ⏹️ Stop EC2 Runner
         if: inputs.action == 'stop'
