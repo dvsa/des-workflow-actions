@@ -6,7 +6,7 @@ on:
       aws-account:
         description: AWS Account
         type: string
-        required: false
+        required: true
         default: nonprod
       tf-environment:
         description: Terraform Environment
@@ -23,9 +23,9 @@ on:
         default: develop
       full-load-sleep-time:
         description: DMS Full Load Sleep Length (seconds)
-        type: string
-        required: false
-        default: '300'
+        type: number
+        required: true
+        default: 300
 
   workflow_call:
     inputs:
@@ -67,7 +67,7 @@ jobs:
   full-dms-deploy:
     needs: start-ec2-runner
     if: always() && !failure() && !cancelled()
-    runs-on: ${{ inputs.runner || steps.start-ec2-runner.outputs.runner-label }}
+    runs-on: ${{ inputs.runner || needs.start-ec2-runner.outputs.runner-label }}
     steps:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
