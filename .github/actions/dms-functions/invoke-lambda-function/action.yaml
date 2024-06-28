@@ -27,7 +27,7 @@ runs:
         
         until [[ "$success" == "true" || $elapsed -ge ${{ inputs.timeout }} ]]; do
           status=$(aws lambda invoke --function-name ${{ inputs.function-name }} --cli-read-timeout 0 \
-          --region ${{ secrets.DVSA_AWS_REGION }} output.json > /dev/null; echo $?)
+          --region ${{ inputs.aws-region }} output.json > /dev/null; echo $?)
         
           if [[ "$status" == "0" ]]; then
             success=true
