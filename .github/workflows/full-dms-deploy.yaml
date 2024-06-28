@@ -1,32 +1,6 @@
 name: 🚀 Full DMS Deploy
 
 on:
-  workflow_dispatch:
-    inputs:
-      aws-account:
-        description: AWS Account
-        type: string
-        required: true
-        default: nonprod
-      tf-environment:
-        description: Terraform Environment
-        type: choice
-        required: true
-        default: dev
-        options:
-          - dev
-          - uat
-      db-script-branch:
-        description: DB Script Branch
-        type: string
-        required: true
-        default: develop
-      full-load-sleep-time:
-        description: DMS Full Load Sleep Length (seconds)
-        type: number
-        required: true
-        default: 300
-
   workflow_call:
     inputs:
       runner:
@@ -56,18 +30,9 @@ permissions:
   contents: write
 
 jobs:
-  start-ec2-runner:
-    if: github.event_name == 'workflow_dispatch'
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-    with:
-      action: start
-      aws-account: ${{ inputs.tf-environment }}
-    secrets: inherit
-
   full-dms-deploy:
-    needs: start-ec2-runner
     if: always() && !failure() && !cancelled()
-    runs-on: ${{ inputs.runner || needs.start-ec2-runner.outputs.runner-label }}
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -218,14 +183,3 @@ jobs:
             rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
             aws events enable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
           done
-
-  stop-ec2-runner:
-    needs: [start-ec2-runner, full-dms-deploy]
-    if: always() && github.event_name == 'workflow_dispatch'
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-    with:
-      action: stop
-      aws-account: ${{ inputs.aws-account }}
-      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
-      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
-    secrets: inherit
