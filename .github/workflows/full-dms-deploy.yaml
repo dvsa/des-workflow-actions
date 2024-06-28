@@ -1,6 +1,32 @@
-name: 📑 Terraform Plan/Apply
+name: 🚀 Full DMS Deploy
 
 on:
+  workflow_dispatch:
+    inputs:
+      aws-account:
+        description: AWS Account
+        type: string
+        required: false
+        default: nonprod
+      tf-environment:
+        description: Terraform Environment
+        type: choice
+        required: true
+        default: dev
+        options:
+          - dev
+          - uat
+      db-script-branch:
+        description: DB Script Branch
+        type: string
+        required: true
+        default: develop
+      full-load-sleep-time:
+        description: DMS Full Load Sleep Length (seconds)
+        type: string
+        required: false
+        default: '300'
+
   workflow_call:
     inputs:
       runner:
@@ -15,26 +41,34 @@ on:
         description: Terraform Environment
         type: string
         required: true
-      tf-component:
-        description: Terraform Component
-        type: string
-        required: true
       db-script-branch:
         description: The branch to run the DB scripts from
         type: string
         required: true
+      full-load-sleep-time:
+        description: The amount of time in seconds to sleep to allow the full load to run
+        type: string
+        required: false
+        default: 1200
 
 permissions:
   id-token: write
   contents: write
 
 jobs:
-  full-dms-deploy:
-    runs-on: ${{ inputs.runner }}
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
+  start-ec2-runner:
+    if: github.event_name == 'workflow_dispatch'
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+      aws-account: ${{ inputs.tf-environment }}
+    secrets: inherit
 
+  full-dms-deploy:
+    needs: start-ec2-runner
+    if: always() && !failure() && !cancelled()
+    runs-on: ${{ inputs.runner || steps.start-ec2-runner.outputs.runner-label }}
+    steps:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -48,38 +82,150 @@ jobs:
           secret-ids: des-globals/env
           parse-json-secrets: true
 
+      - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-${{ inputs.aws-account }}-GHA
+
+      - name: 🤫 Get ${{ inputs.aws-account }} Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
+          parse-json-secrets: true
+
       - name: 🚫 Disable Pollers and DMS Task Updater
         run: |
-          echo "Disabling Pollers and DMS Task Updater"
+          IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
+          for rule in "${cw_rules[@]}"; do
+            [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
+            rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
+            aws events disable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
+          done
 
       - name: 🔄 Initialise TARS Replica
-        run: |
-          echo "Initialising TARS Replica"
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/database-initialisation
+          db-cname: ${{ env.RDS_CREDENTIALS.TARS_DB_CNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS.TARS_DB_PASSWORD }}
+          tf-environment: ${{ inputs.tf-environment }}
 
-      - name: ⏳ DMS - Run Static Task Full Load
+      - name: 🔍 Get DMS Tasks
+        id: dms-tasks
         run: |
-          echo "Running Static Full Load"
+          static_task_arn=$(aws dms describe-replication-tasks --without-settings
+          --region ${{ secrets.DVSA_AWS_REGION }} | jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier | \
+          test("mes-${{ inputs.tf-environment }}-dms-static-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "static_task_arn=$static_task_arn" >> $GITHUB_OUTPUT
+          
+          date_filtered_task_arn=$(aws dms describe-replication-tasks --without-settings
+          --region ${{ secrets.DVSA_AWS_REGION }} | jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier | \
+          test("mes-${{ inputs.tf-environment }}-dms-datefiltered-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "date_filtered_task_arn=$date_filtered_task_arn" >> $GITHUB_OUTPUT
 
-      - name: 🏃 Create & Run DMS Task Updater
-        run: |
-          echo "Running DMS Task Updater"
+      - name: 🏃 Run Static Task Full Load
+        run: |          
+          # Start the replication task
+          aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
+          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type reload-target
+          
+          # Give the task a minute to start
+          sleep 60
 
-      - name: ⏹️ Stop DMS Tasks
-        run: |
-          echo "Stopping DMS Tasks"
+      - name: ⏳ Wait for Static Task Full Load
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
+          task-wait-timeout: 6000
+          sleep-time: ${{ inputs.full-load-sleep-time }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🏃 Run DMS Task Updater
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/invoke-lambda-function@main
+        with:
+          function-name: mes-${{ inputs.tf-environment }}-dms-dms-task-updater
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          
+      - name: ⏳ Wait for Date Filtered Task Full Load
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
+          task-wait-timeout: 1200
+          sleep-time: 60
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: ⏹️ Stop Static Task
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: ⏹️ Stop Date Filtered Task
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ⏳ Load TARS Replica Database Objects
-        run: |
-          echo "Loading TARS Replica Database Objects"
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/database-objects
+          db-cname: ${{ env.RDS_CREDENTIALS.TARS_DB_CNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS.TARS_DB_PASSWORD }}
+          tf-environment: ${{ inputs.tf-environment }}
 
       - name: ▶️ Resume DMS Tasks
         run: |
-          echo "Resuming DMS Tasks"
+          aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
+          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing
+          
+          aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.date_filtered_task_arn }} \
+          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing
+
+      - name: ⏳ Wait for Static Task Full Load
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
+          task-wait-timeout: 600
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: ⏳ Wait for Date Filtered Task Full Load
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
+          task-wait-timeout: 600
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🏃 Run Journals Poller
-        run: |
-          echo "Invoking Journals Poller"
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/invoke-lambda-function@main
+        with:
+          function-name: mes-${{ inputs.tf-environment }}-drs-journals-poller
+          interval: 180
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ✅ Enable Pollers and DMS Task Updater
+        if: github.event_name == 'workflow_call'
         run: |
-          echo "Enabling Pollers and DMS Task Updater"
+          IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
+          for rule in "${cw_rules[@]}"; do
+            [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
+            rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
+            aws events enable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
+          done
+
+  stop-ec2-runner:
+    needs: [start-ec2-runner, full-dms-deploy]
+    if: always() && github.event_name == 'workflow_dispatch'
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      aws-account: ${{ inputs.aws-account }}
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets: inherit

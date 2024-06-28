@@ -1,0 +1,55 @@
+name: 🏃 Run Database Scripts
+description: "Action to run a create user script for a MySQL database from a specified repository"
+inputs:
+  db-script-repo:
+    description: The repository to run the DB scripts from
+    required: true
+  db-script-branch:
+    description: The branch to run the DB scripts from
+    required: true
+  db-script-ssh-key:
+    description: The SSH key to access a private DB scripts repository
+    required: false
+  db-script-path:
+    description: The path to the DB scripts
+    required: true
+  db-cname:
+    description: The Route 53 CNAME for the DB
+    required: true
+  db-password:
+    description: The name of the DB password to be obtained from AWS Secret Manager
+    required: true
+  user-password:
+    description: The name of the user password to be obtained from AWS parameter store (uses AWSAuthenticationPlugin if omitted)
+    required: false
+  tf-environment:
+    description: The Terraform environment to run the database script against
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 📨 Checkout DB Script Repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.db-script-repo }}
+        ref: ${{ inputs.db-script-branch }}
+        ssh-key: ${{ inputs.db-script-ssh-key || '' }}
+
+    - name: 🏃 Run Database Scripts
+      shell: bash
+      run: |
+        cd ${{ inputs.db-script-path }}
+        set +x
+        
+        for script_file in *; do
+          if [ -n "${{ inputs.user-password }}" ]; then
+            source_script=$(<"${script_file}")
+            user_password="${{ inputs.user_password }}"
+            script_file="$(echo $source_script | sed "s/<USER_PASSWORD>/${user_password//&/\\&}/")"
+          fi
+        
+          mysql -h ${{ inputs.db_cname }} -u mes${{ inputs.tf-environment }}admin -p${{ inputs.db_password }} -Bse \"source ${script_file}\"
+        done 
+        
+        set -x

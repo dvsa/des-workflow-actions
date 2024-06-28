@@ -31,14 +31,6 @@ on:
         description: Additional Terraform arguments (optional)
         type: string
         required: false
-#      db-script-branch:
-#        description: The branch to run the DB scripts from
-#        type: string
-#        required: false
-#      full-dms-deploy:
-#        description: Required when there are changes to the static task
-#        type: boolean
-#        required: false
       job-index:
         description: The index of the current job in the matrix
         type: string

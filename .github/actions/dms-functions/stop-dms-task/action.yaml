@@ -1,0 +1,47 @@
+name: ⏹️ Stop DMS Task
+description: "Action to stop the DMS task and to wait for the desired state"
+inputs:
+  task-arn:
+    description: The ARN of the task to stop
+    required: true
+  timeout:
+    description: How long to wait in seconds for the desired state
+    required: false
+    default: '300'
+  interval:
+    description: How often the to check whether the task is in the desired state
+    required: false
+    default: '10'
+  aws-region:
+    description: The AWS region to use
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: ⏹️ Stop DMS Tasks
+      shell: bash
+      run: aws dms stop-replication-task --region ${{ inputs.aws-region }} --replication-task-arn ${{ inputs.task-arn }}
+
+    - name: ⏳ Wait for Task to Stop
+      shell: bash
+      run: |
+        elapsed=0
+        
+        status=$(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} | jq '.ReplicationTasks[] \
+        | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") | .Status' --raw-output)
+
+        if [ "$status" != "stopped" ]; then
+          until [ $(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} | jq '.ReplicationTasks[] \
+          | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") | .Status' --raw-output) == "stopped" ]; do
+            if [ $elapsed -ge ${{ inputs.timeout }} ]; then
+              echo "Timeout reached: Replication task did not become running within $((${{ inputs.timeout }} / 60)) minutes."
+              exit 1
+            fi
+            
+            echo "Waiting on the replication task to stop"
+            sleep ${{ inputs.interval }}
+            elapsed=$((elapsed + ${{ inputs.interval }}))
+          done
+        else
+          echo "The task is already stopped"
