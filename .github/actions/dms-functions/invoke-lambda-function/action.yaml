@@ -1,0 +1,53 @@
+name: 📞 Invoke Lambda Function
+description: "Action to call a lambda function and wait for its completion, or retry until the timeout is reached"
+inputs:
+  function-name:
+    description: The name of the Lambda function
+    required: true
+  timeout:
+    description: How long to wait in seconds for the lambda to be invoked successfully
+    required: false
+    default: '1200'
+  interval:
+    description: How regularly to retry invoking the function
+    required: false
+    default: '60'
+  aws-region:
+    description: The AWS region to use
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 📞 Invoke Lambda Function
+      shell: bash
+      run: |
+        success=false
+        elapsed=0
+        
+        until [[ "$success" == "true" || $elapsed -ge ${{ inputs.timeout }} ]]; do
+          status=$(aws lambda invoke --function-name ${{ inputs.function-name }} --cli-read-timeout 0 \
+          --region ${{ secrets.DVSA_AWS_REGION }} output.json > /dev/null; echo $?)
+        
+          if [[ "$status" == "0" ]]; then
+            success=true
+        
+            if [[ $(grep -iq 'error' output.json > /dev/null; echo $?) == "0" ]]; then
+              success=false
+            fi
+          else
+            success=false
+          fi
+        
+          if [[ "$success" == "false" ]]; then
+            sleep ${{ inputs.interval }}
+            elapsed=$((elapsed + ${{ inputs.interval }}))
+          fi
+        done
+        
+        if [[ "$success" == "true" ]]; then
+          echo "${{ inputs.function-name }} invoked successfully!"
+        else
+          echo "Timeout reached: ${{ inputs.function-name }} invocation failed."
+          exit 1
+        fi

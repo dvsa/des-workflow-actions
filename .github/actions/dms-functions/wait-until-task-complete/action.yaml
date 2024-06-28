@@ -1,0 +1,67 @@
+name: ⏳ Wait Until Replication Task is Complete
+description: "Action to wait for the DMS task to be in running state and for the task to complete"
+inputs:
+  task-arn:
+    description: The ARN of the task to wait for
+    required: true
+  task-wait-timeout:
+    description: How long to wait in seconds for the task to complete
+    required: true
+  sleep-time:
+    description: The number of seconds to sleep before checking the task progress
+    required: false
+  interval:
+    description: How often the to check whether the task is running/complete
+    required: false
+    default: '10'
+  aws-region:
+    description: The AWS region to use
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: ⏳ Wait for Task to Run
+      shell: bash
+      run: |
+        timeout=300 # Timeout in seconds (5 minutes)
+        elapsed=0
+        
+        until [ $(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} | jq '.ReplicationTasks[] \
+        | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") | .Status' --raw-output) == "running" ]; do
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout reached: Replication task did not become running within $((timeout / 60)) minutes."
+            exit 1
+          fi
+          
+          echo "Waiting on the replication task to become running"
+          sleep ${{ inputs.interval }}
+          elapsed=$((elapsed + ${{ inputs.interval }}))
+        done
+
+    - name: 😴 Sleep Before Checking Progress
+      if: ${{ inputs.sleep-time }}
+      shell: bash
+      run: |
+        echo "Going to sleep for a bit to give the task a chance to run .."
+        sleep ${{ inputs.sleep-time }}
+
+    - name: ⏳ Wait for Task to Complete
+      shell: bash
+      run: |
+        elapsed=0
+        
+        until [ "$(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} \
+        | jq -r '.ReplicationTasks[] | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") \
+        | .ReplicationTaskStats.FullLoadProgressPercent')" == "100" ]; do          
+          if [ $elapsed -ge ${{ inputs.task-wait-timeout }} ]; then
+            echo "Timeout reached: Replication task did not become running within $(( ${{ inputs.task-wait-timeout }} / 60 )) minutes."
+            exit 1
+          fi
+        
+          echo "Waiting on replication task to become running"
+          sleep ${{ inputs.interval }}
+          elapsed=$((elapsed + ${{ inputs.interval }}))
+        done
+        
+        echo "Replication task completed successfully."
