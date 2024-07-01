@@ -51,9 +51,9 @@ runs:
       run: |
         elapsed=0
         
-        until [ "$(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} \
-        | jq -r '.ReplicationTasks[] | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") \
-        | .ReplicationTaskStats.FullLoadProgressPercent')" == "100" ]; do          
+        until [ "$(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} --query \
+        'ReplicationTasks[?ReplicationTaskArn==`${{ inputs.task-arn }}`].ReplicationTaskStats.FullLoadProgressPercent' \
+        --output text)" == "100" ]; do          
           if [ $elapsed -ge ${{ inputs.task-wait-timeout }} ]; then
             echo "Timeout reached: Replication task did not become running within $(( ${{ inputs.task-wait-timeout }} / 60 )) minutes."
             exit 1
