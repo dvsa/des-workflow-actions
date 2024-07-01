@@ -26,7 +26,7 @@ inputs:
     description: The user password to be injected into the scripts (optional)
     required: false
   db-script-filename:
-    description: The filename of the DB script to run when a script needs user_password injected (optional)
+    description: The filename of the DB script to run when a script needs user-password injected (optional)
     required: false
 
 runs:
@@ -47,14 +47,14 @@ runs:
         
         if [ -n "${{ inputs.user-password }}" ]; then
           source_script=$(<"${{ inputs.db-script-filename }}")
-          user_password="${{ inputs.user_password }}"
+          user_password="${{ inputs.user-password }}"
           script_file="$(echo $source_script | sed "s/<USER_PASSWORD>/${user_password//&/\\&}/")"
 
-          mysql -h ${{ inputs.db_cname }} -u ${{ inputs.db_username }} -p ${{ inputs.db_password }} -Bse \"source ${script_file}\"
+          mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p ${{ inputs.db-password }} -Bse \"source ${script_file}\"
         
         else                   
           for script_file in *; do        
-            mysql -h ${{ inputs.db_cname }} -u ${{ inputs.db_username }} -p ${{ inputs.db_password }} -Bse \"source ${script_file}\"
+            mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p ${{ inputs.db-password }} -Bse \"source ${script_file}\"
           done 
         fi
         
