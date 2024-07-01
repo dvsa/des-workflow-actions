@@ -31,10 +31,11 @@ runs:
           --query 'ReplicationTask.Status'
 
         else
-          echo "The task is already stopped"
+          echo "✅ The task is already stopped."
         fi
         
         echo "status=$status" >> $GITHUB_OUTPUT
+
     - name: ⏳ Wait for Task to Stop
       if: ${{ steps.stop-dms-tasks.outputs.status != 'stopped' }}
       shell: bash
@@ -44,11 +45,13 @@ runs:
         until [ $(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} \
         --query 'ReplicationTasks[?ReplicationTaskArn==`${{ inputs.task-arn }}`].Status' --output text) == "stopped" ]; do
           if [ $elapsed -ge ${{ inputs.timeout }} ]; then
-            echo "Timeout reached: Replication task did not become running within $((${{ inputs.timeout }} / 60)) minutes."
+            echo "🚫 Timeout reached: Replication task did not become running within $((${{ inputs.timeout }} / 60)) minutes."
             exit 1
           fi
           
-          echo "Waiting on the replication task to stop"
+          echo "⏳ Waiting on the replication task to stop..."
           sleep ${{ inputs.interval }}
           elapsed=$((elapsed + ${{ inputs.interval }}))
         done
+        
+        echo "✅ The task has successfully stopped."

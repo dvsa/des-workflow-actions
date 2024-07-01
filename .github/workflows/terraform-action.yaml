@@ -116,10 +116,18 @@ jobs:
           terraform init components/${{ inputs.tf-component }}
           terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/tfplan.txt
 
+      - name: 🏷️ Set Artifact Name
+        run: |
+          if [ -n "${{ inputs.job-index }}" ]; then
+            echo "artifact_name=${{ inputs.job-index }}_${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan" >> $GITHUB_ENV
+          else
+            echo "artifact_name=${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan" >> $GITHUB_ENV
+          fi
+
       - name: ☁️ Upload Plan
         if: ${{ inputs.tf-action == 'plan' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ inputs.job-index }}_${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan"
+          name: ${{ env.artifact_name }}
           path: tfplan.txt
           retention-days: 3
