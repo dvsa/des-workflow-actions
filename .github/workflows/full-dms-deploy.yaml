@@ -82,12 +82,12 @@ jobs:
       - name: 🔍 Get DMS Tasks
         id: dms-tasks
         run: |
-          static_task_arn=$(aws dms describe-replication-tasks --without-settings
+          static_task_arn=$(aws dms describe-replication-tasks --without-settings \
           --region ${{ secrets.DVSA_AWS_REGION }} | jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier | \
           test("mes-${{ inputs.tf-environment }}-dms-static-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
           echo "static_task_arn=$static_task_arn" >> $GITHUB_OUTPUT
           
-          date_filtered_task_arn=$(aws dms describe-replication-tasks --without-settings
+          date_filtered_task_arn=$(aws dms describe-replication-tasks --without-settings \
           --region ${{ secrets.DVSA_AWS_REGION }} | jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier | \
           test("mes-${{ inputs.tf-environment }}-dms-datefiltered-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
           echo "date_filtered_task_arn=$date_filtered_task_arn" >> $GITHUB_OUTPUT
