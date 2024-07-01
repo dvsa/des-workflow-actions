@@ -28,7 +28,7 @@ runs:
         elapsed=0
         
         until [ $(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} --query \
-        'ReplicationTasks[?ReplicationTaskArn==`${{ inputs.task-arn }}`].Status) == "running" ]; do
+        'ReplicationTasks[?ReplicationTaskArn==`${{ inputs.task-arn }}`].Status' --output text) == "running" ]; do
           if [ $elapsed -ge $timeout ]; then
             echo "Timeout reached: Replication task did not become running within $((timeout / 60)) minutes."
             exit 1
