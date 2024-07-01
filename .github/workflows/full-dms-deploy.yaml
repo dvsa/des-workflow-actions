@@ -60,6 +60,31 @@ jobs:
           secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
           parse-json-secrets: true
 
+      - name: 🔍 Get DMS Tasks
+        id: dms-tasks
+        run: |
+          static_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
+          jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
+          test("mes-${{ inputs.tf-environment }}-dms-static-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "static_task_arn=$static_task_arn" >> $GITHUB_OUTPUT
+          
+          date_filtered_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
+          jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
+          test("mes-${{ inputs.tf-environment }}-dms-datefiltered-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "date_filtered_task_arn=$date_filtered_task_arn" >> $GITHUB_OUTPUT
+
+      - name: ⏹️ Stop Static Task
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: ⏹️ Stop Date Filtered Task
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
       - name: 🚫 Disable Pollers and DMS Task Updater
         run: |
           IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
@@ -78,19 +103,6 @@ jobs:
           db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
           db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
           db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
-
-      - name: 🔍 Get DMS Tasks
-        id: dms-tasks
-        run: |
-          static_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
-          jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
-          test("mes-${{ inputs.tf-environment }}-dms-static-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
-          echo "static_task_arn=$static_task_arn" >> $GITHUB_OUTPUT
-          
-          date_filtered_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
-          jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
-          test("mes-${{ inputs.tf-environment }}-dms-datefiltered-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
-          echo "date_filtered_task_arn=$date_filtered_task_arn" >> $GITHUB_OUTPUT
 
       - name: 🏃 Run Static Task Full Load
         run: |          
