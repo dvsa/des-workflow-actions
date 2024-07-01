@@ -21,7 +21,8 @@ runs:
   steps:
     - name: ⏹️ Stop DMS Tasks
       shell: bash
-      run: aws dms stop-replication-task --region ${{ inputs.aws-region }} --replication-task-arn ${{ inputs.task-arn }} \
+      run: |
+        aws dms stop-replication-task --region ${{ inputs.aws-region }} --replication-task-arn ${{ inputs.task-arn }} \
         --query 'ReplicationTask.Status'
 
     - name: ⏳ Wait for Task to Stop
