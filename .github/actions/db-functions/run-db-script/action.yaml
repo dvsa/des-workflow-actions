@@ -50,11 +50,11 @@ runs:
           user_password="${{ inputs.user-password }}"
           script_file="$(echo $source_script | sed "s/<USER_PASSWORD>/${user_password//&/\\&}/")"
 
-          mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p ${{ inputs.db-password }} -Bse \"source ${script_file}\"
+          mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p${{ inputs.db-password }} -Bse \"source ${script_file}\"
         
         else                   
           for script_file in *; do        
-            mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p ${{ inputs.db-password }} -Bse \"source ${script_file}\"
+            mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p${{ inputs.db-password }} -Bse \"source ${script_file}\"
           done 
         fi
         
