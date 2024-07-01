@@ -21,19 +21,20 @@ runs:
   steps:
     - name: ⏹️ Stop DMS Tasks
       shell: bash
-      run: aws dms stop-replication-task --region ${{ inputs.aws-region }} --replication-task-arn ${{ inputs.task-arn }}
+      run: aws dms stop-replication-task --region ${{ inputs.aws-region }} --replication-task-arn ${{ inputs.task-arn }} \
+        --query 'ReplicationTask.Status'
 
     - name: ⏳ Wait for Task to Stop
       shell: bash
       run: |
         elapsed=0
         
-        status=$(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} | jq '.ReplicationTasks[] \
-        | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") | .Status' --raw-output)
+        status=$(aws dms describe-replication-tasks --without-settings \
+        --query 'ReplicationTasks[?ReplicationTaskArn==`${{ inputs.task-arn }}`].Status' --output text)
 
         if [ "$status" != "stopped" ]; then
-          until [ $(aws dms describe-replication-tasks --without-settings --region ${{ inputs.aws-region }} | jq '.ReplicationTasks[] \
-          | select(.ReplicationTaskArn == "${{ inputs.task-arn }}") | .Status' --raw-output) == "stopped" ]; do
+          until [ $(aws dms describe-replication-tasks --without-settings \
+          --query 'ReplicationTasks[?ReplicationTaskArn==`${{ inputs.task-arn }}`].Status' --output text) == "stopped" ]; do
             if [ $elapsed -ge ${{ inputs.timeout }} ]; then
               echo "Timeout reached: Replication task did not become running within $((${{ inputs.timeout }} / 60)) minutes."
               exit 1
