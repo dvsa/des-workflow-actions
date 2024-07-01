@@ -46,8 +46,8 @@ runs:
         done
         
         if [[ "$success" == "true" ]]; then
-          echo "${{ inputs.function-name }} invoked successfully!"
+          echo "✅ ${{ inputs.function-name }} invoked successfully!"
         else
-          echo "Timeout reached: ${{ inputs.function-name }} invocation failed."
+          echo "🚫 Timeout reached: ${{ inputs.function-name }} invocation failed."
           exit 1
         fi

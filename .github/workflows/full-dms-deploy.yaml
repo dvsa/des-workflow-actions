@@ -60,7 +60,7 @@ jobs:
           secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
           parse-json-secrets: true
 
-      - name: 🔍 Get DMS Tasks
+      - name: 🔍 Get DMS Task ARNs
         id: dms-tasks
         run: |
           static_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
@@ -72,6 +72,8 @@ jobs:
           jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
           test("mes-${{ inputs.tf-environment }}-dms-datefiltered-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
           echo "date_filtered_task_arn=$date_filtered_task_arn" >> $GITHUB_OUTPUT
+          
+          echo "✅ DMS Task ARNs successfully retrieved."
 
       - name: ⏹️ Stop Static Task
         uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
@@ -92,6 +94,8 @@ jobs:
             [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
             rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
             aws events disable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
+          
+            echo "🚫 $rule_name is now disabled."
           done
 
       - name: 🔄 Initialise TARS Replica
@@ -105,13 +109,18 @@ jobs:
           db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
 
       - name: 🏃 Run Static Task Full Load
-        run: |          
-          # Start the replication task
+        run: |
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
-          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type reload-target
+          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type reload-target --query 'ReplicationTask.Status'
           
-          # Give the task a minute to start
+          echo "⏳ Giving the task a minute to start"
           sleep 60
+
+      - name: 🏃 Run DMS Task Updater
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/invoke-lambda-function@main
+        with:
+          function-name: mes-${{ inputs.tf-environment }}-dms-dms-task-updater
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ⏳ Wait for Static Task Full Load
         uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
@@ -121,12 +130,6 @@ jobs:
           sleep-time: ${{ inputs.full-load-sleep-time }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: 🏃 Run DMS Task Updater
-        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/invoke-lambda-function@main
-        with:
-          function-name: mes-${{ inputs.tf-environment }}-dms-dms-task-updater
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-          
       - name: ⏳ Wait for Date Filtered Task Full Load
         uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
         with:
@@ -160,10 +163,12 @@ jobs:
       - name: ▶️ Resume DMS Tasks
         run: |
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
-          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing
+          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing --query 'ReplicationTask.Status'
           
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.date_filtered_task_arn }} \
-          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing
+          --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing --query 'ReplicationTask.Status'
+          
+          echo "▶️ Tasks resumed."
 
       - name: ⏳ Wait for Static Task Full Load
         uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
@@ -194,4 +199,6 @@ jobs:
             [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
             rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
             aws events enable-rule --name ${rule_name} --region ${{ secrets.DVSA_AWS_REGION }}
+          
+            echo "✅ $rule_name is now enabled."
           done

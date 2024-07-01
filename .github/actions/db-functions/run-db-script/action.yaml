@@ -60,3 +60,5 @@ runs:
         fi
         
         set -x
+        
+        echo "✅ Successfully ran the MySQL script/s."
