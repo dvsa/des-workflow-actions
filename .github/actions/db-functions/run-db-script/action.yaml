@@ -1,5 +1,5 @@
 name: 🏃 Run Database Scripts
-description: "Action to run a create user script for a MySQL database from a specified repository"
+description: "Action to run scripts for a MySQL database from a specific repository"
 inputs:
   db-script-repo:
     description: The repository to run the DB scripts from
@@ -16,15 +16,18 @@ inputs:
   db-cname:
     description: The Route 53 CNAME for the DB
     required: true
+  db-username:
+    description: The DB username ro tun the scripts against
+    required: true
   db-password:
-    description: The name of the DB password to be obtained from AWS Secret Manager
+    description: The DB password for the user
     required: true
   user-password:
-    description: The name of the user password to be obtained from AWS parameter store (uses AWSAuthenticationPlugin if omitted)
+    description: The user password to be injected into the scripts (optional)
     required: false
-  tf-environment:
-    description: The Terraform environment to run the database script against
-    required: true
+  db-script-filename:
+    description: The filename of the DB script to run when a script needs user_password injected (optional)
+    required: false
 
 runs:
   using: composite
@@ -39,17 +42,20 @@ runs:
     - name: 🏃 Run Database Scripts
       shell: bash
       run: |
-        cd ${{ inputs.db-script-path }}
         set +x
+        cd ${{ inputs.db-script-path }}
         
-        for script_file in *; do
-          if [ -n "${{ inputs.user-password }}" ]; then
-            source_script=$(<"${script_file}")
-            user_password="${{ inputs.user_password }}"
-            script_file="$(echo $source_script | sed "s/<USER_PASSWORD>/${user_password//&/\\&}/")"
-          fi
+        if [ -n "${{ inputs.user-password }}" ]; then
+          source_script=$(<"${{ inputs.db-script-filename }}")
+          user_password="${{ inputs.user_password }}"
+          script_file="$(echo $source_script | sed "s/<USER_PASSWORD>/${user_password//&/\\&}/")"
+
+          mysql -h ${{ inputs.db_cname }} -u ${{ inputs.db_username }} -p ${{ inputs.db_password }} -Bse \"source ${script_file}\"
         
-          mysql -h ${{ inputs.db_cname }} -u mes${{ inputs.tf-environment }}admin -p${{ inputs.db_password }} -Bse \"source ${script_file}\"
-        done 
+        else                   
+          for script_file in *; do        
+            mysql -h ${{ inputs.db_cname }} -u ${{ inputs.db_username }} -p ${{ inputs.db_password }} -Bse \"source ${script_file}\"
+          done 
+        fi
         
         set -x

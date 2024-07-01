@@ -76,8 +76,8 @@ jobs:
           db-script-branch: ${{ inputs.db-script-branch }}
           db-script-path: destination-db/database-initialisation
           db-cname: ${{ env.RDS_CREDENTIALS.TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS.TARS_DB_USERNAME }}
           db-password: ${{ env.RDS_CREDENTIALS.TARS_DB_PASSWORD }}
-          tf-environment: ${{ inputs.tf-environment }}
 
       - name: 🔍 Get DMS Tasks
         id: dms-tasks
@@ -142,8 +142,8 @@ jobs:
           db-script-branch: ${{ inputs.db-script-branch }}
           db-script-path: destination-db/database-objects
           db-cname: ${{ env.RDS_CREDENTIALS.TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS.TARS_DB_USERNAME }}
           db-password: ${{ env.RDS_CREDENTIALS.TARS_DB_PASSWORD }}
-          tf-environment: ${{ inputs.tf-environment }}
 
       - name: ▶️ Resume DMS Tasks
         run: |
