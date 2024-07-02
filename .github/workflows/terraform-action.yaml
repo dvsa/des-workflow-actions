@@ -48,7 +48,7 @@ permissions:
 
 jobs:
   tf-action:
-    name: ${{ inputs.tf-action }}
+    name: ${{ inputs.tf-action == 'plan' && '📑 Plan' || '🚀 Apply' }}
     runs-on: ${{ inputs.runner }}
     environment: ${{ inputs.tf-action == 'apply' && inputs.tf-environment || '' }}
     steps:
@@ -114,20 +114,21 @@ jobs:
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' }}
         run: |
-          # Set Filename
-          if [ -n "${{ inputs.job-index }}" ]; then
-            echo "filename=${{ inputs.job-index }}_${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt" >> $GITHUB_ENV
-          else
-            echo "filename=${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt" >> $GITHUB_ENV
-          fi
+          # Set Filename        
+          filename="${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt"
+          
+          # Prepend job-index to the filename to avoid duplicate files when DRS component early run takes place
+          [[ -n "${{ inputs.job-index }}" ]] && filename="${{ inputs.job-index }}_$filename"
+          
+          echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
           terraform init components/${{ inputs.tf-component }}
-          terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/${{ env.filename }}
+          terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/$filename
 
       - name: ☁️ Upload Plan
         if: ${{ inputs.tf-action == 'plan' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.filename }}
-          path: ${{ env.filename }}
+          name: ${{ env.FILE_NAME }}
+          path: ${{ env.FILE_NAME }}
           retention-days: 3
