@@ -50,6 +50,7 @@ jobs:
   tf-action:
     name: ${{ inputs.tf-action }}
     runs-on: ${{ inputs.runner }}
+    environment: ${{ tf-action == 'apply' && inputs.tf-environment || '' }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
