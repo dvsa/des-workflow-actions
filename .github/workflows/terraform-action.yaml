@@ -48,7 +48,7 @@ permissions:
 
 jobs:
   tf-action:
-    name: ${{ inputs.tf-action == 'plan' && '📑 Plan' || '🚀 Apply' }}
+    name: "${{ inputs.tf-action == 'plan' && '📑 Plan' || '' }}${{ inputs.tf-action == 'apply' && '🚀 Apply' || '' }}${{ inputs.tf-action == 'destroy' && '🗑️ Destroy' || '' }} ${{ inputs.tf-component }}"
     runs-on: ${{ inputs.runner }}
     environment: ${{ inputs.tf-action == 'apply' && inputs.tf-environment || '' }}
     steps:
@@ -97,7 +97,7 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: ${{ inputs.tf-action == 'plan' && '📝 Terraform Plan' || '🚀 Terraform Apply' }}
+      - name: ${{ inputs.tf-action == 'plan' && '📝 Terraform Plan' || '' }}${{ inputs.tf-action == 'apply' && '🚀 Terraform Apply' || '' }}${{ inputs.tf-action == 'destroy' && '🗑️ Terraform Destroy' || '' }}
         run: |
           bash -x bin/terraform.sh \
           --action ${{ inputs.tf-action }} \
