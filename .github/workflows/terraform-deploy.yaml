@@ -1,16 +1,11 @@
 name: 🚀 Terraform Deploy
-
 on:
   workflow_call:
     inputs:
-      runner:
-        description: The EC2 GHA runner that has been spun up for deployment
-        type: string
-        required: true
       branch:
         description: Terraform Branch
         type: string
-        required: true
+        default: master
       aws-account:
         description: AWS Account
         type: string
@@ -19,54 +14,166 @@ on:
         description: Terraform Environment
         type: string
         required: true
-      tf-component:
-        description: Terraform Component
-        type: string
-        required: true
-      release-tag:
-        description: The release tag to run a Terraform plan/apply against
-        type: string
-        required: false
+      api:
+        description: API
+        type: boolean
+        default: false
+      drs:
+        description: DRS
+        type: boolean
+        default: false
+      dms:
+        description: DMS
+        type: boolean
+        default: false
       tf-args:
         description: Additional Terraform arguments (optional)
         type: string
         required: false
-      job-index:
-        description: The index of the current job in the matrix
+      full-dms-deploy:
+        description: Full DMS Deploy
+        type: boolean
+        default: false
+      db-script-branch:
+        description: The branch to run the DB scripts from
         type: string
-        required: false
-
+        default: false
 permissions:
   id-token: write
   contents: write
 
 jobs:
-  plan:
-    name: run
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+      aws-account: nonprod
+    secrets: inherit
+
+  deploy-api:
+    name: 🧩 API
+    needs: start-ec2-runner
+    if: always() && !failure() && !cancelled() && inputs.api == true
+    strategy:
+      max-parallel: 1
+      matrix:
+        action: [ plan, apply ]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
-      runner: ${{ inputs.runner }}
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
-      tf-component: ${{ inputs.tf-component }}
+      tf-component: api
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
-      tf-action: plan
-      job-index: ${{ inputs.job-index || '' }}
+      tf-action: ${{ matrix.action }}
     secrets: inherit
 
-  apply:
-    environment: ${{ inputs.tf-environment }}
-    name: run
-    needs: plan
-    runs-on: ubuntu-latest
+  deploy-drs:
+    name: 🧩 DRS
+    needs: [ start-ec2-runner, deploy-api ]
+    if: always() && !failure() && !cancelled() && inputs.drs == true
+    strategy:
+      max-parallel: 1
+      matrix:
+        action: [ plan, apply ]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: drs
+      release-tag: ${{ inputs.release-tag }}
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.action }}
+    secrets: inherit
+
+  create-db-users:
+    name: ✨ Create DB Users
+    needs: [ start-ec2-runner, deploy-drs ]
+    if: always() && !failure() && !cancelled() && inputs.full-dms-deploy == true
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
 
-      - name: Echo
-        run: echo ${{ matrix.component }}
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
+          parse-json-secrets: true
 
-      - name: 🚀 Apply
-        run: echo "Running apply (${{ inputs.tf-component }})"
+      - name: ✨ Create DMS User
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/user-creation
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+          user-password: ${{ env.RDS_CREDENTIALS_TARS_DMS_USER_PASSWORD }}
+          db-script-filename: 010_createDMSUser.sql
+
+      - name: ✨ Create Ref Data User
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/user-creation
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+          user-password: ${{ env.RDS_CREDENTIALS_TARS_REFDATA_USER_PASSWORD }}
+          db-script-filename: 060_createRefdataUser.sql
+
+  deploy-dms:
+    name: 🧩 DMS
+    needs: [ start-ec2-runner, create-db-users ]
+    if: always() && !failure() && !cancelled() && inputs.dms == true
+    strategy:
+      max-parallel: 1
+      matrix:
+        action: [ plan, apply ]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: dms
+      release-tag: ${{ inputs.release-tag }}
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.action }}
+    secrets: inherit
+
+  full-dms-deploy:
+    name: 🚀 Full DMS Deploy
+    needs: [ start-ec2-runner, deploy-dms ]
+    if: always() && !failure() && !cancelled() && inputs.full-dms-deploy == true
+    uses: dvsa/des-workflow-actions/.github/workflows/full-dms-deploy.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      db-script-branch: ${{ inputs.db-script-branch }}
+    secrets: inherit
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [ start-ec2-runner, full-dms-deploy ]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      aws-account: ${{ inputs.aws-account }}
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets: inherit
