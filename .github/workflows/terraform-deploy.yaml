@@ -3,41 +3,54 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: Terraform Branch
+        description: The Terraform branch to deploy
         type: string
-        default: master
+        required: true
       aws-account:
-        description: AWS Account
+        description: The AWS account to deploy to
         type: string
         required: true
       tf-environment:
-        description: Terraform Environment
+        description: The Terraform environment to deploy to
         type: string
         required: true
       api:
-        description: API
+        description: Whether to deploy the API component when deploying to dev (default is true for other environments)
         type: boolean
-        default: false
+        default: true
+        required: false
       drs:
-        description: DRS
+        description: Whether to deploy the DRS component when deploying to dev (default is true for other environments)
         type: boolean
-        default: false
+        default: true
+        required: false
       dms:
-        description: DMS
+        description: Whether to deploy the DMS component when deploying to dev (default is true for other environments)
+        type: boolean
+        default: true
+        required: false
+      release-tag:
+        description: The version of the microservices to be deployed
+        type: string
+        required: false
+      drs-early-run:
+        description: Whether to deploy the DRS component before the API component (required when changes are made to the ref-data VPC endpoint service)
         type: boolean
         default: false
+        required: false
       tf-args:
-        description: Additional Terraform arguments (optional)
+        description: Additional Terraform arguments
         type: string
         required: false
       full-dms-deploy:
-        description: Full DMS Deploy
+        description: Whether to run a full static load when there are changes to the static task
         type: boolean
-        default: false
-      db-script-branch:
+        required: true
+      tars-replica-db-script-branch:
         description: The branch to run the DB scripts from
         type: string
-        default: false
+        required: true
+
 permissions:
   id-token: write
   contents: write
@@ -48,17 +61,55 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: start
-      aws-account: nonprod
+      aws-account: ${{ inputs.aws-account }}
+    secrets: inherit
+
+  deploy-dmsbase:
+    name: 🧩 DMSBASE
+    needs: start-ec2-runner
+    if: always() && !failure() && !cancelled() && inputs.tf-environment != 'dev'
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [plan, apply]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: dmsbase
+      tf-action: ${{ matrix.tf-action }}
+    secrets: inherit
+
+  deploy-drs-early-run:
+    name: 🧩 DRS (Early Run)
+    needs: [start-ec2-runner, deploy-dmsbase]
+    if: always() && !failure() && !cancelled() && inputs.drs-early-run == true
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [plan, apply]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: drs
+      release-tag: ${{ inputs.release-tag }}
+      tf-action: ${{ matrix.tf-action }}
+      artifact-name-prefix: ${{ inputs.drs-early-run == true && '0' || '' }}
     secrets: inherit
 
   deploy-api:
     name: 🧩 API
-    needs: start-ec2-runner
+    needs: [start-ec2-runner, deploy-drs-early-run]
     if: always() && !failure() && !cancelled() && inputs.api == true
     strategy:
       max-parallel: 1
       matrix:
-        action: [ plan, apply ]
+        tf-action: [plan, apply]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -68,17 +119,17 @@ jobs:
       tf-component: api
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
-      tf-action: ${{ matrix.action }}
+      tf-action: ${{ matrix.tf-action }}
     secrets: inherit
 
   deploy-drs:
     name: 🧩 DRS
-    needs: [ start-ec2-runner, deploy-api ]
+    needs: [start-ec2-runner, deploy-api]
     if: always() && !failure() && !cancelled() && inputs.drs == true
     strategy:
       max-parallel: 1
       matrix:
-        action: [ plan, apply ]
+        tf-action: [plan, apply]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -88,12 +139,13 @@ jobs:
       tf-component: drs
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
-      tf-action: ${{ matrix.action }}
+      tf-action: ${{ matrix.tf-action }}
+      artifact-name-prefix: ${{ inputs.drs-early-run == true && '1' || '' }}
     secrets: inherit
 
   create-db-users:
     name: ✨ Create DB Users
-    needs: [ start-ec2-runner, deploy-drs ]
+    needs: [start-ec2-runner, deploy-drs]
     if: always() && !failure() && !cancelled() && inputs.full-dms-deploy == true
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
@@ -136,12 +188,12 @@ jobs:
 
   deploy-dms:
     name: 🧩 DMS
-    needs: [ start-ec2-runner, create-db-users ]
+    needs: [start-ec2-runner, create-db-users]
     if: always() && !failure() && !cancelled() && inputs.dms == true
     strategy:
       max-parallel: 1
       matrix:
-        action: [ plan, apply ]
+        tf-action: [plan, apply]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -151,24 +203,24 @@ jobs:
       tf-component: dms
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
-      tf-action: ${{ matrix.action }}
+      tf-action: ${{ matrix.tf-action }}
     secrets: inherit
 
   full-dms-deploy:
     name: 🚀 Full DMS Deploy
-    needs: [ start-ec2-runner, deploy-dms ]
+    needs: [start-ec2-runner, deploy-dms]
     if: always() && !failure() && !cancelled() && inputs.full-dms-deploy == true
     uses: dvsa/des-workflow-actions/.github/workflows/full-dms-deploy.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
-      db-script-branch: ${{ inputs.db-script-branch }}
+      db-script-branch: ${{ inputs.tars-replica-db-script-branch }}
     secrets: inherit
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
-    needs: [ start-ec2-runner, full-dms-deploy ]
+    needs: [start-ec2-runner, full-dms-deploy]
     if: always()
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
