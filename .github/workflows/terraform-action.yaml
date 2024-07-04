@@ -37,8 +37,8 @@ on:
         type: string
         required: true
         default: plan
-      job-index:
-        description: The index of the current job in caller workflow
+      artifact-name-prefix:
+        description: The prefix to add to the Terraform plan artifact if DRS early run takes place
         type: string
         required: false
 
@@ -48,9 +48,9 @@ permissions:
 
 jobs:
   tf-action:
-    name: ${{ inputs.tf-action == 'plan' && '📑 Plan' || '🚀 Apply' }}
+    name: "${{ inputs.tf-action == 'plan' && '📑 Plan' || '' }}${{ inputs.tf-action == 'apply' && '🚀 Apply' || '' }}${{ inputs.tf-action == 'destroy' && '🗑️ Destroy' || '' }} ${{ inputs.tf-component }}"
     runs-on: ${{ inputs.runner }}
-    environment: ${{ inputs.tf-action == 'apply' && inputs.tf-environment || '' }}
+    environment: ${{ contains(fromJSON('["apply", "destroy"]'), inputs.tf-action) && inputs.tf-environment || '' }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -72,7 +72,7 @@ jobs:
 
       - name: ✍️ Generate tfvars
         id: get-tfvars
-        if: ${{ contains(fromJSON('["dev", "uat", "prep", "live"]'), inputs.tf-environment) && inputs.tf-component != 'dmsbase' }}
+        if: ${{ contains(fromJSON('["dev", "uat", "perf" "prep", "live"]'), inputs.tf-environment) && inputs.tf-component != 'dmsbase' }}
         uses: dvsa/des-workflow-actions/.github/actions/get-tfvars@main
         with:
           environment: ${{ inputs.tf-environment }}
@@ -97,7 +97,7 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: ${{ inputs.tf-action == 'plan' && '📝 Terraform Plan' || '🚀 Terraform Apply' }}
+      - name: ${{ inputs.tf-action == 'plan' && '📝 Terraform Plan' || '' }}${{ inputs.tf-action == 'apply' && '🚀 Terraform Apply' || '' }}${{ inputs.tf-action == 'destroy' && '🗑️ Terraform Destroy' || '' }}
         run: |
           bash -x bin/terraform.sh \
           --action ${{ inputs.tf-action }} \
@@ -117,8 +117,8 @@ jobs:
           # Set Filename        
           filename="${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt"
           
-          # Prepend job-index to the filename to avoid duplicate files when DRS component early run takes place
-          [[ -n "${{ inputs.job-index }}" ]] && filename="${{ inputs.job-index }}_$filename"
+          # Prepend artifact-name-prefix to the filename to avoid duplicate files when DRS component early run takes place
+          [[ -n "${{ inputs.artifact-name-prefix }}" ]] && filename="${{ inputs.artifact-name-prefix }}_$filename"
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
