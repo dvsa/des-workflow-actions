@@ -121,7 +121,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: 1
+      artifact-name-prefix: ${{ inputs.tf-environment != 'dev' && '1' || '' }}
     secrets: inherit
 
   deploy-drs:
@@ -142,7 +142,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: 2
+      artifact-name-prefix: ${{ inputs.tf-environment != 'dev' && '2' || '' }}
     secrets: inherit
 
   create-db-users:
@@ -206,7 +206,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: 3
+      artifact-name-prefix: ${{ inputs.tf-environment != 'dev' && '3' || '' }}
     secrets: inherit
 
   full-dms-deploy:
