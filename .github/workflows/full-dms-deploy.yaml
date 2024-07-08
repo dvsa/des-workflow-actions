@@ -11,10 +11,6 @@ on:
         description: AWS Account
         type: string
         required: true
-      aws-account-id:
-        description: The AWS Account ID to assume a role in
-        type: string
-        required: true
       tf-environment:
         description: Terraform Environment
         type: string
@@ -54,7 +50,7 @@ jobs:
       - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
