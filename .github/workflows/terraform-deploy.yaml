@@ -10,6 +10,10 @@ on:
         description: The AWS account to deploy to
         type: string
         required: true
+      aws-account-id:
+        description: The AWS Account ID to start/stop the runner in
+        type: string
+        required: true
       tf-environment:
         description: The Terraform environment to deploy to
         type: string
@@ -77,9 +81,11 @@ jobs:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
-      tf-environment: ${{ inputs.tf-environment }}
+      aws-account-id: ${{ inputs.aws-account-id }}
+      tf-environment: ${{ inputs.tf-environment == 'perf' && 'nonprod' || inputs.tf-environment }}
       tf-component: dmsbase
       tf-action: ${{ matrix.tf-action }}
+      artifact-name-prefix: ${{ inputs.tf-environment != 'dev' && '0' || '' }}
     secrets: inherit
 
   deploy-drs-early-run:
@@ -95,11 +101,12 @@ jobs:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
+      aws-account-id: ${{ inputs.aws-account-id }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: drs
       release-tag: ${{ inputs.release-tag }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: ${{ inputs.drs-early-run == true && '0' || '' }}
+      artifact-name-prefix: early-run
     secrets: inherit
 
   deploy-api:
@@ -115,11 +122,13 @@ jobs:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
+      aws-account-id: ${{ inputs.aws-account-id }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: api
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
+      artifact-name-prefix: ${{ inputs.tf-environment != 'dev' && '1' || '' }}
     secrets: inherit
 
   deploy-drs:
@@ -135,12 +144,13 @@ jobs:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
+      aws-account-id: ${{ inputs.aws-account-id }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: drs
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: ${{ inputs.drs-early-run == true && '1' || '' }}
+      artifact-name-prefix: ${{ inputs.drs-early-run == true && '2' || '' }}
     secrets: inherit
 
   create-db-users:
@@ -199,11 +209,13 @@ jobs:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
       aws-account: ${{ inputs.aws-account }}
+      aws-account-id: ${{ inputs.aws-account-id }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: dms
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
+      artifact-name-prefix: ${{ inputs.tf-environment != 'dev' && '3' || '' }}
     secrets: inherit
 
   full-dms-deploy:
@@ -214,6 +226,7 @@ jobs:
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       aws-account: ${{ inputs.aws-account }}
+      aws-account-id: ${{ inputs.aws-account-id }}
       tf-environment: ${{ inputs.tf-environment }}
       db-script-branch: ${{ inputs.tars-replica-db-script-branch }}
     secrets: inherit
@@ -226,6 +239,7 @@ jobs:
     with:
       action: stop
       aws-account: ${{ inputs.aws-account }}
+      aws-account-id: ${{ inputs.aws-account-id }}
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
       ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
     secrets: inherit
