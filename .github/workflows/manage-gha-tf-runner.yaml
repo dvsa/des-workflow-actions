@@ -7,8 +7,8 @@ on:
         description: The action to take (start/stop)
         type: string
         required: true
-      aws-account:
-        description: AWS Account
+      aws-account-id:
+        description: The AWS Account ID to start/stop the runner in
         type: string
         required: true
       runner-label:
@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   ec2-gha-runner-action:
-    name: ${{ inputs.action }}-ec2-runner
+    name: "${{ inputs.action == 'start' && '▶️' || '⏹️' }} ${{ inputs.action }} runner"
     outputs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
@@ -43,22 +43,16 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
       - name: 🤫 Get Secrets
+        if: inputs.action == 'start'
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: des-aws/env
           parse-json-secrets: true
-
-      - name: 🔑 Configure ${{ inputs.aws-account == 'nonprod' && 'Nonprod' || 'Prod' }} AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ inputs.aws-account == 'nonprod' && secrets.AWS_ROLE_NONPROD || secrets.AWS_ROLE_PROD }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-          role-session-name: Terraform-GHA
 
       - name: ▶️ Start EC2 Runner
         if: inputs.action == 'start'
@@ -67,11 +61,11 @@ jobs:
         with:
           mode: ${{ inputs.action }}
           github-token: ${{ secrets.GH_TOKEN_TEMP }}
-          ec2-image-id: ${{ env.DES_AWS_ENV_EC2_AMI_ID }}
-          ec2-instance-type: ${{ env.DES_AWS_ENV_EC2_INSTANCE_TYPE }}
-          subnet-id: ${{ env.DES_AWS_ENV_NONPROD_SUBNET_ID }}
-          security-group-id: ${{ env.DES_AWS_ENV_NONPROD_SG_ID }}
-          iam-role-name: ${{ env.DES_AWS_ENV_NONPROD_IAM_ROLE_NAME }}
+          ec2-image-id: ${{ env.DES_AWS_ENV_GHA_RUNNER_EC2_AMI_ID }}
+          ec2-instance-type: ${{ env.DES_AWS_ENV_GHA_RUNNER_EC2_INSTANCE_TYPE }}
+          subnet-id: ${{ env.DES_AWS_ENV_GHA_RUNNER_SUBNET_ID }}
+          security-group-id: ${{ env.DES_AWS_ENV_GHA_RUNNER_SG_ID }}
+          iam-role-name: ${{ env.DES_AWS_ENV_GHA_RUNNER_IAM_ROLE_NAME }}
           aws-resource-tags: >
             [
               {"Key": "Name", "Value": "GHA Runner"},
