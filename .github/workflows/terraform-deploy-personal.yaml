@@ -1,0 +1,217 @@
+name: 🚀 Terraform Deploy (Personal Environment)
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: The Terraform branch to deploy
+        type: string
+        required: true
+      aws-account:
+        description: The AWS account to deploy to
+        type: string
+        required: true
+      tf-environment:
+        description: The Terraform environment to deploy to
+        type: string
+        required: true
+      tf-action:
+        description: The Terraform action to take (apply/destroy)
+        type: string
+        required: true
+      initialise-results-db:
+        description: Initialise Results Database
+        type: boolean
+        default: false
+        required: false
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+      aws-account: ${{ inputs.aws-account }}
+    secrets: inherit
+
+  set-tf-args:
+    needs: start-ec2-runner
+    if: always() && !failure() && !cancelled()
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    outputs:
+      api-args: ${{ steps.set-tf-args.outputs.api_args }}
+      api-second-run-args: ${{ steps.set-tf-args.outputs.api_second_run_args }}
+
+    steps:
+      - name: 🕵️ Determine if First Run
+        id: determine-if-deployed
+        run: |
+          tag_name="mes-${{ inputs.tf-environment }}-drs/tars_replica_vpc_endpoint_service"
+          
+          service_name=$(aws ec2 describe-vpc-endpoint-services --region eu-west-1 \
+          --query 'ServiceDetails[?Tags[?Key==`Name`&&Value==`$tag_name`]].ServiceName')
+          
+          if [ "$service_name" != "[]" ] && first_run=true || first_run=false
+          
+          echo "first_run=$first_run" >> $GITHUB_OUTPUT
+
+      - name: Set Terraform Arguments
+        id: set-tf-args
+        run: |
+          if [ "${{ inputs.tf-action }}" == "apply" ] && [ "${{ steps.determine-if-deployed.outputs.first_run }}" == "true" ]; then
+            api_args="-var='first_run=true'"
+          
+            api_second_run_args="\
+            -target=terraform_remote_state.drs \
+            -target=aws_iam_policy_document.ref_data_rds_access \
+            -target=aws_iam_policy.ref_data_rds_access \
+            -target=aws_iam_policy_attachment.ref_data_rds_access \
+            -target=aws_vpc_endpoint.tars_replica \
+            -target=module.lambda_ref_data_test_centres_get"
+          fi
+          
+          if [ "${{ inputs.tf-action }}" == "destroy" ]; then        
+            api_args="\
+            -target=terraform_remote_state.drs \
+            -target=aws_iam_policy_document.ref_data_rds_access \
+            -target=aws_iam_policy.ref_data_rds_access \
+            -target=aws_iam_policy_attachment.ref_data_rds_access \
+            -target=aws_vpc_endpoint.tars_replica"
+          
+            api_second_run_args="-var='first_run=true'"
+          fi
+
+  deploy-api:
+    name: 🧩 API
+    needs: [start-ec2-runner, set-tf-args]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [plan, apply]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: api
+      tf-args: ${{ needs.set-tf-args.outputs.api-args }}
+      tf-action: ${{ matrix.tf-action }}
+    secrets: inherit
+
+  deploy-drs:
+    name: 🧩 DRS
+    needs: [start-ec2-runner, deploy-api]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [plan, apply]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: drs
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.tf-action }}
+    secrets: inherit
+
+  deploy-api-2nd-run:
+    name: 🧩 API
+    needs: [start-ec2-runner, deploy-drs]
+    if: always() && !failure() && !cancelled() &&
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [plan, apply]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: api
+      tf-args: ${{ needs.set-tf-args.outputs.api-second-run-args }}
+      tf-action: ${{ matrix.tf-action }}
+    secrets: inherit
+
+  delete-log-groups:
+    name: 🗑️ Delete Log Groups
+    needs: [start-ec2-runner, deploy-api-2nd-run]
+    if: always() && !failure() && !cancelled() && inputs.tf-action == 'destroy'
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: 🗑️ Delete Log Groups
+        run: |
+          aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-api-mes-db/error \
+          --region eu-west-1
+          aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-drs-tars-replica/error \
+          --region eu-west-1
+
+  create-db-users:
+    name: ✨ Create DB Users
+    needs: [start-ec2-runner, delete-log-groups]
+    if: always() && !failure() && !cancelled() && inputs.initialise-results-db == true
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
+          parse-json-secrets: true
+
+      - name: ✨ Create DMS User
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/user-creation
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+          user-password: ${{ env.RDS_CREDENTIALS_TARS_DMS_USER_PASSWORD }}
+          db-script-filename: 010_createDMSUser.sql
+
+      - name: ✨ Create Ref Data User
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: ${{ inputs.db-script-branch }}
+          db-script-path: destination-db/user-creation
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+          user-password: ${{ env.RDS_CREDENTIALS_TARS_REFDATA_USER_PASSWORD }}
+          db-script-filename: 060_createRefdataUser.sql
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, full-dms-deploy]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      aws-account: ${{ inputs.aws-account }}
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets: inherit
