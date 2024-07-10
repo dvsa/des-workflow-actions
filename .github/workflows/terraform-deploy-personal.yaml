@@ -19,9 +19,17 @@ on:
         type: string
         required: true
       initialise-results-db:
-        description: Initialise Results Database
+        description: Whether to initialise the results database
         type: boolean
         default: false
+        required: false
+      load-dynamodb-test-data:
+        description: Whether to load the DynamoDB test data
+        type: boolean
+        required: false
+      dynamodb-test-data-branch:
+        description: DynamoDB Test Data Branch
+        type: string
         required: false
 
 permissions:
@@ -38,12 +46,14 @@ jobs:
     secrets: inherit
 
   set-tf-args:
+    name: ⚙️ Set Terraform Arguments
     needs: start-ec2-runner
     if: always() && !failure() && !cancelled()
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     outputs:
-      api-args: ${{ steps.set-tf-args.outputs.api_args }}
-      api-second-run-args: ${{ steps.set-tf-args.outputs.api_second_run_args }}
+      first-run: ${{ steps.determine-if-deployed.outputs.first-run }}
+      api-args: ${{ steps.set-tf-args.outputs.api-args }}
+      api-second-run-args: ${{ steps.set-tf-args.outputs.api-second-run-args }}
 
     steps:
       - name: 🕵️ Determine if First Run
@@ -56,12 +66,13 @@ jobs:
           
           if [ "$service_name" != "[]" ] && first_run=true || first_run=false
           
-          echo "first_run=$first_run" >> $GITHUB_OUTPUT
+          echo "first-run=$first_run" >> $GITHUB_OUTPUT
 
-      - name: Set Terraform Arguments
+      - name: ⚙️ Set Terraform Arguments
+        if: steps.determine-if-deployed.outputs.first-run == 'true' || inputs.tf-action == 'destroy'
         id: set-tf-args
         run: |
-          if [ "${{ inputs.tf-action }}" == "apply" ] && [ "${{ steps.determine-if-deployed.outputs.first_run }}" == "true" ]; then
+          if [ "${{ inputs.tf-action }}" == "apply" ]; then
             api_args="-var='first_run=true'"
           
             api_second_run_args="\
@@ -83,6 +94,9 @@ jobs:
           
             api_second_run_args="-var='first_run=true'"
           fi
+          
+          echo "api-args=$api_args" >> $GITHUB_OUTPUT
+          echo "api-second-run-args=$api_second_run_args" >> $GITHUB_OUTPUT
 
   deploy-api:
     name: 🧩 API
@@ -123,9 +137,9 @@ jobs:
     secrets: inherit
 
   deploy-api-2nd-run:
-    name: 🧩 API
+    name: 🧩 API 2nd Run
     needs: [start-ec2-runner, deploy-drs]
-    if: always() && !failure() && !cancelled() &&
+    if: always() && !failure() && !cancelled() && (needs.set-tf-args.outputs.first-run == 'true' || inputs.tf-action == 'destroy')
     strategy:
       max-parallel: 1
       matrix:
@@ -157,12 +171,12 @@ jobs:
       - name: 🗑️ Delete Log Groups
         run: |
           aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-api-mes-db/error \
-          --region eu-west-1
+          --region ${{ secrets.DVSA_AWS_REGION }}
           aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-drs-tars-replica/error \
-          --region eu-west-1
+          --region ${{ secrets.DVSA_AWS_REGION }}
 
-  create-db-users:
-    name: ✨ Create DB Users
+  initialise-results-db:
+    name: ✨ Initialise Results DB & Results User
     needs: [start-ec2-runner, delete-log-groups]
     if: always() && !failure() && !cancelled() && inputs.initialise-results-db == true
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -170,43 +184,75 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          role-to-assume: ${{ secrets.AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
       - name: 🤫 Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
-          secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
+          secret-ids: RDS_CREDENTIALS, des-dev-rds-credentials
           parse-json-secrets: true
 
-      - name: ✨ Create DMS User
+      - name: ✨ Initialise Results DB
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
-          db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: ${{ inputs.db-script-branch }}
-          db-script-path: destination-db/user-creation
-          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
-          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
-          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
-          user-password: ${{ env.RDS_CREDENTIALS_TARS_DMS_USER_PASSWORD }}
-          db-script-filename: 010_createDMSUser.sql
+          db-script-repo: dvsa/mes-results-db
+          db-script-branch: develop
+          db-script-path: database-setup
+          db-cname: ${{ env.RDS_CREDENTIALS_RESULTS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_RESULTS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_RESULTS_DB_PASSWORD }}
 
-      - name: ✨ Create Ref Data User
+      - name: ✨ Create Results User
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
-          db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: ${{ inputs.db-script-branch }}
-          db-script-path: destination-db/user-creation
-          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
-          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
-          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
-          user-password: ${{ env.RDS_CREDENTIALS_TARS_REFDATA_USER_PASSWORD }}
-          db-script-filename: 060_createRefdataUser.sql
+          db-script-repo: dvsa/mes-results-db
+          db-script-branch: develop
+          db-script-path: user-creation
+          db-cname: mes-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_RESULTS_DB_CNAME }}
+          db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_RESULTS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_RESULTS_DB_PASSWORD }}
+
+  load-test-data:
+    name: ⏳ Load Journals & Users Test Data
+    needs: [start-ec2-runner, initialise-results-db]
+    if: always() && !failure() && !cancelled() && inputs.load-dynamodb-test-data == true
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    steps:
+      - name: 📨 Checkout Test Data Repository
+        uses: actions/checkout@v4
+        with:
+          repository: dvsa/des-test-data-journal
+          ref: ${{ inputs.dynamodb-test-data-branch }}
+          ssh-key: ${{ secrets.TEST_DATA_JOURNAL_KEY }}
+
+      - name: ⚙️ Setup Python 3.x
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: ➕ Install Boto3
+        run: pip install boto3
+
+      - name: ➕ Install Requirements
+        run: python -m pip install -r requirements.txt --user
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: ⏳ Load Tables
+        run: |
+          python ./load_test_user_data.py ${{ inputs.tf-environment }}
+          python ./load_test_journal_data.py ${{ inputs.tf-environment }}
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, full-dms-deploy]
+    needs: [start-ec2-runner, load-test-data]
     if: always()
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
