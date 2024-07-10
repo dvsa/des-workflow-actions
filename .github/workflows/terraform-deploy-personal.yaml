@@ -64,7 +64,7 @@ jobs:
           service_name=$(aws ec2 describe-vpc-endpoint-services --region eu-west-1 \
           --query 'ServiceDetails[?Tags[?Key==`Name`&&Value==`$tag_name`]].ServiceName')
           
-          if [ "$service_name" != "[]" ] && first_run=true || first_run=false
+          [ "$service_name" != "[]" ] && first_run=true || first_run=false
           
           echo "first-run=$first_run" >> $GITHUB_OUTPUT
 
