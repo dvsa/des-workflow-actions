@@ -72,10 +72,10 @@ jobs:
 
       - name: ✍️ Generate tfvars
         id: get-tfvars
-        if: ${{ contains(fromJSON('["dev", "uat", "perf", "prep", "live"]'), inputs.tf-environment) && inputs.tf-component != 'dmsbase' }}
+        if: ${{ !contains(fromJSON('["mgmt", "nonprod", "prod"]'), inputs.tf-environment) && inputs.tf-component != 'dmsbase' }}
         uses: dvsa/des-workflow-actions/.github/actions/get-tfvars@main
         with:
-          environment: ${{ inputs.tf-environment }}
+          environment: ${{ contains(fromJSON('["uat", "perf", "prep", "live"]'), inputs.tf-environment) && inputs.tf-environment || 'dev' }}
           component: ${{ inputs.tf-component }}
           release-tag: ${{ inputs.release-tag }}
 
