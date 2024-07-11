@@ -125,7 +125,7 @@ jobs:
   deploy-pages:
     name: 🚀 Deploy Report
     if: always()
-    needs: prepare-gh-pages-branch
+    needs: [run-mobile-app-automation, prepare-gh-pages-branch]
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
