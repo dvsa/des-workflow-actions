@@ -62,7 +62,7 @@ jobs:
           tag_name="mes-${{ inputs.tf-environment }}-drs/tars_replica_vpc_endpoint_service"
           
           service_name=$(aws ec2 describe-vpc-endpoint-services --region ${{ secrets.DVSA_AWS_REGION }} \
-          --query 'ServiceDetails[?Tags[?Key==`Name`&&Value==`$tag_name`]].ServiceName')
+          --query "ServiceDetails[?Tags[?Key=='Name'&&Value=='$tag_name']].ServiceName")
           
           [ "$service_name" == "[]" ] && first_run=true || first_run=false
           
