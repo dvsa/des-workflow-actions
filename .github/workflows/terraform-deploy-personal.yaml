@@ -105,7 +105,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        tf-action: [plan, apply]
+        tf-action: [plan, "${{ inputs.tf-action }}"]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -125,7 +125,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        tf-action: [plan, apply]
+        tf-action: [plan, "${{ inputs.tf-action }}"]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -145,7 +145,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        tf-action: [plan, apply]
+        tf-action: [plan, "${{ inputs.tf-action }}"]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
