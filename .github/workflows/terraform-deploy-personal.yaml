@@ -200,7 +200,7 @@ jobs:
       - name: ✨ Initialise Results DB
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
-          db-script-repo: dvsa/mes-results-db
+          db-script-repo: dvsa/des-results-db
           db-script-branch: develop
           db-script-path: database-setup
           db-cname: ${{ env.RDS_CREDENTIALS_RESULTS_DB_CNAME }}
@@ -210,7 +210,7 @@ jobs:
       - name: ✨ Create Results User
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
-          db-script-repo: dvsa/mes-results-db
+          db-script-repo: dvsa/des-results-db
           db-script-branch: develop
           db-script-path: user-creation
           db-cname: mes-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_RESULTS_DB_CNAME }}
