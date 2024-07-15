@@ -48,7 +48,7 @@ permissions:
 
 jobs:
   tf-action:
-    name: "${{ inputs.tf-action == 'plan' && '📑 Plan' || '' }}${{ inputs.tf-action == 'apply' && '🚀 Apply' || '' }}${{ inputs.tf-action == 'destroy' && '🗑️ Destroy' || '' }} ${{ inputs.tf-component }}"
+    name: "${{ inputs.tf-action == 'plan' && '📑 Plan' || '' }}${{ inputs.tf-action == 'apply' && '🚀 Apply' || '' }}${{ inputs.tf-action == 'destroy' && '🗑️ Destroy' || '' }}${{ inputs.tf-action == 'plan-destroy' && '📑 Plan Destroy' || '' }} ${{ inputs.tf-component }}"
     runs-on: ${{ inputs.runner }}
     environment: ${{ contains(fromJSON('["apply", "destroy"]'), inputs.tf-action) && inputs.tf-environment || '' }}
     steps:
@@ -112,7 +112,7 @@ jobs:
           ${{ inputs.tf-action == 'plan' && '-out=tfplan' || '' }}
 
       - name: 🧐 Terraform Show
-        if: ${{ inputs.tf-action == 'plan' }}
+        if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
         run: |
           # Set Filename        
           filename="${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt"
@@ -126,7 +126,7 @@ jobs:
           terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/$filename
 
       - name: ☁️ Upload Plan
-        if: ${{ inputs.tf-action == 'plan' }}
+        if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.FILE_NAME }}
