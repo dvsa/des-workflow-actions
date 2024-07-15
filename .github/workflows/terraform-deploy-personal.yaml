@@ -185,7 +185,7 @@ jobs:
           --region ${{ secrets.DVSA_AWS_REGION }}
 
   initialise-results-db:
-    name: ✨ Initialise Results DB & Create Results User
+    name: ✨ Initialise Results & TARS Replica Databases
     needs: [start-ec2-runner, delete-log-groups]
     if: always() && !failure() && !cancelled() && inputs.initialise-results-db == true && inputs.tf-action == 'apply'
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -224,6 +224,39 @@ jobs:
           db-cname: mes-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_RESULTS_DB_CNAME }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_RESULTS_DB_USERNAME }}
           db-password: ${{ env.RDS_CREDENTIALS_RESULTS_DB_PASSWORD }}
+
+      - name: 🔄 Initialise TARS Replica
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: develop
+          db-script-path: destination-db/database-initialisation
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+
+      - name: ⏳ Load TARS Replica Database Objects
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: develop
+          db-script-path: destination-db/database-objects
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+
+
+      - name: ✨ Create Ref Data User
+        uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
+        with:
+          db-script-repo: dvsa/mes-data-poller-service
+          db-script-branch: develop
+          db-script-path: destination-db/user-creation
+          db-cname: ${{ env.RDS_CREDENTIALS_TARS_DB_CNAME }}
+          db-username: ${{ env.RDS_CREDENTIALS_TARS_DB_USERNAME }}
+          db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
+          user-password: ${{ env.RDS_CREDENTIALS_TARS_REFDATA_USER_PASSWORD }}
+          db-script-filename: 060_createRefdataUser.sql
 
   load-test-data:
     name: ⏳ Load Journals & Users Test Data
