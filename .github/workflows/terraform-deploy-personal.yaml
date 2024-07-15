@@ -54,6 +54,7 @@ jobs:
       first-run: ${{ steps.determine-if-deployed.outputs.first-run }}
       api-args: ${{ steps.set-tf-args.outputs.api-args }}
       api-second-run-args: ${{ steps.set-tf-args.outputs.api-second-run-args }}
+      tf-plan-action: ${{ steps.set-tf-args.outputs.tf-plan-action }}
 
     steps:
       - name: 🕵️ Determine if First Run
@@ -82,6 +83,8 @@ jobs:
             -target=aws_iam_policy_attachment.ref_data_rds_access \
             -target=aws_vpc_endpoint.tars_replica \
             -target=module.lambda_ref_data_test_centres_get"
+          
+            tf_plan_action="plan"
           fi
           
           if [ "${{ inputs.tf-action }}" == "destroy" ]; then        
@@ -93,10 +96,13 @@ jobs:
             -target=aws_vpc_endpoint.tars_replica"
           
             api_second_run_args="-var='first_run=true'"
+          
+            tf_plan_action="plan-destroy"
           fi
           
           echo "api-args=$api_args" >> $GITHUB_OUTPUT
           echo "api-second-run-args=$api_second_run_args" >> $GITHUB_OUTPUT
+          echo "tf-plan-action=$tf_plan_action" >> $GITHUB_OUTPUT
 
   deploy-api:
     name: 🧩 API
@@ -105,7 +111,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        tf-action: [plan, "${{ inputs.tf-action }}"]
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -125,7 +131,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        tf-action: [plan, "${{ inputs.tf-action }}"]
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
@@ -145,7 +151,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        tf-action: [plan, "${{ inputs.tf-action }}"]
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
     uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
