@@ -84,7 +84,7 @@ jobs:
             -target=aws_vpc_endpoint.tars_replica \
             -target=module.lambda_ref_data_test_centres_get"
           
-            tf_plan_action=plan
+            tf_plan_action="plan"
           fi
           
           if [ "${{ inputs.tf-action }}" == "destroy" ]; then        
@@ -97,7 +97,7 @@ jobs:
           
             api_second_run_args="-var='first_run=true'"
           
-            tf_plan_action=plan-destroy
+            tf_plan_action="plan-destroy"
           fi
           
           echo "api-args=$api_args" >> $GITHUB_OUTPUT
