@@ -126,7 +126,7 @@ jobs:
 
   deploy-drs:
     name: 🧩 DRS
-    needs: [start-ec2-runner, deploy-api]
+    needs: [start-ec2-runner, set-tf-args, deploy-api]
     if: always() && !failure() && !cancelled()
     strategy:
       max-parallel: 1
@@ -146,7 +146,7 @@ jobs:
 
   deploy-api-2nd-run:
     name: 🧩 API 2nd Run
-    needs: [start-ec2-runner, deploy-drs]
+    needs: [start-ec2-runner, set-tf-args, deploy-drs]
     if: always() && !failure() && !cancelled() && (needs.set-tf-args.outputs.first-run == 'true' || inputs.tf-action == 'destroy')
     strategy:
       max-parallel: 1
