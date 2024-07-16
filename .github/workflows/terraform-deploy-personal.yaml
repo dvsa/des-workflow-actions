@@ -65,15 +65,16 @@ jobs:
           service_name=$(aws ec2 describe-vpc-endpoint-services --region ${{ secrets.DVSA_AWS_REGION }} \
           --query "ServiceDetails[?Tags[?Key=='Name'&&Value=='$tag_name']].ServiceName")
           
-          [ "$service_name" == "[]" ] && first_run=true || first_run=false
+          [ "$service_name" == "[]" ] && first_run="true" || first_run="false"
           
           echo "first-run=$first_run" >> $GITHUB_OUTPUT
 
       - name: ⚙️ Set Terraform Arguments
-        if: steps.determine-if-deployed.outputs.first-run == 'true' || inputs.tf-action == 'destroy'
         id: set-tf-args
         run: |
-          if [ "${{ inputs.tf-action }}" == "apply" ]; then
+          tf_plan_action="plan"
+
+          if [ "${{ inputs.tf-action }}" == "apply" ] && [ "${{ steps.determine-if-deployed.outputs.first-run }}" == "true" ]; then
             api_args="-var='first_run=true'"
           
             api_second_run_args="\
@@ -83,8 +84,6 @@ jobs:
             -target=aws_iam_policy_attachment.ref_data_rds_access \
             -target=aws_vpc_endpoint.tars_replica \
             -target=module.lambda_ref_data_test_centres_get"
-          
-            tf_plan_action="plan"
           fi
           
           if [ "${{ inputs.tf-action }}" == "destroy" ]; then        
