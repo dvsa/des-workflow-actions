@@ -228,7 +228,7 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
           db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: develop
+          db-script-branch: MES-9843-tf-personal-env-fix
           db-script-path: destination-db/database-initialisation
           db-cname: ${{ inputs.tf-environment }}-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_DB_CNAME_SUFFIX }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
@@ -238,7 +238,7 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
           db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: develop
+          db-script-branch: MES-9843-tf-personal-env-fix
           db-script-path: destination-db/database-objects
           db-cname: ${{ inputs.tf-environment }}-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_DB_CNAME_SUFFIX }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
@@ -249,7 +249,7 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
           db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: develop
+          db-script-branch: MES-9843-tf-personal-env-fix
           db-script-path: destination-db/user-creation
           db-cname: ${{ inputs.tf-environment }}-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_DB_CNAME_SUFFIX }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
