@@ -183,7 +183,7 @@ jobs:
           aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-drs-tars-replica/error \
           --region ${{ secrets.DVSA_AWS_REGION }}
 
-  initialise-results-db:
+  initialise-dbs:
     name: ✨ Initialise Results & TARS Replica Databases
     needs: [start-ec2-runner, delete-log-groups]
     if: always() && !failure() && !cancelled() && inputs.initialise-results-db == true && inputs.tf-action == 'apply'
@@ -259,9 +259,9 @@ jobs:
 
   load-test-data:
     name: ⏳ Load Journals & Users Test Data
-    needs: [start-ec2-runner, initialise-results-db]
+    needs: initialise-dbs
     if: always() && !failure() && !cancelled() && inputs.load-dynamodb-test-data == true && inputs.tf-action == 'apply'
-    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout Test Data Repository
         uses: actions/checkout@v4
