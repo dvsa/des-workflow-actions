@@ -76,14 +76,12 @@ jobs:
           echo "✅ DMS Task ARNs successfully retrieved."
 
       - name: ⏹️ Stop Static Task
-        if: github.event_name == 'workflow_dispatch'
         uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
         with:
           task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ⏹️ Stop Date Filtered Task
-        if: github.event_name == 'workflow_dispatch'
         uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
         with:
           task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
@@ -112,6 +110,9 @@ jobs:
 
       - name: 🏃 Run Static Task Full Load
         run: |
+          echo "⏳ Giving AWS checks a chance to complete"
+          sleep 90
+
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
           --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type reload-target --query 'ReplicationTask.Status'
           
