@@ -64,9 +64,48 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
     secrets: inherit
 
+  stop-dms-tasks:
+    name: ⏹️ Stop DMS Tasks
+    if: inputs.full-dms-deploy == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: 🔍 Get DMS Task ARNs
+        id: dms-tasks
+        run: |
+          static_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
+          jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
+          test("mes-${{ inputs.tf-environment }}-dms-static-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "static_task_arn=$static_task_arn" >> $GITHUB_OUTPUT
+          
+          date_filtered_task_arn=$(aws dms describe-replication-tasks --without-settings --region ${{ secrets.DVSA_AWS_REGION }} |
+          jq '.ReplicationTasks[] | select(.ReplicationTaskIdentifier |
+          test("mes-${{ inputs.tf-environment }}-dms-datefiltered-full-load-and-cdc")) | .ReplicationTaskArn' --raw-output)
+          echo "date_filtered_task_arn=$date_filtered_task_arn" >> $GITHUB_OUTPUT
+          
+          echo "✅ DMS Task ARNs successfully retrieved."
+
+      - name: ⏹️ Stop Static Task
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: ⏹️ Stop Date Filtered Task
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/stop-dms-task@main
+        with:
+          task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
   deploy-dmsbase:
     name: 🧩 DMSBASE
-    needs: start-ec2-runner
+    needs: [start-ec2-runner, stop-dms-tasks]
     if: always() && !failure() && !cancelled() && inputs.tf-environment != 'dev'
     strategy:
       max-parallel: 1
