@@ -112,6 +112,9 @@ jobs:
 
       - name: 🏃 Run Static Task Full Load
         run: |
+          echo "⏳ Giving AWS checks a chance to complete"
+          sleep 90
+
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
           --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type reload-target --query 'ReplicationTask.Status'
           
