@@ -136,6 +136,18 @@ jobs:
     needs: [pre_creation_checks, build_artefact_for_release, create_release_manifest]
     runs-on: ubuntu-latest
     steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
       - name: 📝 Generate MS Teams Notify JSON
         id: ms-teams-json
         uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@main
