@@ -85,6 +85,9 @@ jobs:
         with:
           version: 1.8.6
 
+      - name: Debugging
+        run: ls -al
+
       - name: Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node_type }}/template.pkr.hcl
 
