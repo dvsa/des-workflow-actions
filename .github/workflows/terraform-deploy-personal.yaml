@@ -120,7 +120,7 @@ jobs:
       tf-component: api
       tf-args: ${{ needs.set-tf-args.outputs.api-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: 0
+      artefact-name-prefix: 0
     secrets: inherit
 
   deploy-drs:
@@ -140,7 +140,7 @@ jobs:
       tf-component: drs
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: 1
+      artefact-name-prefix: 1
     secrets: inherit
 
   deploy-api-2nd-run:
@@ -160,7 +160,7 @@ jobs:
       tf-component: api
       tf-args: ${{ needs.set-tf-args.outputs.api-second-run-args }}
       tf-action: ${{ matrix.tf-action }}
-      artifact-name-prefix: 2
+      artefact-name-prefix: 2
     secrets: inherit
 
   delete-log-groups:
