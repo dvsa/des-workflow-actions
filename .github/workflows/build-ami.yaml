@@ -57,14 +57,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-puppet
-          branch: ${{ inputs.puppet-branch }}
+          ref: ${{ inputs.puppet-branch }}
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
 
       - name: 📨 Checkout Packer Repo
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-packer
-          branch: ${{ inputs.packer-branch }}
+          ref: ${{ inputs.packer-branch }}
           ssh-key: ${{ secrets.PACKER_REPO_KEY }}
 
       - name: 🔑 Configure AWS Credentials
