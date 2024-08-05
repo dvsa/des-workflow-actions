@@ -60,6 +60,9 @@ jobs:
           ref: ${{ inputs.puppet-branch }}
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
 
+      - name: Debugging
+        run: ls -al
+
       - name: 📨 Checkout Packer Repo
         uses: actions/checkout@v4
         with:
@@ -89,7 +92,7 @@ jobs:
         run: ls -al
 
       - name: Validate
-        run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node_type }}/template.pkr.hcl
+        run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
 
 #      - name: ☁️ Upload to S3
 #        id: s3-upload-artefacts
