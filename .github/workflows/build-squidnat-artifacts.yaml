@@ -75,17 +75,17 @@ jobs:
           if [[ "${{ matrix.artifact }}" == "config" ]]; then
             short_commit=$(git log --pretty=tformat:"%h" -n1 ${{ matrix.tf-component }}/squid.conf)
             s3_path+="${{ matrix.tf-component }}/"
-            summary_message="already exists for the ${{ matrix.tf-component }} component for commit: $short_commit"
+            exists_summary_message="already exists for the ${{ matrix.tf-component }} component for commit: $short_commit"
           else
             short_commit=$(git log --pretty=tformat:"%h" -n1 squid.pem)
-            summary_message="already exists for commit: $short_commit"
+            exists_summary_message="already exists for commit: $short_commit"
           fi
                   
           aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/$s3_path > "$s3_configs"
           
           if grep -q $short_commit "$s3_configs"; then
             echo "build-required=false" >> $GITHUB_OUTPUT
-            echo "✅ SquidNAT ${{ matrix.artifact }} ${summary_message}" >> $GITHUB_STEP_SUMMARY
+            echo "✅ SquidNAT ${{ matrix.artifact }} ${exists_summary_message}" >> $GITHUB_STEP_SUMMARY
           else
             echo "build-required=true" >> $GITHUB_OUTPUT
           fi
@@ -107,8 +107,8 @@ jobs:
           else
             ./build.sh -a ${{ matrix.artifact }}
           
-            summary_message="was built successfully"
             file_name=$(ls artifacts/*.pem)     
+            summary_message="was built successfully"
           fi
           
           echo "✅ The SquidNAT ${{ matrix.artifact }} ${summary_message}" >> $GITHUB_STEP_SUMMARY
