@@ -104,19 +104,19 @@ jobs:
             ./build.sh -a ${{ matrix.artefact }} -c ${{ matrix.tf-component }}
           
             artefact_path+="/${{ matrix.tf-component }}"
-            file_name=$(ls artefacts/${{ matrix.tf-component }})        
-            summary_message="for the ${{ matrix.tf-component }} component was built successfully"          
+            file_name=$(ls artefacts/${{ matrix.tf-component }})
+            summary_message="for the ${{ matrix.tf-component }} component was built successfully"
           else
             ./build.sh -a ${{ matrix.artefact }}
           
-            file_name=$(ls artefacts/*.pem)     
+            file_name=$(ls artefacts/*.pem | awk -F/ '{print $NF}')
             summary_message="was built successfully"
           fi
           
           echo "✅ The SquidNAT ${{ matrix.artefact }} ${summary_message}" >> $GITHUB_STEP_SUMMARY
           
           echo "artefact-path=${artefact_path}" >> $GITHUB_OUTPUT
-          echo "file-name=${file_name}" >> $GITHUB_OUTPUT          
+          echo "file-name=${file_name}" >> $GITHUB_OUTPUT
 
       - name: ☁️ Upload to S3
         run: |
