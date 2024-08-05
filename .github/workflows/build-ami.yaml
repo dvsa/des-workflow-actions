@@ -1,0 +1,104 @@
+name: 📀 Build AMI
+
+on:
+  workflow_dispatch:
+    inputs:
+      puppet-branch:
+        description: Puppet Branch
+        type: string
+        default: master
+        required: true
+      packer-branch:
+        description: Packer Branch
+        type: string
+        default: master
+        required: true
+      node-type:
+        description: Node Type
+        type: choice
+        options:
+          - bastion
+          - sonarqube
+          - squidnat
+          - dbaclient
+          - dbbastion
+      volume-size:
+        description: Volume Size
+        type: string
+        default: '8'
+        required: true
+      packer-log:
+        description: Packer Debugging (1 for verbose logging)
+        type: string
+        default: '0'
+        required: false
+      skip-ami-creation:
+        description: Skip AMI Creation
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  PACKER_LOG: ${{ inputs.packer-log }}
+  BUILD_ID: ${{ github.run_id }}
+  ENVIRONMENT: dvsames
+  NODETYPE: ${{ inputs.node-type }}
+  VOLUME_SIZE: ${{ inputs.volume-size }}
+  SKIP_AMI: ${{ inputs.skip_ami_creation }}
+
+jobs:
+  build-mobile-app-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout Puppet Repo
+        uses: actions/checkout@v4
+        with:
+          repository: dvsa/des-puppet
+          branch: ${{ inputs.puppet-branch }}
+          ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
+
+      - name: 📨 Checkout Packer Repo
+        uses: actions/checkout@v4
+        with:
+          repository: dvsa/des-packer
+          branch: ${{ inputs.packer-branch }}
+          ssh-key: ${{ secrets.PACKER_REPO_KEY }}
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: ⚙️ Setup Packer
+        uses: hashicorp/setup-packer@v3
+        id: setup
+        with:
+          version: 1.8.6
+
+      - name: Validate
+        run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node_type }}/template.pkr.hcl
+
+#      - name: ☁️ Upload to S3
+#        id: s3-upload-artefacts
+#        run: |
+#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
+#          aws s3 cp ${{ env.ZIP_FILE }} \
+#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
+#          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
+#
+#      - name: ☁️ Upload to GitHub Summary
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ env.ZIP_FILE }}
+#          path: ${{ env.ZIP_FILE }}
+#          retention-days: 3
