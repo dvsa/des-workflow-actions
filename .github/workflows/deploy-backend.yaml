@@ -146,7 +146,7 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
-      - name: ☁️ Download Artifacts
+      - name: ☁️ Download Artefacts
         uses: actions/download-artifact@v3
         with:
           name: '${{needs.build.outputs.service-name}}-artefacts-${{github.run_id}}'
@@ -203,7 +203,7 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
-      - name: ☁️ Download Artifacts
+      - name: ☁️ Download Artefacts
         uses: actions/download-artifact@v3
         with:
           name: '${{needs.build.outputs.service-name}}-artefacts-${{github.run_id}}'

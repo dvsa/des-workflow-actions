@@ -37,8 +37,8 @@ on:
         type: string
         required: true
         default: plan
-      artifact-name-prefix:
-        description: The prefix to add to the Terraform plan artifact if DRS early run takes place
+      artefact-name-prefix:
+        description: The prefix to add to the Terraform plan artefact if DRS early run takes place
         type: string
         required: false
 
@@ -117,8 +117,8 @@ jobs:
           # Set Filename        
           filename="${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt"
           
-          # Prepend artifact-name-prefix to the filename to avoid duplicate files when DRS component early run takes place
-          [[ -n "${{ inputs.artifact-name-prefix }}" ]] && filename="${{ inputs.artifact-name-prefix }}_$filename"
+          # Prepend artefact-name-prefix to the filename to avoid duplicate files when DRS component early run takes place
+          [[ -n "${{ inputs.artefact-name-prefix }}" ]] && filename="${{ inputs.artefact-name-prefix }}_$filename"
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
