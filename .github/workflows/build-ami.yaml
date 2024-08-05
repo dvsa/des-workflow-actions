@@ -64,9 +64,6 @@ jobs:
           path: puppet
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
 
-      - name: Debugging
-        run: ls -al
-
       - name: 📨 Checkout Packer Repo
         uses: actions/checkout@v4
         with:
