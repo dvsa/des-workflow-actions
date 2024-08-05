@@ -47,6 +47,8 @@ jobs:
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   build-squidnat-artefact:
+    name: ⚒️ Build SquidNAT Artefact
+    needs: determine-matrix
     strategy:
       matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
     runs-on: ubuntu-latest
