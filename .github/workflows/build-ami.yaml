@@ -47,17 +47,21 @@ env:
   ENVIRONMENT: dvsames
   NODETYPE: ${{ inputs.node-type }}
   VOLUME_SIZE: ${{ inputs.volume-size }}
-  SKIP_AMI: ${{ inputs.skip_ami_creation }}
+  SKIP_AMI: ${{ inputs.skip-ami-creation }}
 
 jobs:
-  build-mobile-app-config:
+  build-ami:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packer
     steps:
       - name: 📨 Checkout Puppet Repo
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-puppet
           ref: ${{ inputs.puppet-branch }}
+          path: puppet
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
 
       - name: Debugging
@@ -68,6 +72,7 @@ jobs:
         with:
           repository: dvsa/des-packer
           ref: ${{ inputs.packer-branch }}
+          path: packer
           ssh-key: ${{ secrets.PACKER_REPO_KEY }}
 
       - name: 🔑 Configure AWS Credentials
