@@ -121,6 +121,7 @@ jobs:
           echo "file-name=${file_name}" >> $GITHUB_OUTPUT
 
       - name: ☁️ Upload to S3
+        if: steps.artefact-check.outputs.build-required == 'true'
         run: |
           echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
           s3_upload_path="mes/configs/squidnat"
