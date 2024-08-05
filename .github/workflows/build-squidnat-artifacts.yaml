@@ -1,0 +1,131 @@
+name: 🦑 Build SquidNAT Artifacts
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: The branch to build an artifact against
+        type: string
+        required: true
+      desired-artifact:
+        description: The type of artifact to build
+        type: string
+        required: true
+      github-event-name:
+        description: The event that triggers the workflow
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  determine-matrix:
+    outputs:
+      matrix: ${{ steps.set-outputs.outputs.matrix }}
+    name: 🔍 Determine Matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⚙️ Set Output
+        id: set-outputs
+        run: |
+          if [[ "${{ inputs.github-event-name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.desired-artifact }}" == "config" ]]; then
+              matrix="{\"artifact\":[\"config\"],\"tf-component\":[\"dmsbase\",\"api\"]}"
+            else
+              matrix="{\"artifact\":[\"certificate\"]}"
+            fi
+          fi
+          
+          if [[ "${{ inputs.github-event-name }}" == "push" ]]; then
+            matrix="{\"artifact\":[\"config\",\"certificate\"],\"tf-component\":[\"dmsbase\",\"api\"],\
+            \"exclude\":[{\"artifact\":\"certificate\",\"tf-component\":\"dmsbase\"},{\"artifact\":\"certificate\",\"tf-component\":\"api\"}],\
+            \"include\":[{\"artifact\":\"certificate\"}]}"
+          fi
+          
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+
+  build-squidnat-artifact:
+    strategy:
+      matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 🔍 Determine if Build is Required
+        id: artifact-check
+        run: |
+          s3_configs=$(mktemp)
+          s3_path="mes/configs/squidnat/"
+
+          if [[ "${{ matrix.artifact }}" == "config" ]]; then
+            short_commit=$(git log --pretty=tformat:"%h" -n1 ${{ matrix.tf-component }}/squid.conf)
+            s3_path+="${{ matrix.tf-component }}/"
+            exists_summary_message="already exists for the ${{ matrix.tf-component }} component for commit: $short_commit"
+          else
+            short_commit=$(git log --pretty=tformat:"%h" -n1 squid.pem)
+            exists_summary_message="already exists for commit: $short_commit"
+          fi
+                  
+          aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/$s3_path > "$s3_configs"
+          
+          if grep -q $short_commit "$s3_configs"; then
+            echo "build-required=false" >> $GITHUB_OUTPUT
+            echo "✅ SquidNAT ${{ matrix.artifact }} ${exists_summary_message}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "build-required=true" >> $GITHUB_OUTPUT
+          fi
+
+          rm $s3_configs
+
+      - name: ⚒️ Build SquidNAT Artifact
+        if: steps.artifact-check.outputs.build-required == 'true'
+        id: artifact-build
+        run: |
+          artifact_path=artifacts
+          
+          if [[ "${{ matrix.artifact }}" == "config" ]]; then
+            ./build.sh -a ${{ matrix.artifact }} -c ${{ matrix.tf-component }}
+          
+            artifact_path+="/${{ matrix.tf-component }}"
+            file_name=$(ls artifacts/${{ matrix.tf-component }})        
+            summary_message="for the ${{ matrix.tf-component }} component was built successfully"          
+          else
+            ./build.sh -a ${{ matrix.artifact }}
+          
+            file_name=$(ls artifacts/*.pem)     
+            summary_message="was built successfully"
+          fi
+          
+          echo "✅ The SquidNAT ${{ matrix.artifact }} ${summary_message}" >> $GITHUB_STEP_SUMMARY
+          
+          echo "artifact-path=${artifact_path}" >> $GITHUB_OUTPUT
+          echo "file-name=${file_name}" >> $GITHUB_OUTPUT          
+
+      - name: ☁️ Upload to S3
+        run: |
+          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
+          s3_upload_path="mes/configs/squidnat/"
+          
+          if [[ "${{ matrix.artifact }}" == "config" ]]; then
+            s3_upload_path+="/${{ matrix.tf-component }}"
+          fi
+          
+          aws s3 cp ${{ steps.artifact-build.outputs.artifact-path }}/${{ steps.artifact-build.outputs.file-name }} \
+          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_upload_path}/${{ steps.artifact-build.outputs.file-name }}
+          
+          echo "✅ Uploaded ${{ steps.artifact-build.outputs.file-name }} to S3" >> $GITHUB_STEP_SUMMARY
