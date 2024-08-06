@@ -96,6 +96,10 @@ jobs:
       - name: Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
 
+      - name: Build AMI
+        run: packer build -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
+
+
 #      - name: ☁️ Upload to S3
 #        id: s3-upload-artefacts
 #        run: |
