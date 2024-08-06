@@ -90,8 +90,8 @@ jobs:
         with:
           version: 1.8.6
 
-      - name: Debugging
-        run: ls -al
+      - name: Set SSH Key
+        run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > /home/runner/.ssh/mes-deployer
 
       - name: Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
