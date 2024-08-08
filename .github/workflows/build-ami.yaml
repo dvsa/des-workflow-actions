@@ -48,6 +48,7 @@ env:
   NODETYPE: ${{ inputs.node-type }}
   VOLUME_SIZE: ${{ inputs.volume-size }}
   SKIP_AMI: ${{ inputs.skip-ami-creation }}
+  AWS_ACOCUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
 jobs:
   start-ec2-runner:
@@ -55,7 +56,7 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: start
-      aws-account: '${{ secrets.AWS_ACCOUNT_ID }}'
+      aws-account: ${{ env.AWS_ACCOUNT_ID }}
     secrets: inherit
 
   build-ami:
@@ -133,7 +134,7 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: stop
-      aws-account: '${{ secrets.AWS_ACCOUNT_ID }}'
+      aws-account: ${{ env.AWS_ACCOUNT_ID }}
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
       ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
     secrets: inherit
