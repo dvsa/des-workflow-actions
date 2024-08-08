@@ -48,7 +48,7 @@ env:
   NODETYPE: ${{ inputs.node-type }}
   VOLUME_SIZE: ${{ inputs.volume-size }}
   SKIP_AMI: ${{ inputs.skip-ami-creation }}
-  AWS_ACOCUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
 jobs:
   start-ec2-runner:
