@@ -61,6 +61,7 @@ jobs:
 
   build-ami:
     name: 📀 Build AMI
+    needs: start-ec2-runner
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     defaults:
       run:
