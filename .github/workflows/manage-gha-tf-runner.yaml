@@ -20,7 +20,7 @@ on:
       AWS_ACCOUNT_ID:
         description: The AWS account ID to start/stop the runner in
         required: true
-      AWS_REGION:
+      DVSA_AWS_REGION:
         description: The AWS region to start/stop the runner in
         required: true
       GH_TOKEN_TEMP:
