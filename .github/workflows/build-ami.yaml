@@ -57,6 +57,8 @@ jobs:
     defaults:
       run:
         working-directory: packer
+    env:
+      HOME: /home/ec2-user
     steps:
       - name: 📨 Checkout Packer Repo
         uses: actions/checkout@v4
@@ -91,7 +93,13 @@ jobs:
           version: 1.8.6
 
       - name: Set SSH Key
-        run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > ~/.ssh/mes-deployer
+        run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > ${{ env.HOME }}/.ssh/mes-deployer
+
+      - name: debugging
+        run: |
+          ls -al
+          ls al ../
+          cat ${{ env.HOME }}/.ssh/mes-deployer
 
       - name: Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
