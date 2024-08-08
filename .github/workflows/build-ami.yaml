@@ -50,8 +50,17 @@ env:
   SKIP_AMI: ${{ inputs.skip-ami-creation }}
 
 jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+      aws-account: ${{ secrets.AWS_ACCOUNT_ID }}
+    secrets: inherit
+
   build-ami:
-    runs-on: mito-2
+    name: 📀 Build AMI
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     defaults:
       run:
         working-directory: packer
@@ -116,3 +125,15 @@ jobs:
 #          name: ${{ env.ZIP_FILE }}
 #          path: ${{ env.ZIP_FILE }}
 #          retention-days: 3
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, build-ami]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      aws-account: ${{ secrets.AWS_ACCOUNT_ID }}
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets: inherit
