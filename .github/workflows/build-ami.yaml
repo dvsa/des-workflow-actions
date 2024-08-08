@@ -52,7 +52,7 @@ env:
 jobs:
   start-ec2-runner:
     name: ▶️ Start EC2 Runner
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@MES-9894-packer-workflow
     with:
       action: start
       role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
@@ -131,7 +131,7 @@ jobs:
     name: ⏹️ Stop EC2 Runner
     needs: [start-ec2-runner, build-ami]
     if: always()
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@MES-9894-packer-workflow
     with:
       action: stop
       role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
