@@ -56,7 +56,8 @@ jobs:
     with:
       action: start
       role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-    secrets: inherit
+    secrets:
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
 
   build-ami:
     name: 📀 Build AMI
@@ -136,4 +137,5 @@ jobs:
       role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
       ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
-    secrets: inherit
+    secrets:
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}

@@ -19,6 +19,12 @@ on:
         description: The ID of the EC2 instance to be stopped
         type: string
         required: false
+
+    secrets:
+      GH_TOKEN_TEMP:
+        description: The PAT token required for the dvsa/aws-github-runner action
+        required: true
+
     outputs:
       runner-label:
         description: Name of the unique label assigned to the runner.
