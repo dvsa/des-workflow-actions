@@ -55,8 +55,9 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@MES-9894-packer-workflow
     with:
       action: start
-      role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
     secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
       GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
 
   build-ami:
