@@ -47,7 +47,7 @@ jobs:
       action: start
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
       GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
 
   build-ami:
@@ -128,5 +128,5 @@ jobs:
       ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
       GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
