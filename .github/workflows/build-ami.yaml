@@ -1,41 +1,31 @@
 name: 📀 Build AMI
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       puppet-branch:
         description: Puppet Branch
         type: string
-        default: master
         required: true
       packer-branch:
         description: Packer Branch
         type: string
-        default: master
         required: true
       node-type:
         description: Node Type
-        type: choice
-        options:
-          - bastion
-          - sonarqube
-          - squidnat
-          - dbaclient
-          - dbbastion
+        type: string
+        required: true
       volume-size:
         description: Volume Size
         type: string
-        default: '8'
         required: true
       packer-log:
         description: Packer Debugging (1 for verbose logging)
         type: string
-        default: '0'
         required: false
       skip-ami-creation:
         description: Skip AMI Creation
         type: boolean
-        default: true
 
 permissions:
   id-token: write
@@ -68,6 +58,12 @@ jobs:
       run:
         working-directory: packer
     steps:
+      - name: 📨 Checkout Packer Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.packer-branch }}
+          path: packer
+
       - name: 📨 Checkout Puppet Repo
         uses: actions/checkout@v4
         with:
@@ -75,14 +71,6 @@ jobs:
           ref: ${{ inputs.puppet-branch }}
           path: puppet
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
-
-      - name: 📨 Checkout Packer Repo
-        uses: actions/checkout@v4
-        with:
-          repository: dvsa/des-packer
-          ref: ${{ inputs.packer-branch }}
-          path: packer
-          ssh-key: ${{ secrets.PACKER_REPO_KEY }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
