@@ -98,7 +98,8 @@ jobs:
       - name: debugging
         run: |
           ls -al
-          ls al ../
+          ls -al ../
+          pwd
           cat ${{ env.HOME }}/.ssh/mes-deployer
 
       - name: Validate
