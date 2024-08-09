@@ -54,17 +54,14 @@ jobs:
     name: 📀 Build AMI
     needs: start-ec2-runner
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
-    defaults:
-      run:
-        working-directory: packer
     env:
       HOME: /home/ec2-user
+
     steps:
       - name: 📨 Checkout Packer Repo
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.packer-branch }}
-          path: packer
 
       - name: 📨 Checkout Puppet Repo
         uses: actions/checkout@v4
@@ -100,7 +97,8 @@ jobs:
           ls -al
           ls -al ../
           pwd
-          cat ${{ env.HOME }}/.ssh/mes-deployer
+          cd ~/ 
+          pwd
 
       - name: Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
