@@ -68,7 +68,7 @@ jobs:
         with:
           repository: dvsa/des-puppet
           ref: ${{ inputs.puppet-branch }}
-          path: puppet
+          path: ../puppet
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
 
       - name: 🔑 Configure AWS Credentials
