@@ -54,6 +54,9 @@ jobs:
     name: 📀 Build AMI
     needs: start-ec2-runner
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    defaults:
+      run:
+        working-directory: packer
     env:
       HOME: /home/ec2-user
 
@@ -62,13 +65,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.packer-branch }}
+          path: packer
 
       - name: 📨 Checkout Puppet Repo
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-puppet
           ref: ${{ inputs.puppet-branch }}
-          path: ../puppet
+          path: puppet
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
 
       - name: 🔑 Configure AWS Credentials
