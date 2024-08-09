@@ -90,39 +90,20 @@ jobs:
           version: 1.8.6
 
       - name: Set SSH Key
-        run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > ${{ env.HOME }}/.ssh/mes-deployer
+        run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > ~/.ssh/mes-deployer
 
       - name: debugging
         run: |
           ls -al
           ls -al ../
           pwd
-          cd ~/ 
-          pwd
+          ls ~/.ssh/
 
       - name: Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
 
       - name: Build AMI
         run: packer build -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
-
-      - name: Remove SSH Key
-        run: rm ~/.ssh/mes-deployer
-
-#      - name: ☁️ Upload to S3
-#        id: s3-upload-artefacts
-#        run: |
-#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          aws s3 cp ${{ env.ZIP_FILE }} \
-#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
-#          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
-#
-#      - name: ☁️ Upload to GitHub Summary
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ${{ env.ZIP_FILE }}
-#          path: ${{ env.ZIP_FILE }}
-#          retention-days: 3
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
