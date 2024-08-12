@@ -137,7 +137,7 @@ jobs:
   sonar-scan:
     needs: build
     if: ${{ !startsWith(inputs.branch, 'release-') }}
-    runs-on: mito-2
+    runs-on: X64
     outputs:
       job-context: ${{ steps.set-outputs.outputs.job-context }}
       steps-context: ${{ steps.set-outputs.outputs.steps-context }}
