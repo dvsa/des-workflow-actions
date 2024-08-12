@@ -43,7 +43,10 @@ jobs:
     with:
       action: start
       aws-account: ${{ inputs.aws-account }}
-    secrets: inherit
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
 
   set-tf-args:
     name: ⚙️ Set Terraform Arguments
@@ -303,4 +306,7 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
       ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
-    secrets: inherit
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}

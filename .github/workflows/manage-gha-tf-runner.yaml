@@ -7,10 +7,6 @@ on:
         description: The action to take (start/stop)
         type: string
         required: true
-      aws-account:
-        description: The AWS account to start/stop the runner in
-        type: string
-        required: true
       runner-label:
         description: Name of the unique label assigned to the runner
         type: string
@@ -19,6 +15,16 @@ on:
         description: The ID of the EC2 instance to be stopped
         type: string
         required: false
+    secrets:
+      AWS_ACCOUNT_ID:
+        description: The AWS account ID to start/stop the runner in
+        required: true
+      DVSA_AWS_REGION:
+        description: The AWS region to start/stop the runner in
+        required: true
+      GH_TOKEN_TEMP:
+        description: The PAT token required for runner registration
+        required: true
     outputs:
       runner-label:
         description: Name of the unique label assigned to the runner.
@@ -43,7 +49,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 

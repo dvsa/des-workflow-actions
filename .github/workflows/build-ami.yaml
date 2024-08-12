@@ -1,71 +1,76 @@
 name: 📀 Build AMI
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       puppet-branch:
         description: Puppet Branch
         type: string
-        default: master
         required: true
       packer-branch:
         description: Packer Branch
         type: string
-        default: master
         required: true
       node-type:
         description: Node Type
-        type: choice
-        options:
-          - bastion
-          - sonarqube
-          - squidnat
-          - dbaclient
-          - dbbastion
+        type: string
+        required: true
       volume-size:
         description: Volume Size
         type: string
-        default: '8'
         required: true
       packer-log:
         description: Packer Debugging (1 for verbose logging)
         type: string
-        default: '0'
         required: false
       skip-ami-creation:
         description: Skip AMI Creation
         type: boolean
-        default: true
 
 permissions:
   id-token: write
   contents: write
 
-env:
-  PACKER_LOG: ${{ inputs.packer-log }}
-  BUILD_ID: ${{ github.run_id }}
-  ENVIRONMENT: dvsames
-  NODETYPE: ${{ inputs.node-type }}
-  VOLUME_SIZE: ${{ inputs.volume-size }}
-  SKIP_AMI: ${{ inputs.skip_ami_creation }}
-
 jobs:
-  build-mobile-app-config:
-    runs-on: ubuntu-latest
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+
+  build-ami:
+    name: 📀 Build AMI
+    needs: start-ec2-runner
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    defaults:
+      run:
+        working-directory: packer
+    env:
+      PACKER_LOG: ${{ inputs.packer-log }}
+      BUILD_ID: ${{ github.run_id }}
+      ENVIRONMENT: dvsames
+      NODETYPE: ${{ inputs.node-type }}
+      VOLUME_SIZE: ${{ inputs.volume-size }}
+      SKIP_AMI: ${{ inputs.skip-ami-creation }}
+
     steps:
+      - name: 📨 Checkout Packer Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.packer-branch }}
+          path: packer
+
       - name: 📨 Checkout Puppet Repo
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-puppet
-          branch: ${{ inputs.puppet-branch }}
+          ref: ${{ inputs.puppet-branch }}
+          path: puppet
           ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
-
-      - name: 📨 Checkout Packer Repo
-        uses: actions/checkout@v4
-        with:
-          repository: dvsa/des-packer
-          branch: ${{ inputs.packer-branch }}
-          ssh-key: ${{ secrets.PACKER_REPO_KEY }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -73,32 +78,40 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: 🤫 Get AWS Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: des-globals/env
-          parse-json-secrets: true
-
       - name: ⚙️ Setup Packer
         uses: hashicorp/setup-packer@v3
         id: setup
         with:
           version: 1.8.6
 
-      - name: Validate
-        run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node_type }}/template.pkr.hcl
+      - name: ⚙️ Set SSH Key
+        run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > ~/.ssh/mes-deployer
 
-#      - name: ☁️ Upload to S3
-#        id: s3-upload-artefacts
-#        run: |
-#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          aws s3 cp ${{ env.ZIP_FILE }} \
-#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
-#          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
-#
-#      - name: ☁️ Upload to GitHub Summary
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ${{ env.ZIP_FILE }}
-#          path: ${{ env.ZIP_FILE }}
-#          retention-days: 3
+      - name: ✅ Validate
+        run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
+
+      - name: ⚒️ Build AMI
+        run: |       
+          packer build -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
+          
+          echo "## 📀 Build AMI Summary" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ inputs.skip-ami-creation }}" == "false" ]]; then
+            echo "✅ AMI 'mes-amzn-${{ inputs.node-type }}/${{ env.BUILD_ID }}' has been built successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Skipping AMI creation" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, build-ami]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
