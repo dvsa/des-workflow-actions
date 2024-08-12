@@ -31,18 +31,10 @@ permissions:
   id-token: write
   contents: write
 
-env:
-  PACKER_LOG: ${{ inputs.packer-log }}
-  BUILD_ID: ${{ github.run_id }}
-  ENVIRONMENT: dvsames
-  NODETYPE: ${{ inputs.node-type }}
-  VOLUME_SIZE: ${{ inputs.volume-size }}
-  SKIP_AMI: ${{ inputs.skip-ami-creation }}
-
 jobs:
   start-ec2-runner:
     name: ▶️ Start EC2 Runner
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@MES-9894-packer-workflow
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: start
     secrets:
@@ -58,7 +50,12 @@ jobs:
       run:
         working-directory: packer
     env:
-      HOME: /home/ec2-user
+      PACKER_LOG: ${{ inputs.packer-log }}
+      BUILD_ID: ${{ github.run_id }}
+      ENVIRONMENT: dvsames
+      NODETYPE: ${{ inputs.node-type }}
+      VOLUME_SIZE: ${{ inputs.volume-size }}
+      SKIP_AMI: ${{ inputs.skip-ami-creation }}
 
     steps:
       - name: 📨 Checkout Packer Repo
@@ -81,39 +78,35 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: 🤫 Get AWS Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: des-globals/env
-          parse-json-secrets: true
-
       - name: ⚙️ Setup Packer
         uses: hashicorp/setup-packer@v3
         id: setup
         with:
           version: 1.8.6
 
-      - name: Set SSH Key
+      - name: ⚙️ Set SSH Key
         run: echo "${{ secrets.MES_DEPLOYER_KEY }}" > ~/.ssh/mes-deployer
 
-      - name: debugging
-        run: |
-          ls -al
-          ls -al ../
-          pwd
-          ls ~/.ssh/
-
-      - name: Validate
+      - name: ✅ Validate
         run: packer validate -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
 
-      - name: Build AMI
-        run: packer build -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
+      - name: ⚒️ Build AMI
+        run: |       
+          packer build -var-file templates/global_variables.pkrvars.hcl templates/${{ inputs.node-type }}/template.pkr.hcl
+          
+          echo "## 📀 Build AMI Summary" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ inputs.skip-ami-creation }}" == "false" ]]; then
+            echo "✅ Skipping AMI creation" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ AMI 'mes-amzn-${{ inputs.node-type }}/${{ env.BUILD_ID }}' has been built successfully" >> $GITHUB_STEP_SUMMARY
+          fi
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
     needs: [start-ec2-runner, build-ami]
     if: always()
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@MES-9894-packer-workflow
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: stop
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
