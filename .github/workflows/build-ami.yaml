@@ -100,7 +100,7 @@ jobs:
           if [[ "${{ inputs.skip-ami-creation }}" == "false" ]]; then
             echo "✅ AMI 'mes-amzn-${{ inputs.node-type }}/${{ env.BUILD_ID }}' has been built successfully" >> $GITHUB_STEP_SUMMARY
           else
-            echo "✅ Skipping AMI creation" >> $GITHUB_STEP_SUMMARY
+            echo "✅ AMI creation skipped" >> $GITHUB_STEP_SUMMARY
           fi
 
   stop-ec2-runner:
