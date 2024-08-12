@@ -23,7 +23,7 @@ on:
         description: The AWS region to start/stop the runner in
         required: true
       GH_TOKEN_TEMP:
-        description: The PAT token required for the dvsa/aws-github-runner action
+        description: The PAT token required for runner registration
         required: true
     outputs:
       runner-label:
