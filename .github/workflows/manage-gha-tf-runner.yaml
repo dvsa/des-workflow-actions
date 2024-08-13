@@ -80,9 +80,6 @@ jobs:
               {"Key": "RunID", "Value": "${{ github.run_id }}"},
               {"Key": "Type", "Value": "GHA Runner"}
             ]
-          pre-runner-script: |
-            sudo dnf update -y
-            sudo dnf install libicu aws-cli mariadb105 git -y
 
       - name: ⏹️ Stop EC2 Runner
         if: inputs.action == 'stop'
