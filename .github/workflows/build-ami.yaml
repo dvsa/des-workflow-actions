@@ -37,6 +37,9 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: start
+      pre-runner-script: |
+        sudo dnf update -y
+        sudo dnf install libicu aws-cli mariadb105 git -y
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}

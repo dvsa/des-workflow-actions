@@ -7,6 +7,10 @@ on:
         description: The action to take (start/stop)
         type: string
         required: true
+      pre-runner-script:
+        description: Scripts to run on runner setup
+        type: string
+        required: false
       runner-label:
         description: Name of the unique label assigned to the runner
         type: string
@@ -80,6 +84,7 @@ jobs:
               {"Key": "RunID", "Value": "${{ github.run_id }}"},
               {"Key": "Type", "Value": "GHA Runner"}
             ]
+          pre-runner-script: ${{ inputs.pre-runner-script }}
 
       - name: ⏹️ Stop EC2 Runner
         if: inputs.action == 'stop'
