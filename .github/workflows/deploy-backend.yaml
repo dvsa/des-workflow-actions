@@ -134,63 +134,6 @@ jobs:
           echo job-context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
           echo steps-context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
-  sonar-scan:
-    needs: build
-    if: ${{ !startsWith(inputs.branch, 'release-') }}
-    runs-on: X64
-    outputs:
-      job-context: ${{ steps.set-outputs.outputs.job-context }}
-      steps-context: ${{ steps.set-outputs.outputs.steps-context }}
-
-    steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
-      - name: ☁️ Download Artefacts
-        uses: actions/download-artifact@v3
-        with:
-          name: '${{needs.build.outputs.service-name}}-artefacts-${{github.run_id}}'
-
-      - name: ⚙️ Set Up Node
-        id: node-setup
-        uses: dvsa/des-workflow-actions/.github/actions/setup-node@main
-        with:
-          access-token: ${{ secrets.DES_ACCESS_TOKEN }}
-
-      - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-
-      - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: des-globals/env
-          parse-json-secrets: true
-
-      - name: ⚙️ Configure SonarQube Properties
-        run: |
-          cat <<EOF > sonar-project.properties
-          sonar.projectKey=mes-${{ env.SERVICE_NAME }}-service
-          sonar.login=${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
-          sonar.host.url=${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
-          sonar.sources=src
-          sonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
-          sonar.typescript.lcov.reportPaths=coverage/lcov.info
-          EOF
-
-      - name: 🧐 SonarQube Scan
-        id: sonarqube-scan
-        run: npm run sonar-scanner
-
-      - name: ➡️ Set Outputs
-        if: always()
-        id: set-outputs
-        run: |
-          echo job-context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
-          echo steps-context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
-
   deploy:
     needs: build
     if: ${{ !startsWith(inputs.branch, 'release-') }}
@@ -261,7 +204,7 @@ jobs:
 
   send-teams-notification:
     if: always()
-    needs: [build, sonar-scan, deploy]
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     steps:
       - name: 📝 Generate MS Teams Notify JSON
