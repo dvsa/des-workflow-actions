@@ -207,7 +207,7 @@ jobs:
 
   delete-log-groups:
     name: 🗑️ Delete Log Groups
-    needs: [start-ec2-runner, deploy-last-component]
+    needs: [start-ec2-runner, full-dms-deploy]
     if: always() && !failure() && !cancelled() && inputs.tf-action == 'destroy'
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
@@ -227,7 +227,7 @@ jobs:
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, load-test-data]
+    needs: [start-ec2-runner, delete-log-groups]
     if: always()
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
