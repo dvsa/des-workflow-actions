@@ -1,0 +1,227 @@
+name: 🚀 Terraform Full Deploy
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: The Terraform branch to deploy
+        type: string
+        required: true
+      aws-account:
+        description: The AWS account to deploy to
+        type: string
+        required: true
+      tf-environment:
+        description: The Terraform environment to deploy to
+        type: string
+        required: true
+      tf-action:
+        description: The Terraform action to take (apply/destroy)
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+
+  set-tf-args:
+    name: ⚙️ Set Terraform Arguments
+    needs: start-ec2-runner
+    if: always() && !failure() && !cancelled()
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    outputs:
+      first-run: ${{ steps.determine-if-deployed.outputs.first-run }}
+      api-args: ${{ steps.set-tf-args.outputs.api-args }}
+      api-second-run-args: ${{ steps.set-tf-args.outputs.api-second-run-args }}
+      tf-plan-action: ${{ steps.set-tf-args.outputs.tf-plan-action }}
+
+    steps:
+      - name: ⚙️ Set Terraform Arguments
+        id: set-tf-args
+        run: |
+          tf_plan_action="plan"
+
+          if [ "${{ inputs.tf-action }}" == "apply" ]; then
+            api_args="-var='first_run=true'"
+          
+            api_second_run_args="\
+            -target=terraform_remote_state.drs \
+            -target=aws_iam_policy_document.ref_data_rds_access \
+            -target=aws_iam_policy.ref_data_rds_access \
+            -target=aws_iam_policy_attachment.ref_data_rds_access \
+            -target=aws_vpc_endpoint.tars_replica \
+            -target=module.lambda_ref_data_test_centres_get"
+          fi
+          
+          if [ "${{ inputs.tf-action }}" == "destroy" ]; then        
+            api_args="\
+            -target=terraform_remote_state.drs \
+            -target=aws_iam_policy_document.ref_data_rds_access \
+            -target=aws_iam_policy.ref_data_rds_access \
+            -target=aws_iam_policy_attachment.ref_data_rds_access \
+            -target=aws_vpc_endpoint.tars_replica"
+          
+            api_second_run_args="-var='first_run=true'"
+          
+            tf_plan_action="plan-destroy"
+          fi
+          
+          echo "api-args=$api_args" >> $GITHUB_OUTPUT
+          echo "api-second-run-args=$api_second_run_args" >> $GITHUB_OUTPUT
+          echo "tf-plan-action=$tf_plan_action" >> $GITHUB_OUTPUT
+
+  deploy-first-component:
+    name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}
+    needs: [start-ec2-runner, set-tf-args]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: ${{ inputs.tf-action == 'apply' && 'dmsbase' || 'dms' }}
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.tf-action }}
+      artefact-name-prefix: 0
+    secrets: inherit
+
+  deploy-api:
+    name: 🧩 API
+    needs: [start-ec2-runner, set-tf-args, deploy-first-component]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: api
+      tf-args: ${{ needs.set-tf-args.outputs.api-args }}
+      tf-action: ${{ matrix.tf-action }}
+      artefact-name-prefix: 0
+    secrets: inherit
+
+  deploy-drs:
+    name: 🧩 DRS
+    needs: [start-ec2-runner, set-tf-args, deploy-api]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: drs
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.tf-action }}
+      artefact-name-prefix: 1
+    secrets: inherit
+
+  deploy-api-2nd-run:
+    name: 🧩 API 2nd Run
+    needs: [start-ec2-runner, set-tf-args, deploy-drs]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: api
+      tf-args: ${{ needs.set-tf-args.outputs.api-second-run-args }}
+      tf-action: ${{ matrix.tf-action }}
+      artefact-name-prefix: 2
+    secrets: inherit
+
+  deploy-last-component:
+    name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}
+    needs: [start-ec2-runner, set-tf-args, deploy-api-2nd-run]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: ${{ inputs.tf-action == 'apply' && 'dms' || 'dmsbase' }}
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.tf-action }}
+      artefact-name-prefix: 0
+    secrets: inherit
+
+  full-dms-deploy:
+    name: 🚀 Full DMS Deploy
+    needs: [start-ec2-runner, deploy-last-component]
+    if: always() && !failure() && !cancelled() && inputs.tf-action == 'apply'
+    uses: dvsa/des-workflow-actions/.github/workflows/full-dms-deploy.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      db-script-branch: master
+    secrets: inherit
+
+  delete-log-groups:
+    name: 🗑️ Delete Log Groups
+    needs: [start-ec2-runner, deploy-last-component]
+    if: always() && !failure() && !cancelled() && inputs.tf-action == 'destroy'
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_NONPROD }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-session-name: Terraform-GHA
+
+      - name: 🗑️ Delete Log Groups
+        run: |
+          aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-api-mes-db/error \
+          --region ${{ secrets.DVSA_AWS_REGION }}
+          aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-drs-tars-replica/error \
+          --region ${{ secrets.DVSA_AWS_REGION }}
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, load-test-data]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
