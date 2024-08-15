@@ -18,6 +18,14 @@ on:
         description: The Terraform action to take (apply/destroy)
         type: string
         required: true
+      release-tag:
+        description: The version of the microservices to be deployed
+        type: string
+        required: false
+      tf-args:
+        description: Additional Terraform arguments
+        type: string
+        required: false
 
 permissions:
   id-token: write
@@ -95,6 +103,7 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: ${{ inputs.tf-action == 'apply' && 'dmsbase' || 'dms' }}
+      release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
       artefact-name-prefix: 0
@@ -115,9 +124,10 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: api
+      release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ needs.set-tf-args.outputs.api-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 0
+      artefact-name-prefix: 1
     secrets: inherit
 
   deploy-drs:
@@ -135,9 +145,10 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: drs
+      release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 1
+      artefact-name-prefix: 2
     secrets: inherit
 
   deploy-api-2nd-run:
@@ -155,9 +166,10 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: api
+      release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ needs.set-tf-args.outputs.api-second-run-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 2
+      artefact-name-prefix: 3
     secrets: inherit
 
   deploy-last-component:
@@ -175,9 +187,10 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: ${{ inputs.tf-action == 'apply' && 'dms' || 'dmsbase' }}
+      release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 0
+      artefact-name-prefix: 4
     secrets: inherit
 
   full-dms-deploy:
