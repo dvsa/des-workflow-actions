@@ -91,7 +91,7 @@ jobs:
   deploy-first-component:
     name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}
     needs: [start-ec2-runner, set-tf-args]
-    if: always() && !failure() && !cancelled()
+    if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'apply')
     strategy:
       max-parallel: 1
       matrix:
@@ -175,7 +175,7 @@ jobs:
   deploy-last-component:
     name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}
     needs: [start-ec2-runner, set-tf-args, deploy-api-2nd-run]
-    if: always() && !failure() && !cancelled()
+    if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'destroy')
     strategy:
       max-parallel: 1
       matrix:
