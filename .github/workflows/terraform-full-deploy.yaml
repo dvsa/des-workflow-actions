@@ -89,7 +89,7 @@ jobs:
           echo "tf-plan-action=$tf_plan_action" >> $GITHUB_OUTPUT
 
   deploy-first-component:
-    name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}
+    name: "🧩 ${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}"
     needs: [start-ec2-runner, set-tf-args]
     if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'apply')
     strategy:
@@ -173,7 +173,7 @@ jobs:
     secrets: inherit
 
   deploy-last-component:
-    name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}
+    name: "🧩 ${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}"
     needs: [start-ec2-runner, set-tf-args, deploy-api-2nd-run]
     if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'destroy')
     strategy:
