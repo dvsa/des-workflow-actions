@@ -61,7 +61,12 @@ jobs:
         id: npm-test
         run: |
           mkdir -p reports
-          npm run test:jasmine-coverage | tee reports/unit_tests.output
+          
+          if [[ "${{ github.event.repository.name }}" == "des-mot-service" ]]; then
+            npm run test:coverage | tee reports/unit_tests.output
+          else
+            npm run test:jasmine-coverage | tee reports/unit_tests.output
+          fi
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
