@@ -185,7 +185,7 @@ jobs:
           aws logs delete-log-group --log-group-name /aws/rds/cluster/mes-${{ inputs.tf-environment }}-drs-tars-replica/error \
           --region ${{ secrets.DVSA_AWS_REGION }}
 
-  initialise-results-db:
+  initialise-dbs:
     name: ✨ Initialise Results & TARS Replica Databases
     needs: [start-ec2-runner, delete-log-groups]
     if: always() && !failure() && !cancelled() && inputs.initialise-results-db == true && inputs.tf-action == 'apply'
@@ -230,7 +230,7 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
           db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: develop
+          db-script-branch: MES-9843-tf-personal-env-fix
           db-script-path: destination-db/database-initialisation
           db-cname: ${{ inputs.tf-environment }}-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_DB_CNAME_SUFFIX }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
@@ -240,7 +240,7 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
           db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: develop
+          db-script-branch: MES-9843-tf-personal-env-fix
           db-script-path: destination-db/database-objects
           db-cname: ${{ inputs.tf-environment }}-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_DB_CNAME_SUFFIX }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
@@ -251,7 +251,7 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
           db-script-repo: dvsa/mes-data-poller-service
-          db-script-branch: develop
+          db-script-branch: MES-9843-tf-personal-env-fix
           db-script-path: destination-db/user-creation
           db-cname: ${{ inputs.tf-environment }}-db.api.${{ inputs.tf-environment }}.${{ env.RDS_CREDENTIALS_PERSONAL_DB_CNAME_SUFFIX }}
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
@@ -261,9 +261,9 @@ jobs:
 
   load-test-data:
     name: ⏳ Load Journals & Users Test Data
-    needs: [start-ec2-runner, initialise-results-db]
+    needs: initialise-dbs
     if: always() && !failure() && !cancelled() && inputs.load-dynamodb-test-data == true && inputs.tf-action == 'apply'
-    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout Test Data Repository
         uses: actions/checkout@v4
@@ -279,9 +279,6 @@ jobs:
 
       - name: ➕ Install Boto3
         run: pip install boto3
-
-      - name: ➕ Install Requirements
-        run: python -m pip install -r requirements.txt --user
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
