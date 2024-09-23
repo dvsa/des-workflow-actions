@@ -89,7 +89,7 @@ jobs:
           echo "tf-plan-action=$tf_plan_action" >> $GITHUB_OUTPUT
 
   deploy-first-component:
-    name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}
+    name: 🧩 "${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}"
     needs: [start-ec2-runner, set-tf-args]
     if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'apply')
     strategy:
@@ -173,7 +173,7 @@ jobs:
     secrets: inherit
 
   deploy-last-component:
-    name: 🧩 ${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}
+    name: 🧩 "${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}"
     needs: [start-ec2-runner, set-tf-args, deploy-api-2nd-run]
     if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'destroy')
     strategy:
@@ -191,44 +191,6 @@ jobs:
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
       artefact-name-prefix: 4
-    secrets: inherit
-
-  run-dms-task-updater:
-    name: 🗑️ Delete Log Groups
-    needs: [start-ec2-runner, deploy-last-component]
-    if: always() && !failure() && !cancelled() && inputs.tf-action == 'apply'
-    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
-    steps:
-      - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-          role-session-name: Terraform-GHA
-
-      - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-          role-session-name: Terraform-GHA
-
-      - name: 🏃 Run DMS Task Updater
-        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/invoke-lambda-function@main
-        with:
-          function-name: mes-${{ inputs.tf-environment }}-dms-dms-task-updater
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-
-  full-dms-deploy:
-    name: 🚀 Full DMS Deploy
-    needs: [start-ec2-runner, run-dms-task-updater]
-    if: always() && !failure() && !cancelled() && inputs.tf-action == 'apply'
-    uses: dvsa/des-workflow-actions/.github/workflows/full-dms-deploy.yaml@main
-    with:
-      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
-      aws-account: ${{ inputs.aws-account }}
-      tf-environment: ${{ inputs.tf-environment }}
-      db-script-branch: master
     secrets: inherit
 
   delete-log-groups:
