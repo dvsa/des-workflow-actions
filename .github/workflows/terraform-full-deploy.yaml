@@ -195,7 +195,7 @@ jobs:
 
   delete-log-groups:
     name: 🗑️ Delete Log Groups
-    needs: [start-ec2-runner, full-dms-deploy]
+    needs: [start-ec2-runner, deploy-last-component]
     if: always() && !failure() && !cancelled() && inputs.tf-action == 'destroy'
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
