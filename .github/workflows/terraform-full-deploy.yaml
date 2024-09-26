@@ -71,17 +71,27 @@ jobs:
             -target=module.lambda_ref_data_test_centres_get"
           fi
           
-          if [ "${{ inputs.tf-action }}" == "destroy" ]; then        
-            api_args="\
-            -target=terraform_remote_state.drs \
-            -target=aws_iam_policy_document.ref_data_rds_access \
-            -target=aws_iam_policy.ref_data_rds_access \
-            -target=aws_iam_policy_attachment.ref_data_rds_access \
-            -target=aws_vpc_endpoint.tars_replica"
+          if [ "${{ inputs.tf-action }}" == "destroy" ]; then
+            api_rds_state=$(aws rds describe-db-clusters --db-cluster-identifier mes-${{ inputs.tf-environment }}-api-mes-db \
+            --query 'DBClusters[].Status' --output text)
+            drs_rds_state=$(aws rds describe-db-clusters --db-cluster-identifier mes-${{ inputs.tf-environment }}-drs-tars-replica \
+            --query 'DBClusters[].Status' --output text)
           
-            api_second_run_args="-var='first_run=true'"
-          
-            tf_plan_action="plan-destroy"
+            if [ "$api_rds_state" == "available" ] && [ "$drs_rds_state" == "available" ]; then
+              api_args="\
+              -target=terraform_remote_state.drs \
+              -target=aws_iam_policy_document.ref_data_rds_access \
+              -target=aws_iam_policy.ref_data_rds_access \
+              -target=aws_iam_policy_attachment.ref_data_rds_access \
+              -target=aws_vpc_endpoint.tars_replica"
+            
+              api_second_run_args="-var='first_run=true'"
+            
+              tf_plan_action="plan-destroy"
+            else
+              echo "RDS clusters must be in 'available' state to enable a successful destroy run."
+              exit 1
+            fi
           fi
           
           echo "api-args=$api_args" >> $GITHUB_OUTPUT
@@ -89,7 +99,7 @@ jobs:
           echo "tf-plan-action=$tf_plan_action" >> $GITHUB_OUTPUT
 
   deploy-first-component:
-    name: 🧩 "${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}"
+    name: "🧩 ${{ inputs.tf-action == 'apply' && 'DMSBASE' || 'DMS' }}"
     needs: [start-ec2-runner, set-tf-args]
     if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'apply')
     strategy:
@@ -173,7 +183,7 @@ jobs:
     secrets: inherit
 
   deploy-last-component:
-    name: 🧩 "${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}"
+    name: "🧩 ${{ inputs.tf-action == 'apply' && 'DMS' || 'DMSBASE' }}"
     needs: [start-ec2-runner, set-tf-args, deploy-api-2nd-run]
     if: always() && !failure() && !cancelled() && !(inputs.tf-environment == 'perf' && inputs.tf-action == 'destroy')
     strategy:
