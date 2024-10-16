@@ -67,15 +67,17 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: mobile-build-${{ github.repository_id }}
 
-      - name: 🤫 Get Secrets
+      - name: ⚙️ Set Configuration Files
         run: |
           aws secretsmanager get-secret-value --secret-id npmrc --query SecretString | jq . --raw-output  > .npmrc
           aws secretsmanager get-secret-value --secret-id ionic-config --query SecretString | jq . --raw-output  > ionic.config.json
 
-      - name: 🤫 Get Fastlane Secrets
+      - name: 🤫 Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
-          secret-ids: fastlane-config
+          secret-ids: |
+            fastlane-config
+            des-globals/env
           parse-json-secrets: true
 
       - name: ➕ Install Dependencies
@@ -98,13 +100,13 @@ jobs:
           zip -r App.app.zip App.app
 
       - name: 🚀 Deploy Sentry
-        if: ${{ inputs.environment == 'release' }}
+        if: ${{ startsWith(inputs.branch, 'release-') }}
         run: |
           aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
           npm run sentry-deploy
 
       - name: 🔐 Unlock Keychain
-#        if: ${{ inputs.environment == 'release' }}
+        if: ${{ startsWith(inputs.branch, 'release-') }}
         run: |
           security unlock-keychain -p "${{ env.FASTLANE_CONFIG_KEYCHAIN_PASSWORD }}" \
           /Users/${{ env.FASTLANE_CONFIG_USERNAME }}/Library/Keychains/${{ env.FASTLANE_CONFIG_KEYCHAIN_NAME }}
@@ -124,8 +126,9 @@ jobs:
           build_output_dir="${{ startsWith(inputs.branch, 'release-') && 'build' || 'e2e-app' }}"
           file_name="$(find "$build_output_dir" -name "*.$file_type" -exec basename {} \;)"
           environment_path="${{ inputs.environment }}"
+          is_feature="${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }}"
           
-          if [ ${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }} ]; then
+          if [ "$is_feature" = "true" ]; then
             environment_path="feature"
           fi
           
