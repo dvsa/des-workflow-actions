@@ -96,16 +96,18 @@ jobs:
       - name: 📁 Zip App File
         id: zip_app_file
         if: ${{ !startsWith(inputs.branch, 'release-') }}
-        run: |          
+        run: |
+          cd e2e-app
+
           is_feature="${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }}"
           file_name="App"
           
           if [ "$is_feature" = "true" ]; then
             file_name="${{ inputs.branch }}-${{ github.run_id }}"
+            mv App.app $file_name.app
           fi
           
-          cd e2e-app
-          zip -r $file_name.app.zip App.app
+          zip -r $file_name.app.zip $file_name.app
           
           echo "is_feature=$is_feature" >> $GITHUB_OUTPUT
 
