@@ -80,8 +80,8 @@ jobs:
           
           npm install git-rev-sync --save
           npm ci
-          run config:${{ inputs.app-env }}
-          run schema-version
+          npm run config:${{ inputs.app-env }}
+          npm run schema-version
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.app-env }}
