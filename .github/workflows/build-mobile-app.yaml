@@ -21,6 +21,10 @@ on:
       DVSA_AWS_REGION:
         required: true
 
+defaults:
+  run:
+    shell: zsh {0}
+
 permissions:
   contents: write
   id-token: write
