@@ -71,7 +71,6 @@ jobs:
         run: |
           aws secretsmanager get-secret-value --secret-id npmrc --query SecretString | jq . --raw-output  > .npmrc
           aws secretsmanager get-secret-value --secret-id ionic-config --query SecretString | jq . --raw-output  > ionic.config.json
-          aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
 
       - name: 🤫 Get Fastlane Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
