@@ -94,10 +94,20 @@ jobs:
         run: npm run build:${{ inputs.app-env }}
 
       - name: 📁 Zip App File
+        id: zip_app_file
         if: ${{ !startsWith(inputs.branch, 'release-') }}
-        run: |
+        run: |          
+          is_feature="${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }}"
+          file_name="App"
+          
+          if [ "$is_feature" = "true" ]; then
+            file_name="${{ inputs.branch }}-${{ github.run_id }}"
+          fi
+          
           cd e2e-app
-          zip -r App.app.zip App.app
+          zip -r $file_name.app.zip App.app
+          
+          echo "is_feature=$is_feature" >> $GITHUB_OUTPUT
 
       - name: 🚀 Deploy Sentry
         if: ${{ startsWith(inputs.branch, 'release-') }}
@@ -126,9 +136,8 @@ jobs:
           build_output_dir="${{ startsWith(inputs.branch, 'release-') && 'build' || 'e2e-app' }}"
           file_name="$(find "$build_output_dir" -name "*.$file_type" -exec basename {} \;)"
           environment_path="${{ inputs.environment }}"
-          is_feature="${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }}"
           
-          if [ "$is_feature" = "true" ]; then
+          if [ "${{ steps.zip_app_file.outputs.is_feature }}" = "true" ]; then
             environment_path="feature"
           fi
           
