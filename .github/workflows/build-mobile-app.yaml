@@ -1,4 +1,4 @@
-name: 📱 Build Mobile App WIP
+name: 📱 Build Mobile App
 on:
   workflow_call:
     inputs:
@@ -37,7 +37,6 @@ jobs:
       RUN_ID: ${{ github.run_id }}
       NODE_OPTIONS: '--max_old_space_size=4096'
       LANG: 'en_US.UTF-8'
-#      PATH: '/usr/bin:$HOME/.gem/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:/usr/local/bin:$PATH'
       LC_ALL: 'en_US.UTF-8'
       FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: '180'
       FASTLANE_XCODEBUILD_SETTINGS_RETRIES: '5'
@@ -46,9 +45,6 @@ jobs:
       - name: ⚙️ Set Environment
         run: |
           echo "PATH=/usr/bin:$HOME/.gem/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:/usr/local/bin:$PATH" >> $GITHUB_ENV
-
-      - name: 🛠️ Debug PATH
-        run: echo $PATH
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -100,6 +96,7 @@ jobs:
           cd e2e-app
 
           is_feature="${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }}"
+          echo "is_feature=$is_feature" >> $GITHUB_OUTPUT
           file_name="App"
           
           if [ "$is_feature" = "true" ]; then
@@ -108,8 +105,6 @@ jobs:
           fi
           
           zip -r $file_name.app.zip $file_name.app
-          
-          echo "is_feature=$is_feature" >> $GITHUB_OUTPUT
 
       - name: 🚀 Deploy Sentry
         if: ${{ startsWith(inputs.branch, 'release-') }}
