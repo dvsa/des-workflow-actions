@@ -130,7 +130,7 @@ jobs:
         if: ${{ startsWith(inputs.branch, 'release-') }}
         run: |
           fastlane ios build
-          npm buildScripts/rename-artifact.js
+          node buildScripts/rename-artifact.js
 
       - name: 🔍 Determine File to Upload
         run: |
