@@ -47,8 +47,15 @@ jobs:
   
           for account in $accounts; do
             include="$(echo $inputs | jq -r --arg keyvar "$account" '.[$keyvar]')"
+            
             if [ "$include" == "true" ]; then
-              included_accounts+=("\"$account\"")
+              case "$account" in
+              mgmt) account_id="${{ secrets.AWS_ACCOUNT_ID }}" ;;
+              nonprod) account_id="${{ secrets.AWS_NONPROD_ACCOUNT_ID }}" ;;
+              prod) account_id="${{ secrets.AWS_PROD_ACCOUNT_ID }}" ;;
+              esac
+
+              included_accounts+=("\"$account_id\"")
             fi
           done
   
