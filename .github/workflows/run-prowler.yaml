@@ -103,7 +103,7 @@ jobs:
 
       - name: 👮 Run Prowler
         run: |
-          [ -n "${{ inputs.region }}" ] && region_arg="--region ${{ inputs.region }}" || region_arg=""
+          [ -n "${{ inputs.aws-region }}" ] && region_arg="--region ${{ inputs.aws-region }}" || region_arg=""
           prowler aws $region_arg ${{ inputs.additional-args }}
 
 #      - name: ☁️ Upload to S3
