@@ -34,6 +34,16 @@ permissions:
   contents: write
 
 jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+
   determine-matrix:
     outputs:
       matrix: ${{ steps.set-outputs.outputs.matrix }}
@@ -60,12 +70,11 @@ jobs:
           matrix="{\"aws-account\":[${matrix_value}]}"
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
-
   run-prowler:
-    needs: determine-matrix
+    needs: [determine-matrix, start-ec2-runner]
     strategy:
       matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -114,9 +123,23 @@ jobs:
 #          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
 #          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
 
-#      - name: ☁️ Upload to GitHub Summary
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ${{ env.ZIP_FILE }}
-#          path: ${{ env.ZIP_FILE }}
-#          retention-days: 3
+      - name: ☁️ Upload to GitHub Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.aws-account }}-compliance-results
+          path: output/compliance/
+          retention-days: 3
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, full-dms-deploy]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
