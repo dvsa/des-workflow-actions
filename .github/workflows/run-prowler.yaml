@@ -34,15 +34,15 @@ permissions:
   contents: write
 
 jobs:
-  start-ec2-runner:
-    name: ▶️ Start EC2 Runner
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-    with:
-      action: start
-    secrets:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
-      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+#  start-ec2-runner:
+#    name: ▶️ Start EC2 Runner
+#    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+#    with:
+#      action: start
+#    secrets:
+#      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+#      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+#      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
 
   determine-matrix:
     outputs:
@@ -71,11 +71,13 @@ jobs:
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   run-prowler:
-    needs: [determine-matrix, start-ec2-runner]
+#    needs: [determine-matrix, start-ec2-runner]
+    needs: determine-matrix
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
-    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+#    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -132,16 +134,16 @@ jobs:
           path: output/compliance/
           retention-days: 3
 
-  stop-ec2-runner:
-    name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, run-prowler]
-    if: always()
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-    with:
-      action: stop
-      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
-      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
-    secrets:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
-      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+#  stop-ec2-runner:
+#    name: ⏹️ Stop EC2 Runner
+#    needs: [start-ec2-runner, run-prowler]
+#    if: always()
+#    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+#    with:
+#      action: stop
+#      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+#      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+#    secrets:
+#      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+#      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+#      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
