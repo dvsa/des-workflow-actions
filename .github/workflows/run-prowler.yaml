@@ -51,13 +51,7 @@ jobs:
             include="$(echo $inputs | jq -r --arg keyvar "$account" '.[$keyvar]')"
             
             if [ "$include" == "true" ]; then
-              case "$account" in
-              mgmt) account_id="${{ secrets.AWS_ACCOUNT_ID }}" ;;
-              nonprod) account_id="${{ secrets.AWS_NONPROD_ACCOUNT_ID }}" ;;
-              prod) account_id="${{ secrets.AWS_PROD_ACCOUNT_ID }}" ;;
-              esac
-
-              included_accounts+=("\"$account_id\"")
+              included_accounts+=("\"$account\"")
             fi
           done
   
@@ -84,10 +78,21 @@ jobs:
       - name: ➕ Install Prowler
         run: pip install prowler
 
+      - name: 🔍 Get AWS Account ID
+        id: get_account_id
+        run: |
+          case "${{ matrix.aws-account }}" in
+            mgmt) account_id="${{ secrets.AWS_ACCOUNT_ID }}" ;;
+            nonprod) account_id="${{ secrets.AWS_NONPROD_ACCOUNT_ID }}" ;;
+            prod) account_id="${{ secrets.AWS_PROD_ACCOUNT_ID }}" ;;
+          esac
+          
+          echo "aws-account=${account_id}" >> $GITHUB_OUTPUT
+
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ matrix.aws-account }}:role/github-actions
+          role-to-assume: arn:aws:iam::${{ steps.get_account_id.outputs.aws-account }}:role/github-actions
           aws-region: ${{ inputs.aws-region }}
 
 #      - name: 🤫 Get AWS Secrets
