@@ -73,6 +73,7 @@ jobs:
   run-prowler:
     needs: [determine-matrix, start-ec2-runner]
     strategy:
+      fail-fast: false
       matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
@@ -124,6 +125,7 @@ jobs:
 #          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
 
       - name: ☁️ Upload to GitHub Summary
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.aws-account }}-compliance-results
