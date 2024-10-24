@@ -1,16 +1,18 @@
 name: 👮 Run Prowler
-run-name: "📱 ${{ inputs.aws-account }} | ${{ inputs.aws-region }} | ${{ inputs.group }}"
+run-name: "👮 Run Prowler in ${{ inputs.aws-region || 'all regions' }}"
 
 on:
   workflow_dispatch:
     inputs:
-#      aws-account:
-#        description: AWS Account
-#        type: choice
-#        options:
-#          - mgmt
-#          - nonprod
-#          - prod
+      mgmt:
+        description: MGMT Account
+        type: boolean
+      nonprod:
+        description: NONPROD Account
+        type: boolean
+#      prod:
+#        description: PROD Account
+#        type: boolean
       aws-region:
         description: AWS Region
         type: string
@@ -30,10 +32,35 @@ permissions:
   contents: write
 
 jobs:
+  determine-matrix:
+    outputs:
+      matrix: ${{ steps.set-outputs.outputs.matrix }}
+    name: 🔍 Determine Matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⚙️ Set Output
+        id: set-outputs
+        run: |
+          accounts="mgmt nonprod prod"
+          inputs='${{ toJson(github.event.inputs) }}'
+          declare -a included_accounts=()
+  
+          for account in $accounts; do
+            include="$(echo $inputs | jq -r --arg keyvar "$account" '.[$keyvar]')"
+            if [ "$include" == "true" ]; then
+              included_accounts+=("\"$account\"")
+            fi
+          done
+  
+          matrix_value=$(IFS=, ; echo "${included_accounts[*]}")
+  
+          matrix="{\"aws-account\":[${matrix_value}]}"
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+
+
   run-prowler:
     strategy:
-      matrix:
-        aws-account: ["${{ secrets.AWS_ACCOUNT_ID }}", "${{ secrets.AWS_NONPROD_ACCOUNT_ID }}"]
+      matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
@@ -60,9 +87,11 @@ jobs:
 #          parse-json-secrets: true
 
       - name: 👮 Run Prowler
-        run: prowler aws ${{ inputs.region && '--region eu-west-1 us-east-1' || '' }}
+        run: |
+          [ -n "${{ inputs.region }}" ] && region_arg="--region ${{ inputs.region }}" || region_arg=""
+          prowler aws $region_arg ${{ inputs.additional-args }}
 
-      #      - name: ☁️ Upload to S3
+#      - name: ☁️ Upload to S3
 #        id: s3-upload-artefacts
 #        run: |
 #          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
@@ -70,9 +99,9 @@ jobs:
 #          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
 #          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
 
-      - name: ☁️ Upload to GitHub Summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.ZIP_FILE }}
-          path: ${{ env.ZIP_FILE }}
-          retention-days: 3
+#      - name: ☁️ Upload to GitHub Summary
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ env.ZIP_FILE }}
+#          path: ${{ env.ZIP_FILE }}
+#          retention-days: 3
