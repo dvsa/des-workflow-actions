@@ -1,71 +1,32 @@
 name: 👮 Run Prowler
-run-name: "👮 Run Prowler in ${{ inputs.aws-region || 'all regions' }} for Accounts: ${{ inputs.mgmt && ' MGMT |' || '' }}${{ inputs.nonprod && ' NONPROD |' || '' }}${{ inputs.prod && ' PROD |' || '' }}"
 
 on:
   workflow_dispatch:
     inputs:
-      mgmt:
-        description: MGMT Account
-        type: boolean
-        default: true
-      nonprod:
-        description: NONPROD Account
-        type: boolean
-        default: true
-#      prod:
-#        description: PROD Account
-#        type: boolean
+      runner:
+        description: The EC2 GHA runner label
+        type: string
+        required: true
+      aws-account:
+        description: The AWS account to run prowler in
+        type: string
+        required: true
       aws-region:
-        description: AWS Region
+        description: AWS Region to run prowler in
         type: string
-#      group:
-#        description: Group
-#        type: choice
-#        options:
-#          - cislevel1
-#          - cislevel2
-#          - forensics-ready
+        required: true
       additional-args:
-        description: Additional Args
+        description: Additional Arguments
         type: string
+        required: true
 
 permissions:
   id-token: write
   contents: write
 
 jobs:
-  determine-matrix:
-    outputs:
-      matrix: ${{ steps.set-outputs.outputs.matrix }}
-    name: 🔍 Determine Matrix
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⚙️ Set Output
-        id: set-outputs
-        run: |
-          accounts="mgmt nonprod prod"
-          inputs='${{ toJson(github.event.inputs) }}'
-          declare -a included_accounts=()
-  
-          for account in $accounts; do
-            include="$(echo $inputs | jq -r --arg keyvar "$account" '.[$keyvar]')"
-            
-            if [ "$include" == "true" ]; then
-              included_accounts+=("\"$account\"")
-            fi
-          done
-  
-          matrix_value=$(IFS=, ; echo "${included_accounts[*]}")
-  
-          matrix="{\"aws-account\":[${matrix_value}]}"
-          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
-
   run-prowler:
-    needs: determine-matrix
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -81,7 +42,7 @@ jobs:
       - name: 🔍 Get AWS Account ID
         id: get_account_id
         run: |
-          case "${{ matrix.aws-account }}" in
+          case "${{ inputs.aws-account }}" in
             mgmt) account_id="${{ secrets.AWS_ACCOUNT_ID }}" ;;
             nonprod) account_id="${{ secrets.AWS_NONPROD_ACCOUNT_ID }}" ;;
             prod) account_id="${{ secrets.AWS_PROD_ACCOUNT_ID }}" ;;
@@ -105,19 +66,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.aws-account }}-compliance-results
-          path: output/prowler-output-${{ steps.get_account_id.outputs.aws-account }}-*.html
+          path: output/compliance/
           retention-days: 3
-
-#  stop-ec2-runner:
-#    name: ⏹️ Stop EC2 Runner
-#    needs: [start-ec2-runner, run-prowler]
-#    if: always()
-#    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-#    with:
-#      action: stop
-#      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
-#      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
-#    secrets:
-#      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-#      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
-#      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
