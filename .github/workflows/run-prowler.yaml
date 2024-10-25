@@ -31,6 +31,12 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
+      - name: ⚙️ Python Self-Hosted Pre-requisites
+        run: |
+          sudo mkdir -p /opt/github-runner/tools
+#          sudo chown runner:runner /opt/github-runner/tools
+          export AGENT_TOOLSDIRECTORY=/opt/github-runner/tools
+
       - name: ⚙️ Setup Python 3.x
         uses: actions/setup-python@v4
         with:
