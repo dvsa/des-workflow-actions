@@ -34,7 +34,7 @@ jobs:
       - name: ⚙️ Python Self Hosted Requirements
         run: |
           sudo mkdir -p /opt/github-runner/tools
-          sudo chown runner:runner /opt/github-runner/tools
+          sudo chown ec2-user:ec2-user /opt/github-runner/tools
           export AGENT_TOOLSDIRECTORY=/opt/github-runner/tools
 
       - name: ⚙️ Setup Python 3.x
