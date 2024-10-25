@@ -43,7 +43,7 @@ jobs:
 #          python-version: 3.x
 
       - name: ➕ Install Prowler
-        run: pip install prowler
+        run: pip3 install prowler
 
       - name: 🔍 Get AWS Account ID
         id: get_account_id
