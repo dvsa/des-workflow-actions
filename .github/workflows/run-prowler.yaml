@@ -1,7 +1,7 @@
 name: 👮 Run Prowler
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       runner:
         description: The EC2 GHA runner label
