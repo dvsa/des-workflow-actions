@@ -34,16 +34,6 @@ permissions:
   contents: write
 
 jobs:
-#  start-ec2-runner:
-#    name: ▶️ Start EC2 Runner
-#    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-#    with:
-#      action: start
-#    secrets:
-#      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-#      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
-#      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
-
   determine-matrix:
     outputs:
       matrix: ${{ steps.set-outputs.outputs.matrix }}
@@ -71,12 +61,10 @@ jobs:
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   run-prowler:
-#    needs: [determine-matrix, start-ec2-runner]
     needs: determine-matrix
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
-#    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
@@ -107,31 +95,17 @@ jobs:
           role-to-assume: arn:aws:iam::${{ steps.get_account_id.outputs.aws-account }}:role/github-actions
           aws-region: ${{ inputs.aws-region }}
 
-#      - name: 🤫 Get AWS Secrets
-#        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-#        with:
-#          secret-ids: des-globals/env
-#          parse-json-secrets: true
-
       - name: 👮 Run Prowler
         run: |
           [ -n "${{ inputs.aws-region }}" ] && region_arg="--region ${{ inputs.aws-region }}" || region_arg=""
           prowler aws $region_arg ${{ inputs.additional-args }}
-
-#      - name: ☁️ Upload to S3
-#        id: s3-upload-artefacts
-#        run: |
-#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          aws s3 cp ${{ env.ZIP_FILE }} \
-#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
-#          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
 
       - name: ☁️ Upload to GitHub Summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.aws-account }}-compliance-results
-          path: output/compliance/
+          path: output/prowler-output-${{ steps.get_account_id.outputs.aws-account }}-*.html
           retention-days: 3
 
 #  stop-ec2-runner:
