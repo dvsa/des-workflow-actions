@@ -71,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.aws-account }}-compliance-results
+          name: ${{ inputs.aws-account }}-compliance-results
           path: output/compliance/
           retention-days: 3
 
