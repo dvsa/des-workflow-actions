@@ -45,12 +45,15 @@ jobs:
 #      - name: Install lsb-release
 #        run: sudo apt-get install -y lsb-release
 
-      - name: ⚙️ Setup Python 3.x
-        uses: actions/setup-python@v5
-#        env:
-#          AGENT_TOOLSDIRECTORY: /etc/os-release
-        with:
-          python-version: 3.x
+#      - name: ⚙️ Setup Python 3.x
+#        uses: actions/setup-python@v5
+##        env:
+##          AGENT_TOOLSDIRECTORY: /etc/os-release
+#        with:
+#          python-version: 3.x
+
+      - name: ➕ Install Pip
+        run: sudo dnf install python3-pip -y
 
       - name: ➕ Install Prowler
         run: pip3 install prowler
