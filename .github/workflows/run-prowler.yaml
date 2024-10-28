@@ -31,16 +31,18 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Python Self Hosted Requirements
-        run: |
-          sudo mkdir -p /opt/github-runner/tools
-          sudo chown ec2-user:ec2-user /opt/github-runner/tools
-          export AGENT_TOOLSDIRECTORY=/opt/github-runner/tools
+#      - name: ⚙️ Python Self Hosted Requirements
+#        run: |
+#          sudo mkdir -p /opt/github-runner/tools
+#          sudo chown ec2-user:ec2-user /opt/github-runner/tools
+#          export AGENT_TOOLSDIRECTORY=/opt/github-runner/tools
 
-#      - name: ⚙️ Setup Python 3.x
-#        uses: actions/setup-python@v4
-#        with:
-#          python-version: 3.x
+      - name: ⚙️ Setup Python 3.x
+        uses: actions/setup-python@v4
+        env:
+          AGENT_TOOLSDIRECTORY: /etc/os-release
+        with:
+          python-version: 3.x
 
       - name: ➕ Install Prowler
         run: pip3 install prowler
