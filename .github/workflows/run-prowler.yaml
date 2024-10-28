@@ -1,78 +1,90 @@
 name: 👮 Run Prowler
-run-name: "📱 ${{ inputs.aws-account }} | ${{ inputs.aws-region }} | ${{ inputs.group }}"
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-#      aws-account:
-#        description: AWS Account
-#        type: choice
-#        options:
-#          - mgmt
-#          - nonprod
-#          - prod
+      aws-account:
+        description: The AWS account to run prowler in
+        type: string
+        required: true
       aws-region:
-        description: AWS Region
+        description: AWS Region to run prowler in
         type: string
-#      group:
-#        description: Group
-#        type: choice
-#        options:
-#          - cislevel1
-#          - cislevel2
-#          - forensics-ready
+        required: true
       additional-args:
-        description: Additional Args
+        description: Additional Arguments
         type: string
+        required: true
 
 permissions:
   id-token: write
   contents: write
 
 jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+
   run-prowler:
-    strategy:
-      matrix:
-        aws-account: ["${{ secrets.AWS_ACCOUNT_ID }}", "${{ secrets.AWS_NONPROD_ACCOUNT_ID }}"]
-    runs-on: ubuntu-latest
+    needs: start-ec2-runner
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
+      - name: ➕ Install Pip
+        run: sudo dnf install python3-pip -y
 
       - name: ➕ Install Prowler
-        run: pip install prowler
+        run: pip3 install prowler
+
+      - name: 🔍 Get AWS Account ID
+        id: get_account_id
+        run: |
+          case "${{ inputs.aws-account }}" in
+            mgmt) account_id="${{ secrets.AWS_ACCOUNT_ID }}" ;;
+            nonprod) account_id="${{ secrets.AWS_NONPROD_ACCOUNT_ID }}" ;;
+            prod) account_id="${{ secrets.AWS_PROD_ACCOUNT_ID }}" ;;
+          esac
+          
+          echo "aws-account=${account_id}" >> $GITHUB_OUTPUT
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ matrix.aws-account }}:role/github-actions
+          role-to-assume: arn:aws:iam::${{ steps.get_account_id.outputs.aws-account }}:role/github-actions
           aws-region: ${{ inputs.aws-region }}
 
-#      - name: 🤫 Get AWS Secrets
-#        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-#        with:
-#          secret-ids: des-globals/env
-#          parse-json-secrets: true
-
       - name: 👮 Run Prowler
-        run: prowler aws ${{ inputs.region && '--region eu-west-1 us-east-1' || '' }}
-
-      #      - name: ☁️ Upload to S3
-#        id: s3-upload-artefacts
-#        run: |
-#          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-#          aws s3 cp ${{ env.ZIP_FILE }} \
-#          s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/mobile-app-config/${{ env.ZIP_FILE }}
-#          echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
+        run: |
+          [ -n "${{ inputs.aws-region }}" ] && region_arg="--region ${{ inputs.aws-region }}" || region_arg=""
+          prowler aws $region_arg ${{ inputs.additional-args }}
 
       - name: ☁️ Upload to GitHub Summary
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ZIP_FILE }}
-          path: ${{ env.ZIP_FILE }}
+          name: ${{ inputs.aws-account }}-compliance-results
+          path: output/prowler-output-${{ steps.get_account_id.outputs.aws-account }}-*.html
           retention-days: 3
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, run-prowler]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
