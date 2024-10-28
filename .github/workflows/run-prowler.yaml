@@ -3,10 +3,6 @@ name: 👮 Run Prowler
 on:
   workflow_call:
     inputs:
-      runner:
-        description: The EC2 GHA runner label
-        type: string
-        required: true
       aws-account:
         description: The AWS account to run prowler in
         type: string
@@ -25,32 +21,23 @@ permissions:
   contents: write
 
 jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+
   run-prowler:
-    runs-on: ${{ inputs.runner }}
-    env:
-      RUNNER_TOOL_CACHE: ${{ github.workspace }}/_work/_tool
-      AGENT_TOOLSDIRECTORY: ${{ github.workspace }}/_work/_tool
+    needs: start-ec2-runner
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-
-#      - name: ⚙️ Python Self Hosted Requirements
-#        run: |
-#          sudo mkdir -p /opt/github-runner/tools
-#          sudo chown ec2-user:ec2-user /opt/github-runner/tools
-#          export AGENT_TOOLSDIRECTORY=/opt/github-runner/tools
-
-#      - name : Apt-update
-#        run: sudo apt-get update
-#      - name: Install lsb-release
-#        run: sudo apt-get install -y lsb-release
-
-#      - name: ⚙️ Setup Python 3.x
-#        uses: actions/setup-python@v5
-##        env:
-##          AGENT_TOOLSDIRECTORY: /etc/os-release
-#        with:
-#          python-version: 3.x
 
       - name: ➕ Install Pip
         run: sudo dnf install python3-pip -y
@@ -87,3 +74,17 @@ jobs:
           name: ${{ matrix.aws-account }}-compliance-results
           path: output/compliance/
           retention-days: 3
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, run-prowler]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
