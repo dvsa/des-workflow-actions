@@ -72,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.aws-account }}-compliance-results
-          path: output/compliance/
+          path: output/prowler-output-${{ steps.get_account_id.outputs.aws-account }}-*.html
           retention-days: 3
 
   stop-ec2-runner:
