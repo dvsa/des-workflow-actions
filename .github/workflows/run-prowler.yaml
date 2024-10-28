@@ -36,11 +36,15 @@ jobs:
 #          sudo mkdir -p /opt/github-runner/tools
 #          sudo chown ec2-user:ec2-user /opt/github-runner/tools
 #          export AGENT_TOOLSDIRECTORY=/opt/github-runner/tools
+      - name : Apt-update
+        run: sudo apt-get update
+      - name: Install lsb-release
+        run: sudo apt-get install -y lsb-release
 
       - name: ⚙️ Setup Python 3.x
         uses: actions/setup-python@v4
-        env:
-          AGENT_TOOLSDIRECTORY: /etc/os-release
+#        env:
+#          AGENT_TOOLSDIRECTORY: /etc/os-release
         with:
           python-version: 3.x
 
