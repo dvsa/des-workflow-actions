@@ -27,6 +27,9 @@ permissions:
 jobs:
   run-prowler:
     runs-on: ${{ inputs.runner }}
+    env:
+      RUNNER_TOOL_CACHE: ${{ github.workspace }}/_work/_tool
+      AGENT_TOOLSDIRECTORY: ${{ github.workspace }}/_work/_tool
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
