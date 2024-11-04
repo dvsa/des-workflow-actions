@@ -81,12 +81,13 @@ jobs:
         run: |
           aws secretsmanager get-secret-value --secret-id npmrc --query SecretString | jq . --raw-output  > .npmrc
           aws secretsmanager get-secret-value --secret-id ionic-config --query SecretString | jq . --raw-output  > ionic.config.json
-          aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
 
       - name: 🤫 Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
-          secret-ids: des-globals/env
+          secret-ids: |
+            fastlane-config
+            des-globals/env
           parse-json-secrets: true
 
       - name: ➕ Install Dependencies
