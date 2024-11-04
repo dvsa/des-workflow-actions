@@ -101,6 +101,10 @@ jobs:
           bundle config set path .gem
           bundle install --jobs $(sysctl -n hw.physicalcpu)
 
+      - name: ➕ Pod Install
+        working-directory: ./ios/App/
+        run: pod install
+
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
