@@ -56,8 +56,8 @@ jobs:
     steps:
       - name: ⚙️ Set Environment
         run: |
-          echo "PATH=$HOME/.gem/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
           echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
+          echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -103,7 +103,7 @@ jobs:
 
       - name: ➕ Pod Install
         working-directory: ./ios/App/
-        run: pod install
+        run: gem install cocoapods
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
