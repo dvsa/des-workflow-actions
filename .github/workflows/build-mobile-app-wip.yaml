@@ -11,9 +11,17 @@ on:
       environment:
         type: string
         required: true
-      app-env:
+      config-type:
         type: string
         required: true
+      build-type:
+        type: string
+        required: false
+        default: test
+      build-simulator:
+        type: string
+        required: false
+        default: false
       build-ipa:
         type: string
         required: false
@@ -25,6 +33,10 @@ on:
       DVSA_AWS_REGION:
         required: true
 
+defaults:
+  run:
+    shell: zsh {0}
+
 permissions:
   contents: write
   id-token: write
@@ -35,22 +47,22 @@ jobs:
     runs-on: ${{ inputs.runs_on }}
     env:
       RUN_ID: ${{ github.run_id }}
+      BRANCH: ${{ inputs.branch }}
       ENVIRONMENT: ${{ inputs.environment }}
       AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      LC_ALL: 'en_US.UTF-8'
+      LANG: 'en_US.UTF-8'
 
     steps:
       - name: ⚙️ Set Environment
         run: |
           echo "PATH=$HOME/.gem/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
           echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
-          clean=$(echo "${{ inputs.branch }}" | sed 's/^feature\///')
-          branch=$(python3 -c "print('$clean'.lower())")
-          echo "BRANCH=$(echo $branch)" >> $GITHUB_OUTPUT
-        id: branch
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
+          repository: dvsa/des-mobile-app
           ref: ${{ inputs.branch }}
 
       - name: ⚙️ Setup Node
@@ -61,38 +73,43 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.CVS_AWS_ROLE }}
+          role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: mobile-build-${{ github.repository_id }}
 
-      - name: 🤫 Get Secrets
+      - name: ⚙️ Set Configuration Files
         run: |
           aws secretsmanager get-secret-value --secret-id npmrc --query SecretString | jq . --raw-output  > .npmrc
           aws secretsmanager get-secret-value --secret-id ionic-config --query SecretString | jq . --raw-output  > ionic.config.json
+          aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
 
       - name: ➕ Install Dependencies
         run: |
           echo "NPM Version: $(npm -v)" >> $GITHUB_STEP_SUMMARY
           echo "Node Version: $(node -v)" >> $GITHUB_STEP_SUMMARY
+          
           npm ci
-          npm run config:${{ inputs.app-env }}
+          npm run config:${{ inputs.config-type }}
           npm run schema-version
-
-      - name: ⚒️ Build Project
-        run: npm run build-ci
-
-      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
-        if: ${{ !startsWith(inputs.branch, 'release-') }}
-        env:
-          BRANCH: ${{ steps.branch.outputs.BRANCH }}
-        run: |
           bundle config set path .gem
           bundle install --jobs $(sysctl -n hw.physicalcpu)
-          bundle exec fastlane simulator
 
-      - name: ⚙️ Bump Version
-        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
-        run: node .github/scripts/update-des-app-version.js ${{ github.ref_name }}
+      - name: ⚒️ Build Project
+        run: npm run build:${{ inputs.build-type }}
+
+      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
+        if: ${{ inputs.build-simulator == 'true' }}
+        run: bundle exec fastlane simulator
+
+#      - name: ⚙️ Bump Version
+#        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
+#        run: node .github/scripts/update-des-app-version.js ${{ github.ref_name }}
 
       - name: 🚀 Deploy Sentry
         if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
@@ -102,10 +119,4 @@ jobs:
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
-        env:
-          BRANCH: ${{ inputs.branch }}
-        run: |
-          bundle config set path .gem
-          bundle install --jobs $(sysctl -n hw.physicalcpu)
-          bundle exec fastlane release_build
-
+        run: bundle exec fastlane release_build
