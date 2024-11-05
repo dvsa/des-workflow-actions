@@ -85,9 +85,7 @@ jobs:
       - name: 🤫 Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
-          secret-ids: |
-            fastlane-config
-            des-globals/env
+          secret-ids: fastlane-config
           parse-json-secrets: true
 
       - name: ➕ Install Dependencies
