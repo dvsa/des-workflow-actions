@@ -26,6 +26,10 @@ on:
         type: string
         required: false
         default: false
+      xcode-version:
+        type: string
+        required: false
+        default: Xcode.app
 
     secrets:
       AWS_ROLE:
@@ -50,6 +54,7 @@ jobs:
       AWS_REGION: eu-west-1
       LC_ALL: 'en_US.UTF-8'
       LANG: 'en_US.UTF-8'
+      XCODE_VERSION: ${{ inputs.xcode-version }}
 
     steps:
       - name: ⚙️ Set Environment
