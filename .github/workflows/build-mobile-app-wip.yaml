@@ -2,7 +2,7 @@ name: 📱 Build Mobile App WIP
 on:
   workflow_call:
     inputs:
-      runs_on:
+      runs-on:
         type: string
         required: true
       branch:
@@ -29,7 +29,7 @@ on:
       xcode-version:
         type: string
         required: false
-        default: Xcode.app
+        default: 'Xcode.app'
 
     secrets:
       AWS_ROLE:
@@ -46,7 +46,7 @@ permissions:
 jobs:
   build-mobile-app:
     name: 📱 Build Mobile App (${{ inputs.environment }})
-    runs-on: ${{ inputs.runs_on }}
+    runs-on: ${{ inputs.runs-on }}
     env:
       RUN_ID: ${{ github.run_id }}
       BRANCH: ${{ inputs.branch }}
