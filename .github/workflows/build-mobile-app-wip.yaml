@@ -103,9 +103,9 @@ jobs:
           bundle config set path .gem
           bundle install --jobs $(sysctl -n hw.physicalcpu)
 
-      - name: ➕ Pod Install
-        working-directory: ./ios/App/
-        run: gem install cocoapods
+#      - name: ➕ Pod Install
+#        working-directory: ./ios/App/
+#        run: gem install cocoapods
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
