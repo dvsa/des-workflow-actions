@@ -96,18 +96,14 @@ jobs:
         run: |
           echo "NPM Version: $(npm -v)" >> $GITHUB_STEP_SUMMARY
           echo "Node Version: $(node -v)" >> $GITHUB_STEP_SUMMARY
-          rm -rf ios/app/Podfile.lock
-          rm Gemfile.lock
-          
+#          rm -rf ios/app/Podfile.lock
+#          rm Gemfile.lock
+
           npm ci
           npm run config:${{ inputs.config-type }}
           npm run schema-version
           bundle config set path .gem
           bundle install --jobs $(sysctl -n hw.physicalcpu)
-
-#      - name: ➕ Pod Install
-#        working-directory: ./ios/App/
-#        run: gem install cocoapods
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
