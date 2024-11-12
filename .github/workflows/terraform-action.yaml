@@ -57,6 +57,7 @@ jobs:
         with:
           repository: dvsa/des-terraform
           ref: ${{ inputs.branch }}
+          token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
