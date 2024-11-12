@@ -2,7 +2,7 @@ name: 📱 Build Mobile App
 on:
   workflow_call:
     inputs:
-      runs_on:
+      runs-on:
         type: string
         required: true
       branch:
@@ -11,14 +11,28 @@ on:
       environment:
         type: string
         required: true
-      app-env:
+      config-type:
         type: string
         required: true
+      build-type:
+        type: string
+        required: false
+        default: test
+      build-simulator:
+        type: string
+        required: false
+        default: false
+      build-ipa:
+        type: string
+        required: false
+        default: false
+      xcode-version:
+        type: string
+        required: false
+        default: '16.1'
 
     secrets:
       AWS_ROLE:
-        required: true
-      DVSA_AWS_REGION:
         required: true
 
 defaults:
@@ -32,23 +46,26 @@ permissions:
 jobs:
   build-mobile-app:
     name: 📱 Build Mobile App (${{ inputs.environment }})
-    runs-on: ${{ inputs.runs_on }}
+    runs-on: ${{ inputs.runs-on }}
     env:
       RUN_ID: ${{ github.run_id }}
-      NODE_OPTIONS: '--max_old_space_size=4096'
-      LANG: 'en_US.UTF-8'
+      BRANCH: ${{ inputs.branch }}
+      ENVIRONMENT: ${{ inputs.environment }}
+      AWS_REGION: eu-west-1
       LC_ALL: 'en_US.UTF-8'
-      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: '180'
-      FASTLANE_XCODEBUILD_SETTINGS_RETRIES: '5'
+      LANG: 'en_US.UTF-8'
+      XCODE_VERSION: ${{ inputs.xcode-version }}
 
     steps:
       - name: ⚙️ Set Environment
         run: |
-          echo "PATH=/usr/bin:$HOME/.gem/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:/usr/local/bin:$PATH" >> $GITHUB_ENV
+          echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
+          echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
+          repository: dvsa/des-mobile-app
           ref: ${{ inputs.branch }}
 
       - name: ⚙️ Setup Node
@@ -60,98 +77,43 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
           role-session-name: mobile-build-${{ github.repository_id }}
 
       - name: ⚙️ Set Configuration Files
         run: |
           aws secretsmanager get-secret-value --secret-id npmrc --query SecretString | jq . --raw-output  > .npmrc
           aws secretsmanager get-secret-value --secret-id ionic-config --query SecretString | jq . --raw-output  > ionic.config.json
-
-      - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: |
-            fastlane-config
-            des-globals/env
-          parse-json-secrets: true
+          aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
 
       - name: ➕ Install Dependencies
         run: |
           echo "NPM Version: $(npm -v)" >> $GITHUB_STEP_SUMMARY
           echo "Node Version: $(node -v)" >> $GITHUB_STEP_SUMMARY
-          
-          npm install git-rev-sync --save
+
           npm ci
-          npm run config:${{ inputs.app-env }}
+          npm run config:${{ inputs.config-type }}
           npm run schema-version
+          bundle config set path .gem
+          bundle install --jobs $(sysctl -n hw.physicalcpu)
 
       - name: ⚒️ Build Project
-        run: npm run build:${{ inputs.app-env }}
+        run: npm run build:${{ inputs.build-type }}
 
-      - name: 📁 Zip App File
-        id: zip_app_file
-        if: ${{ !startsWith(inputs.branch, 'release-') }}
-        run: |
-          cd e2e-app
+      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
+        if: ${{ inputs.build-simulator == 'true' }}
+        run: bundle exec fastlane simulator
 
-          is_feature="${{ !contains(fromJSON('["develop", "release-"]'), inputs.branch) }}"
-          echo "is_feature=$is_feature" >> $GITHUB_OUTPUT
-          file_name="App"
-          
-          if [ "$is_feature" = "true" ]; then
-            file_name="${{ inputs.branch }}-${{ github.run_id }}"
-            mv App.app $file_name.app
-          fi
-          
-          zip -r $file_name.app.zip $file_name.app
+      #      - name: ⚙️ Bump Version
+      #        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
+      #        run: node .github/scripts/update-des-app-version.js ${{ github.ref_name }}
 
       - name: 🚀 Deploy Sentry
-        if: ${{ startsWith(inputs.branch, 'release-') }}
+        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
         run: |
           aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
           bash buildScripts/sentry-deploy.sh
 
-      - name: 🔐 Unlock Keychain
-        if: ${{ startsWith(inputs.branch, 'release-') }}
-        run: |
-          security unlock-keychain -p "${{ env.FASTLANE_CONFIG_KEYCHAIN_PASSWORD }}" \
-          /Users/${{ env.FASTLANE_CONFIG_USERNAME }}/Library/Keychains/${{ env.FASTLANE_CONFIG_KEYCHAIN_NAME }}
-          
-          security set-keychain-settings -t 1900 -l \
-          /Users/${{ env.FASTLANE_CONFIG_USERNAME }}/Library/Keychains/${{ env.FASTLANE_CONFIG_KEYCHAIN_NAME }}
-
       - name: 📱 Build Mobile App (${{ inputs.environment }})
-        if: ${{ startsWith(inputs.branch, 'release-') }}
-        run: |
-          fastlane ios build
-          node buildScripts/rename-artifact.js
-
-      - name: 🔍 Determine File to Upload
-        run: |
-          file_type="${{ startsWith(inputs.branch, 'release-') && 'ipa' || 'zip' }}"
-          build_output_dir="${{ startsWith(inputs.branch, 'release-') && 'build' || 'e2e-app' }}"
-          file_name="$(find "$build_output_dir" -name "*.$file_type" -exec basename {} \;)"
-          environment_path="${{ inputs.environment }}"
-          
-          if [ "${{ steps.zip_app_file.outputs.is_feature }}" = "true" ]; then
-            environment_path="feature"
-          fi
-          
-          echo "BUILD_OUTPUT_DIR=$build_output_dir" >> $GITHUB_ENV
-          echo "FILE_NAME=$file_name" >> $GITHUB_ENV
-          echo "ENVIRONMENT_PATH=$environment_path" >> $GITHUB_ENV
-
-      - name: ☁️ Upload to GitHub Summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.FILE_NAME }}
-          path: ${{ env.BUILD_OUTPUT_DIR }}/${{ env.FILE_NAME }}
-          retention-days: 3
-
-      - name: ☁️ Upload to S3
-        run: |
-          echo "## ☁️ S3 Upload:" >> $GITHUB_STEP_SUMMARY
-          aws s3 cp ${{ env.BUILD_OUTPUT_DIR }}/${{ env.FILE_NAME }} \
-          s3://${{ env.DES_GLOBALS_ENV_DES4_ARTEFACT_S3 }}/mobile-app/${{ env.ENVIRONMENT_PATH }}/${{ env.FILE_NAME }}
-          echo "✅ Uploaded ${{ env.FILE_NAME }} to S3" >> $GITHUB_STEP_SUMMARY
+        if: ${{ inputs.build-ipa == 'true' }}
+        run: bundle exec fastlane release_build

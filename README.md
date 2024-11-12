@@ -27,7 +27,4 @@ You can perform the following actions:
 - **🚀 Full DMS Deploy** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/🚀-Full-DMS-Deploy)]
 - **🖥️ EC2 GHA Runner: Start Stop** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/🖥%EF%B8%8F-EC2-GHA-Runner:-Start-Stop)]
 - **🦑 Build SquidNAT Artefacts** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/🦑-Build-SquidNAT-Artefacts)]
-
-
-
-
+- **📱 Build Mobile App** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/📱-Build-Mobile-App)]
