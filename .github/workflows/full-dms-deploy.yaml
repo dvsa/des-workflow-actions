@@ -37,7 +37,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          role-to-assume: ${{ secrets.DES_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
@@ -50,7 +50,7 @@ jobs:
       - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 

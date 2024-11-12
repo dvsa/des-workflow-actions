@@ -55,12 +55,14 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
+          repository: dvsa/des-terraform
           ref: ${{ inputs.branch }}
+          token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_MGMT }}
+          role-to-assume: ${{ secrets.DES_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
@@ -83,7 +85,7 @@ jobs:
         if: inputs.aws-account != 'mgmt'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.AWS_ROLE_PROD || secrets.AWS_ROLE_NONPROD }}
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
