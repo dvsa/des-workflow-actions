@@ -55,6 +55,7 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
+          repository: dvsa/des-terraform
           ref: ${{ inputs.branch }}
 
       - name: 🔑 Configure AWS Credentials
