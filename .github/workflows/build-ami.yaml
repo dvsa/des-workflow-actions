@@ -64,6 +64,7 @@ jobs:
         with:
           ref: ${{ inputs.packer-branch }}
           path: packer
+          token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 📨 Checkout Puppet Repo
         uses: actions/checkout@v4
@@ -71,7 +72,7 @@ jobs:
           repository: dvsa/des-puppet
           ref: ${{ inputs.puppet-branch }}
           path: puppet
-          ssh-key: ${{ secrets.PUPPET_REPO_KEY }}
+          token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
