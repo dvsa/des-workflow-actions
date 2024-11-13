@@ -1,14 +1,14 @@
 name: 🧱 Build Mobile App Config
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
+      branch:
+        type: string
+        required: true
       environment:
-        description: Config Environment
-        type: choice
-        options:
-          - uat
-          - live
+        type: string
+        required: true
 
 permissions:
   id-token: write
@@ -18,13 +18,17 @@ jobs:
   build-mobile-app-config:
     runs-on: ubuntu-latest
     steps:
-      - name: 📨 Checkout
+      - name: 📨 Checkout Mobile App Config Repo
         uses: actions/checkout@v4
+        with:
+          repository: dvsa/des-mobile-app-config
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DVSA_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get AWS Secrets
@@ -32,12 +36,6 @@ jobs:
         with:
           secret-ids: des-globals/env
           parse-json-secrets: true
-
-      - name: 📨 Checkout Mobile App Config Repo
-        uses: actions/checkout@v4
-        with:
-          repository: dvsa/des-mobile-app-config
-          ssh-key: ${{ secrets.MOBILE_APP_CONFIG_REPO_KEY }}
 
       - name: ⚙️ Set Up Environment
         run: |

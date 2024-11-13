@@ -10,7 +10,7 @@ on:
       desired-artefact:
         description: The type of artefact to build
         type: string
-        required: true
+        required: false
       github-event-name:
         description: The event that triggers the workflow
         type: string
@@ -56,12 +56,15 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
+          repository: dvsa/des-squidnat
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.GH_TOKEN_TEMP }}
           fetch-depth: 0
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DES_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get AWS Secrets

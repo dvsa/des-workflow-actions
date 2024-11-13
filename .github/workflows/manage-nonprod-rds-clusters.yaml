@@ -1,25 +1,18 @@
 name: 🛢️ Manage NonProd RDS Clusters
-run-name: "${{ github.event_name == 'schedule' && '⏰ Scheduled' || '🛢️Manual' }} ${{ inputs.action || github.event.schedule == '45 05 * * 1-5' && 'start' || 'stop' }} of ${{ inputs.environment || 'all' }} NonProd RDS Clusters"
+run-name: "${{ inputs.event-name == 'schedule' && '⏰ Scheduled' || '🛢️Manual' }} update of ${{ inputs.environment || 'all' }} NonProd RDS Clusters"
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       action:
-        description: RDS Instance Action
-        type: choice
-        options:
-          - start
-          - stop
+        type: string
+        required: false
       environment:
-        description: RDS Instance Environment
-        type: choice
-        options:
-          - uat
-          - perf
-          - prep
-  schedule:
-    - cron: '45 05 * * 1-5'
-    - cron: '45 18 * * 1-5'
+        type: string
+        required: false
+      event-name:
+        type: string
+        required: true
 
 permissions:
   id-token: write
@@ -29,11 +22,8 @@ jobs:
   manage-nonprod-clusters:
     runs-on: ubuntu-latest
     steps:
-      - name: 📨 Checkout
-        uses: actions/checkout@v4
-
       - name: 🕵️ Determine Action
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ inputs.event-name == 'schedule' }}
         id: determine-action
         run: |
           if [ $(date +"%H") -lt 12 ]; then
@@ -45,7 +35,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get Secrets
@@ -57,7 +47,7 @@ jobs:
           parse-json-secrets: true
 
       - name: 🔄 Update Exclusions List
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ inputs.event-name == 'workflow_dispatch' }}
         run: |
           echo "## Update RDS Exclusions" >> $GITHUB_STEP_SUMMARY
 
@@ -84,14 +74,14 @@ jobs:
         if: ${{ inputs.environment != 'prep' }}
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_NONPROD_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🔑 Configure Prod AWS Credentials
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'prep' }}
+        if: ${{ inputs.event-name == 'workflow_dispatch' && inputs.environment == 'prep' }}
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_PROD_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DES_AWS_ROLE_PROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🛠️ Manage NonProd Clusters
@@ -114,7 +104,7 @@ jobs:
             fi
 
             # Ignore clusters that don't match the input environment for workflow_dispatch runs
-            if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "$environment_name" != "${{ inputs.environment }}" ]; then
+            if [ "${{ inputs.event-name }}" == "workflow_dispatch" ] && [ "$environment_name" != "${{ inputs.environment }}" ]; then
               echo "Skipping $cluster_name"
               continue
             fi
