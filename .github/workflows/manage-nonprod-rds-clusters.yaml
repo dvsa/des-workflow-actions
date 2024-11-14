@@ -34,7 +34,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE }}
+          role-to-assume: ${{ secrets.DES_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get Secrets
