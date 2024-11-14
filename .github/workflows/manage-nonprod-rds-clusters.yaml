@@ -1,5 +1,4 @@
 name: 🛢️ Manage NonProd RDS Clusters
-run-name: "${{ inputs.event-name == 'schedule' && '⏰ Scheduled' || '🛢️Manual' }} update of ${{ inputs.environment || 'all' }} NonProd RDS Clusters"
 
 on:
   workflow_call:
