@@ -7,8 +7,8 @@ inputs:
   db-script-branch:
     description: The branch to run the DB scripts from
     required: true
-  db-script-ssh-key:
-    description: The SSH key to access a private DB scripts repository
+  token:
+    description: The token to access a private DB scripts repository
     required: false
   db-script-path:
     description: The path to the DB scripts
@@ -37,7 +37,7 @@ runs:
       with:
         repository: ${{ inputs.db-script-repo }}
         ref: ${{ inputs.db-script-branch }}
-        ssh-key: ${{ inputs.db-script-ssh-key || '' }}
+        token: ${{ inputs.token || '' }}
 
     - name: 🏃 Run Database Scripts
       shell: bash
