@@ -62,6 +62,7 @@ jobs:
       - name: 📨 Checkout Packer Repo
         uses: actions/checkout@v4
         with:
+          repository: dvsa/des-packer
           ref: ${{ inputs.packer-branch }}
           path: packer
           token: ${{ secrets.GH_TOKEN_TEMP }}
