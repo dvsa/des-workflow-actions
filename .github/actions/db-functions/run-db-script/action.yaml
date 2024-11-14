@@ -37,7 +37,7 @@ runs:
       with:
         repository: ${{ inputs.db-script-repo }}
         ref: ${{ inputs.db-script-branch }}
-        token: ${{ inputs.token || '' }}
+        token: ${{ inputs.token || github.token }}
 
     - name: 🏃 Run Database Scripts
       shell: bash
