@@ -272,13 +272,8 @@ jobs:
           ref: ${{ inputs.dynamodb-test-data-branch }}
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
-      - name: ⚙️ Setup Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: ➕ Install Boto3
-        run: pip install boto3
+      - name: ➕ Install Pip
+        run: sudo dnf install python3-pip -y
 
       - name: ➕ Install Requirements
         run: python -m pip install -r requirements.txt --user
