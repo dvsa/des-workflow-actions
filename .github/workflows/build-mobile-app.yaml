@@ -112,7 +112,7 @@ jobs:
         if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
         run: |
           aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
-          bash buildScripts/sentry-deploy.sh
+          npm run sentry-deploy
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
