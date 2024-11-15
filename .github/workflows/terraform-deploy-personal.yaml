@@ -287,8 +287,8 @@ jobs:
 
       - name: ⏳ Load Tables
         run: |
-          python ./load_test_user_data.py ${{ inputs.tf-environment }}
-          python ./load_test_journal_data.py ${{ inputs.tf-environment }}
+          python3 ./load_test_user_data.py ${{ inputs.tf-environment }}
+          python3 ./load_test_journal_data.py ${{ inputs.tf-environment }}
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
