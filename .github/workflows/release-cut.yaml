@@ -1,0 +1,81 @@
+name: ✂️ Release Cut
+on:
+  workflow_call:
+    inputs:
+      create-release-tag:
+        type: string
+        required: true
+      create-release-branch:
+        type: string
+        required: true
+      base-branch:
+        type: string
+        required: false
+      release-branch:
+        type: string
+        required: true
+      release-type:
+        type: string
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release-cut:
+    name: ✂️ Release Cut
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
+    steps:
+      - name: Validate Release Branch
+        run: |
+          if [[ ! "${{ inputs.release-branch }}" =~ ^release-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid Release Branch '${{ inputs.release-branch }}'. Branch should be in the format release-x.x.x"
+            exit 1
+          fi
+
+# INSERT CHECH FOR BRANCH EXIST??
+
+      - name: 🔍 Get Branch
+        id: get_branch
+        shell: bash
+        run: |
+          echo "branch=$(echo ${{ inputs.release-tag }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DES_AWS_ROLE }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🔍 Get Repositories
+        id: get_repositories
+        run: |
+          aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
+          echo "repositories=$(cat repositories.json | jq -rc)" >> $GITHUB_OUTPUT
+          
+          [ "${{ inputs.release-type }}" == "full" ] && release_type="frontend backend" || release_type=${{ inputs.release-type }}
+          echo "release_type=$release_type" >> $GITHUB_OUTPUT
+
+      - name: ✨ Create Release Branch
+        if: ${{ inputs.create-release-branch == 'true' }}
+        uses: dvsa/des-workflow-actions/.github/actions/git-functions/manage-branches@main
+        with:
+          action: Create
+          base-branch: ${{ inputs.base-branch }}
+          branch-name: ${{ steps.get_branch.outputs.branch }}
+          repositories: repositories.json
+          release-type: ${{ steps.get_repositories.outputs.release_type }}
+
+      - name: ✨ Create Release Tag
+        if: ${{ inputs.create-release-tag == 'true' }}
+        uses: dvsa/des-workflow-actions/.github/actions/git-functions/manage-tags@main
+        with:
+          action: Create
+          base-branch: ${{ inputs.base-branch }}
+          branch-name: ${{ steps.get_branch.outputs.branch }}
+          repositories: ${{ steps.get_repositories.outputs.repositories }}
+          release-type: ${{ steps.get_repositories.outputs.release_type }}
+

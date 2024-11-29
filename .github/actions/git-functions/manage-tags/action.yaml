@@ -1,0 +1,98 @@
+name: Manage GitHub Tags
+description: Create or Delete GitHub Tags
+
+inputs:
+  action:
+    description: Delete or Create Action
+    required: true
+  base-branch:
+    description: Source Branch for creation
+    required: false
+  branch-name:
+    description: Name of the Branch to perform actions upon
+    required: true
+  repositories:
+    description: Raw single line JSON list containing repositories to perform actions upon
+    required: true
+  release-type:
+    description: Type of Release (full, frontend, backend)
+    required: true
+  dry-run:
+    description: Don't perform action, just output information
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Create/Delete Release
+      shell: bash
+      run: |
+        # Create/Delete Release
+        echo "# ${{ inputs.action }} Tag Summary ${{ inputs.dry-run == 'true' && '(Dry Run)' || '' }}" >> $GITHUB_STEP_SUMMARY
+
+        gh auth setup-git
+
+        create_release () {
+          local repo=${1} previous_tag=${2} new_tag=${3}
+        
+          # Remove 'release-' prefix from the release tag
+          version_number=$(echo $new_tag | cut -d '-' -f 2)
+        
+          release=$(gh release create $new_tag --title v$version_number --notes "Release-$version_number" \
+          --target ${{ inputs.branch-name }} -R dvsa/$repo --notes-start-tag $previous_tag --generate-notes)
+      
+          if [[ "${release}" =~ https://github.com/dvsa/$repo/* ]]; then
+            printf "✅ Created release tag $new_tag in $repo \n"
+            echo "✅ Created realease tag $new_tag in $repo" >> $GITHUB_STEP_SUMMARY 
+          else
+            printf "❌ Failed to create release tag $new_tag in $repo \n"
+            echo "❌ Failed to create releas tag $new_tag in $repo" >> $GITHUB_STEP_SUMMARY
+          fi
+        }
+        
+        delete_release () {
+          local repo=${1} tags_to_delete=${2}
+        
+          for tag in $tags_to_delete; do
+            echo "$repo - Tag to delete: $tag"
+            gh release delete $tag --cleanup-tag -R dvsa/$repo -y
+          done
+        }
+
+        # Loop through the release components (frontend and/or backend)
+        for release_component in ${{ inputs.release-type }}; do
+          first_repo_in_list=$(jq -rc ".$release_component[0].repoName" ${{ inputs.repos-json-filename }})
+          release_component_tags=$(gh api /repos/dvsa/$first_repo_in_list/tags | jq -r '.[].name')
+        
+          # Determine the latest tag and create or increment the release tag when action is create
+          if [[ "$action" == "Create" ]]; then
+            if [[ "${{ inputs.base-branch }}" == "default" ]]; then
+              previous_tag=$(echo $release_component_tags | jq -r '.[].name' | sort -V | tail -n 1)
+            else
+              previous_tag=$(echo $release_component_tags | jq -r '.[] | select(.name | test("^'"${{ inputs.base-branch }}"'\\..*")) | .name' | sort -V | tail -n 1)
+            fi
+        
+            existing_tag=$(echo $release_component_tags | jq -r '.[] | select(.name | test("^'"${{ inputs.branch-name }}"'\\..*")) | .name' | sort -V | tail -n 1)
+            [ -z "${existing_tag}" ] && new_tag="${{ inputs.branch-name }}.0" || new_tag="${existing_tag%.*}.$(( ${existing_tag##*.} + 1 ))"
+          
+          # Get a list of release tags to delete when action is delete          
+          elif [[ "$action" == "Delete" ]]; then
+            release_tag_to_delete=$(echo $release_component_tags | jq -r '.[] | select(.name | test("^'"$branch"'\\..*")) | .name')
+  
+          else
+            echo "❌ Invalid action requested: $action"
+            exit 1
+          fi
+            
+         release_component_repos=$(jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }})
+         
+         for repo in $release_component_repos; do
+            repo_name=$(jq -r '.repoName' <<< $repo)
+              if [[ "$action" == "Create" ]]; then
+                create_release $repo_name $previous_tag $new_tag
+              else
+                delete_release $repo_name "$release_tag_to_delete"
+              fi
+          done
+          wait
+        done
