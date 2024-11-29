@@ -57,15 +57,18 @@ jobs:
       - name: ☁️ Upload to S3
         id: s3-upload-artefacts
         run: |
+          short_sha=$(echo ${{ github.sha }} | cut -c1-7)
+          
           echo "## Artifacts:" >> $GITHUB_STEP_SUMMARY
           for artifact in "artifacts"/*; do
             aws s3 cp "$artifact" \
-            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artifact#artifacts/}"
+            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artifact#artifacts/%.zip}-$short_sha.zip"
+
             echo "✅ Uploaded ${artifact#artifacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
           
-          echo "VERSION=$(ls artifacts/ | grep -v 'coverage' | head -n 1 | cut -d '-' -f 2)" >> $GITHUB_ENV
-          echo "GIT_REV=$(ls artifacts/ | grep -v 'coverage' | head -n 1 | cut -d - -f 3 | cut -d . -f 1 )" >> $GITHUB_ENV
+          echo "VERSION=$(jq .version package.json)" >> $GITHUB_ENV
+          echo "GIT_REV=$short_sha" >> $GITHUB_ENV
 
       - name: ☁️️ Manifest
         if: ${{ !startsWith(inputs.branch, 'release-') }}
