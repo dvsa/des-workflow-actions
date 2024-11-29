@@ -1,12 +1,12 @@
-name: 🚀 Deploy from New Template
+name: 🚀 Deploy
 
 on:
   workflow_call:
-    branch:
-      description: The branch of the service to build the artefact/s from
-      type: string
-      default: develop
     inputs:
+      branch:
+        description: The branch of the service to build the artefact/s from
+        type: string
+        default: main
       component:
         description: The associated Terraform component for the service
         type: string
@@ -52,19 +52,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-artifacts-${{ github.event.pull_request.number || github.run_id }}
+          path: artifacts
 
       - name: ☁️ Upload to S3
         id: s3-upload-artefacts
         run: |
-          echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
-          for artefact in "artefacts"/*; do
-            aws s3 cp "$artefact" \
-            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
-            echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts:" >> $GITHUB_STEP_SUMMARY
+          for artifact in "artifacts"/*; do
+            aws s3 cp "$artifact" \
+            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artifact#artifacts/}"
+            echo "✅ Uploaded ${artifact#artifacts/} to S3" >> $GITHUB_STEP_SUMMARY
           done
           
-          echo "VERSION=$(ls artefacts/ | grep -v 'coverage' | head -n 1 | cut -d '-' -f 2)" >> $GITHUB_ENV
-          echo "GIT_REV=$(ls artefacts/ | grep -v 'coverage' | head -n 1 | cut -d - -f 3 | cut -d . -f 1 )" >> $GITHUB_ENV
+          echo "VERSION=$(ls artifacts/ | grep -v 'coverage' | head -n 1 | cut -d '-' -f 2)" >> $GITHUB_ENV
+          echo "GIT_REV=$(ls artifacts/ | grep -v 'coverage' | head -n 1 | cut -d - -f 3 | cut -d . -f 1 )" >> $GITHUB_ENV
 
       - name: ☁️️ Manifest
         if: ${{ !startsWith(inputs.branch, 'release-') }}
