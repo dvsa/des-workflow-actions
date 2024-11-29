@@ -1,0 +1,81 @@
+name: 🚀 Deploy from New Template
+
+on:
+  workflow_call:
+    branch:
+      description: The branch of the service to build the artefact/s from
+      type: string
+      default: develop
+    inputs:
+      component:
+        description: The associated Terraform component for the service
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
+    secrets: inherit
+
+  push:
+    name: Push
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: 🔍 Determine service name
+        shell: bash
+        run: echo "SERVICE_NAME=$(jq -r '.name | sub("^(mes|des)-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+
+      - name: 🪪 Get Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
+          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          role-session-name: GHA
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 📥 Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-artifacts-${{ github.event.pull_request.number || github.run_id }}
+
+      - name: ☁️ Upload to S3
+        id: s3-upload-artefacts
+        run: |
+          echo "## Artefacts:" >> $GITHUB_STEP_SUMMARY
+          for artefact in "artefacts"/*; do
+            aws s3 cp "$artefact" \
+            s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/"${artefact#artefacts/}"
+            echo "✅ Uploaded ${artefact#artefacts/} to S3" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          echo "VERSION=$(ls artefacts/ | grep -v 'coverage' | head -n 1 | cut -d '-' -f 2)" >> $GITHUB_ENV
+          echo "GIT_REV=$(ls artefacts/ | grep -v 'coverage' | head -n 1 | cut -d - -f 3 | cut -d . -f 1 )" >> $GITHUB_ENV
+
+      - name: ☁️️ Manifest
+        if: ${{ !startsWith(inputs.branch, 'release-') }}
+        id: create_manifest
+        run: |
+          file_name="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-${{ env.GIT_REV }}.manifest"
+          for func in $(yq eval '.functions | keys' -o=json serverless.yml | jq -r '.[]'); do
+            echo "${func}_version = \"${{ env.VERSION }}-${{ env.GIT_REV }}.zip\"" >> $file_name
+          done
+
+          aws s3 cp $file_name s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
+
+          echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded $file_name to S3" >> $GITHUB_STEP_SUMMARY
