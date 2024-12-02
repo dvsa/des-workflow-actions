@@ -36,7 +36,7 @@ jobs:
       - name: ⚙️ Set Environment Variables
         shell: bash
         run: |        
-          echo "SERVICE_NAME=$(jq -r '.name | sub("mes-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
+          echo "SERVICE_NAME=$(jq -r '.name | sub("des-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
           echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
           echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
@@ -138,7 +138,7 @@ jobs:
             fi    
           
             aws lambda update-function-code --function-name $lambda_function_name \
-            --zip-file fileb://artifacts/artifact_filename \
+            --zip-file fileb://artifacts/$artifact_filename \
             --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
           
             aws lambda wait function-updated --function-name $lambda_function_name
