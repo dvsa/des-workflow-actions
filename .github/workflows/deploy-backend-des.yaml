@@ -6,7 +6,7 @@ on:
       branch:
         description: The branch of the service to build the artifact/s from
         type: string
-        default: main
+        required: true
       environment:
         description: The associated Terraform environment to deploy the service to
         type: string
@@ -88,13 +88,23 @@ jobs:
           echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded \`$manifest\` to S3" >> $GITHUB_STEP_SUMMARY
 
+  debug:
+    name: Debug
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Debug Inputs
+        run: |
+          echo "Branch: ${{ inputs.branch }}"
+          echo "Environment: ${{ inputs.environment }}"
+
   deploy:
     name: 🚀 Deploy
     needs: [build, upload-artifacts]
     if: |
-      ${{ always() && !failure() && !cancelled() && 
+      always() && !failure() && !cancelled() && 
       !startsWith(inputs.branch, 'release-') && 
-      !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment) }}
+      !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment)
     runs-on: ubuntu-latest
 
     steps:
