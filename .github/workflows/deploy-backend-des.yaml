@@ -88,16 +88,6 @@ jobs:
           echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded \`$manifest\` to S3" >> $GITHUB_STEP_SUMMARY
 
-  debug:
-    name: Debug
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Debug Inputs
-        run: |
-          echo "Branch: ${{ inputs.branch }}"
-          echo "Environment: ${{ inputs.environment }}"
-
   deploy:
     name: 🚀 Deploy
     needs: [build, upload-artifacts]
