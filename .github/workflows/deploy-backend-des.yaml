@@ -4,9 +4,13 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: The branch of the service to build the artefact/s from
+        description: The branch of the service to build the artifact/s from
         type: string
         default: main
+      environment:
+        description: The associated Terraform environment to deploy the service to
+        type: string
+        required: true
       component:
         description: The associated Terraform component for the service
         type: string
@@ -25,6 +29,7 @@ jobs:
   upload-artifacts:
     name: ☁️ Upload Artifacts to S3
     needs: build
+    if: ${{ inputs.environment == 'dev' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -60,7 +65,6 @@ jobs:
           path: artifacts
 
       - name: ☁️ Upload Artifacts to S3
-        id: s3-upload-artefacts
         run: |
           echo "## Functions:" >> $GITHUB_STEP_SUMMARY    
           manifest="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-$(date +%s)-${{ env.SHORT_SHA }}.manifest"
@@ -81,13 +85,13 @@ jobs:
           # Upload manifest to S3
           aws s3 cp $manifest s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
 
-          echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
+          echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded \`$manifest\` to S3" >> $GITHUB_STEP_SUMMARY
 
   deploy:
     name: 🚀 Deploy
     needs: [build, upload-artifacts]
-    if: ${{ !startsWith(inputs.branch, 'release-') }}
+    if: ${{ !startsWith(inputs.branch, 'release-') && !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -120,16 +124,16 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🚀 Deploy Lambda Package
-        id: deploy-lambda-package
         run: |
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY       
-          lambda_functions=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, 'mes-dev-api')].FunctionName" --output text | tr '\t' '\n')
+          lambda_functions=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, \
+          'mes-${{ inputs.environment }}-api')].FunctionName" --output text | tr '\t' '\n')
           
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            mv "$artifact" "artifacts/$artifact_filename"
-          
             function_name="${artifact_filename%%-${{ env.VERSION }}*}"
+          
+            mv "$artifact" "artifacts/$artifact_filename"
           
             # Find matching Lambda function using function name
             pattern=$(echo $function_name | sed 's/-/\/ \&\& \//g')
@@ -153,6 +157,5 @@ jobs:
               exit 1
             fi
           
-            echo "Successfully updated ${lambda_function_name}"
-            echo "✅ Deployed \`$artifact_filename\` to Lambda function \`$lambda_function_name\`" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Deployed \`$artifact_filename\` to the \`$lambda_function_name\` Lambda function" >> $GITHUB_STEP_SUMMARY
           done
