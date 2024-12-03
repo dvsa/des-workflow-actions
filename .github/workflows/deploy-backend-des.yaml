@@ -71,7 +71,7 @@ jobs:
             
             # Upload function to S3
             aws s3 cp artifacts/$artifact_filename s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/$artifact_filename
-            echo "✅ Uploaded `$artifact_filename` to S3" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Uploaded \`$artifact_filename\` to S3" >> $GITHUB_STEP_SUMMARY
           
             # Add function to manifest
             function_name="$(echo ${artifact_filename%%-${{ env.VERSION }}*} | tr '-' '_')"
@@ -82,7 +82,7 @@ jobs:
           aws s3 cp $manifest s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
 
           echo "## Manifests:" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Uploaded `$manifest` to S3" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Uploaded \`$manifest\` to S3" >> $GITHUB_STEP_SUMMARY
 
   deploy:
     name: 🚀 Deploy
@@ -154,5 +154,5 @@ jobs:
             fi
           
             echo "Successfully updated ${lambda_function_name}"
-            echo "✅ Deployed `$artifact_filename` to Lambda function `$lambda_function_name`" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Deployed \`$artifact_filename\` to Lambda function \`$lambda_function_name\`" >> $GITHUB_STEP_SUMMARY
           done
