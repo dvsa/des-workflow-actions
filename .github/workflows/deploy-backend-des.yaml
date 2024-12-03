@@ -91,7 +91,10 @@ jobs:
   deploy:
     name: 🚀 Deploy
     needs: [build, upload-artifacts]
-    if: ${{ !startsWith(inputs.branch, 'release-') && !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment) }}
+    if: |
+      ${{ always() && !failure() && !cancelled() && 
+      !startsWith(inputs.branch, 'release-') && 
+      !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment) }}
     runs-on: ubuntu-latest
 
     steps:
