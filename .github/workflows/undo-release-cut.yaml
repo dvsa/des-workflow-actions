@@ -48,7 +48,7 @@ jobs:
       - name: 🔍 Get Repositories
         id: get_repositories
         run: |
-          aws secretsmanager get-secret-value --secret-id des-repositories-test --query SecretString | jq . --raw-output  > repositories.json
+          aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
           echo "repositories=$(cat repositories.json | jq -rc)" >> $GITHUB_OUTPUT
           
           [ "${{ inputs.release-type }}" == "full" ] && release_type="frontend backend" || release_type=${{ inputs.release-type }}
