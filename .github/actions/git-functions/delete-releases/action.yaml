@@ -1,0 +1,58 @@
+name: Delete GitHub Releases
+description: Delete GitHub Release/Tag
+
+inputs:
+  branch-name:
+    description: Name of the Branch to perform actions upon
+    required: true
+  release-type:
+    description: Type of Release (full, frontend, backend)
+    required: true
+  repos-json-filename:
+    description: File name containing the repositories JSON content
+    required: true
+  tag-to-delete:
+    description: The tag to be deleted
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create/Delete Release
+      shell: bash
+      run: |
+        # Delete Release      
+        delete_release() {
+          local repo=$1 tag=$2
+          gh release delete $tag --cleanup-tag -R dvsa/$repo -y && status="🗑️ Deleted" || status="❌ Failed"
+
+          echo "| $repo | $tag | $status |" >> $GITHUB_STEP_SUMMARY
+        }
+        
+        # Main Logic
+        gh auth setup-git
+        echo "## Delete Release Summary" >> $GITHUB_STEP_SUMMARY
+        
+        for release_component in ${{ inputs.release-type }}; do
+          # Output table heading to GitHub Summary
+          echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | Tag | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+        
+          # Get all repositories in a component (frontend/backend) and get shared component tags
+          component_repos=$(jq -rc ".$release_component[].repoName" ${{ inputs.repos-json-filename }})
+          component_tags=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
+        
+          for repo in $component_repos; do     
+            latest_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | sort -V | tail -n 1 || true)
+
+            if ! echo "$component_tags" | grep -q "${{ inputs.tag-to-delete }}"; then
+              echo "| $repo | ${{ inputs.tag-to-delete }} | ☑️ Does not exist |" >> $GITHUB_STEP_SUMMARY
+            elif [[ "${{ inputs.tag-to-delete }}" != "$latest_release_tag" ]]; then
+              echo "| $repo | ${{ inputs.tag-to-delete }} | ❌ Invalid tag: Most recent tag must be provided |" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              delete_release $repo ${{ inputs.tag-to-delete }}
+            fi
+          done
+        done

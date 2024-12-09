@@ -1,0 +1,83 @@
+name: Create GitHub Releases
+description: Create GitHub Release/Tag
+
+inputs:
+  base-branch:
+    description: Source Branch for creation
+    required: false
+  branch-name:
+    description: Name of the Branch to perform actions upon
+    required: true
+  release-type:
+    description: Type of Release (full, frontend, backend)
+    required: true
+  repos-json-filename:
+    description: File name containing the repositories JSON content
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create Release
+      shell: bash
+      run: |
+        # Create Release
+        create_release() {
+          local repo=$1 previous_release_tag=$2 release_tag=$3
+          [[ -n $previous_release_tag ]] && additional_args="--notes-start-tag $previous_release_tag" || additional_args=""
+
+          release=$(gh release create $release_tag --title "v${release_tag#release-}" --notes "Release ${release_tag#release-}" \
+          --target ${{ inputs.branch-name }} -R dvsa/$repo --generate-notes $additional_args)
+        
+          [[ "$release" =~ https://github.com/dvsa/$repo/* ]] && status="✅ Created" || status="❌ Failed"
+        
+          echo "| $repo | $release_tag | $status |" >> $GITHUB_STEP_SUMMARY
+        }
+        
+        # Main Logic
+        gh auth setup-git
+        echo "## Create Tag Summary" >> $GITHUB_STEP_SUMMARY
+        
+        for release_component in ${{ inputs.release-type }}; do          
+          # Get all repositories in a component (frontend/backend) and get shared component tags
+          component_repos=$(jq -rc ".$release_component[].repoName" ${{ inputs.repos-json-filename }})
+          component_tags=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
+          component_branch_exists=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/heads/${{ inputs.branch-name }} |  jq -r '.[].ref')
+          latest_repo=$(jq -rc ".$release_component[-1]" ${{ inputs.repos-json-filename }})
+
+          # Fail workflow if branch doesn't exist
+          if [[ -z "$component_branch_exists" ]]; then
+            echo "❌ Invalid branch: The branch \`${{ inputs.branch-name }}\` has not yet been created" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        
+          # Generate the release tag for a component (frontend/backend)
+          existing_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | tail -n 1 || true)
+          [ -z $existing_tag ] && release_tag="${{ inputs.branch-name }}.0" || release_tag="${existing_tag%.*}.$(( ${existing_tag##*.} + 1 ))"
+        
+          # Output table heading to GitHub Summary
+          echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | Tag | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+        
+          for repo in $component_repos; do
+            # Set default value for previous_release_tag (latest release tag)
+            previous_release_tag=$(echo "$component_tags" | tail -n 1)
+        
+            if [[ "${{ inputs.base-branch }}" != "default" ]]; then
+              previous_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.base-branch }}\\..*" | tail -n 1)
+            fi
+        
+            # Exit the workflow if the repo is not the latest (e.g. when adding a new microservice) and previous_tag_check is empty
+            previous_tag_check=$(gh api /repos/dvsa/$repo/releases | jq -r ".[] | select(.tag_name | test(\"$previous_release_tag\")) | .tag_name")          
+            if [[ -z "$previous_tag_check" ]] && [[ "$latest_repo" != "$repo_name" ]]; then
+              echo "| $repo | $release_tag | ❌ Invalid Previous Release Tag: No matching release tags found |" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              # Set previous_release_tag to empty string for new repositories
+              previous_release_tag=""
+            fi
+        
+            create_release $repo "$previous_release_tag" $release_tag
+          done
+        done
