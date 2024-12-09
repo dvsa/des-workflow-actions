@@ -1,0 +1,73 @@
+name: Create GitHub Branches
+description: Create GitHub Branches
+
+inputs:
+  base-branch:
+    description: Source Branch for creation
+    required: true
+  branch-name:
+    description: Name of the Branch to perform actions upon
+    required: true
+  release-type:
+    description: Type of Release (full, frontend, backend)
+    required: true
+  repos-json-filename:
+    description: File name containing the repositories JSON content
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create Branches
+      shell: bash
+      run: |
+        # Create Branches
+        create_branches () {
+          local repo=$1 base_branch=$2
+          branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/${{ inputs.branch-name }} |  jq -r '.[].ref')
+        
+          if [[ -n $branch_exists ]]; then
+            status="☑️ Already created"
+          else
+            commit_id=$(gh api /repos/dvsa/$repo/branches/$base_branch | jq -r '.commit.sha')
+          
+            gh api -X POST /repos/dvsa/$repo/git/refs -f ref='refs/heads/${{ inputs.branch-name }}' -f sha="${commit_id}" \
+            && { status="✅ Created"; } || { status="❌ Failed"; }
+          fi
+        
+          echo "| $repo | ${{ inputs.branch-name }} | $status |" >> $GITHUB_STEP_SUMMARY
+        }
+        
+        # Main Logic
+        gh auth setup-git
+        echo "## Create Branch Summary" >> $GITHUB_STEP_SUMMARY
+
+        for release_component in ${{ inputs.release-type }}; do
+          echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | Branch | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+        
+          # Get all repositories in a component (frontend/backend)
+          component_repos=$(jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }})
+          latest_repo=$(jq -rc ".$release_component[-1]" ${{ inputs.repos-json-filename }})
+
+          for repo in $component_repos; do      
+            repo_name=$(jq -r '.repoName' <<< $repo)      
+            base_branch_exists=$(gh api /repos/dvsa/$repo_name/git/matching-refs/heads/${{ inputs.base-branch }} |  jq -r '.[].ref')
+            
+            # Set base_branch to the default base branch
+            base_branch=$(jq -r '.baseBranch' <<< $repo)
+        
+            if [[ -n $base_branch_exists ]] && [[ "${{ inputs.base-branch }}" != "default" ]]; then
+              base_branch=${{ inputs.base-branch }} 
+            else
+              # Exit the workflow if the repo is not the latest (e.g. when adding a new microservice) and base branch is not default
+              if [[ "${{ inputs.base-branch }}" != "default" ]] && [[ "$latest_repo" != "$repo_name" ]]; then
+                echo "| $repo | ${{ inputs.branch-name }} | ❌ Invalid Base Branch: \`${{ inputs.base-branch }}\` does not exist |" >> $GITHUB_STEP_SUMMARY
+                exit 1
+              fi
+            fi
+        
+            create_branches $repo_name $base_branch
+          done
+        done
