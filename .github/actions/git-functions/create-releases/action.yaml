@@ -26,7 +26,7 @@ runs:
           local repo=$1 previous_release_tag=$2 release_tag=$3
           [[ -n $previous_release_tag ]] && additional_args="--notes-start-tag $previous_release_tag" || additional_args=""
 
-          release=$(gh release create $release_tag --title "v${release_tag#release-}" --notes "Release ${release_tag#release-}" \
+          release=$(gh release create $release_tag --title "v${release_tag#release-}" \
           --target ${{ inputs.branch-name }} -R dvsa/$repo --generate-notes $additional_args)
         
           [[ "$release" =~ https://github.com/dvsa/$repo/* ]] && status="✅ Created" || status="❌ Failed"
