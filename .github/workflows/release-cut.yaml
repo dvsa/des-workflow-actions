@@ -32,13 +32,11 @@ jobs:
       - name: ✔️ Validate Inputs
         id: validate_release_tag
         run: |
-          if [[ ! "${{ inputs.release-branch }}" =~ ^release-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid Release Branch: ${{ inputs.release-branch }}"
-            exit 1
-          fi
-
-          if [[ ! "${{ inputs.base-branch }}" =~ ^release-[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${{ inputs.base-branch }}" != "default" ]]; then
-            echo "❌ Invalid Base Branch: ${{ inputs.base-branch }}"
+          pattern="^release-[0-9]+\.[0-9]+\.[0-9]+$"
+          
+          if [[ ! "${{ inputs.release-branch }}" =~ $pattern ]] || \
+          [[ ! "${{ inputs.base-branch }}" =~ $pattern && "${{ inputs.base-branch }}" != "default" ]]; then
+            echo "❌ Invalid Branch: Check the input branch and base branch matches the pattern 'release.x.x.x'"
             exit 1
           fi
 
