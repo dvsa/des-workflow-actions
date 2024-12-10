@@ -43,7 +43,6 @@ runs:
           component_repos=$(jq -rc ".$release_component[].repoName" ${{ inputs.repos-json-filename }})
           component_tags=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
           component_branch_exists=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/heads/${{ inputs.branch-name }} |  jq -r '.[].ref')
-          latest_repo=$(jq -rc ".$release_component[-1]" ${{ inputs.repos-json-filename }})
 
           # Fail workflow if branch doesn't exist
           if [[ -z "$component_branch_exists" ]]; then
@@ -65,18 +64,13 @@ runs:
             previous_release_tag=$(echo "$component_tags" | tail -n 1)
         
             if [[ "${{ inputs.base-branch }}" != "default" ]]; then
-              previous_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.base-branch }}\\..*" | tail -n 1)
+              base_branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/${{ inputs.base-branch }} |  jq -r '.[].ref')
+              [[ -n "$base_branch_exists" ]] && previous_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.base-branch }}\\..*" | tail -n 1)
             fi
-        
-            # Exit the workflow if the repo is not the latest (e.g. when adding a new microservice) and previous_tag_check is empty
+            
+            # Fall back to empty string for previous tag if no tags exists to support new repositories being added to repositories.json
             previous_tag_check=$(gh api /repos/dvsa/$repo/releases | jq -r ".[] | select(.tag_name | test(\"$previous_release_tag\")) | .tag_name")          
-            if [[ -z "$previous_tag_check" ]] && [[ "$latest_repo" != "$repo_name" ]]; then
-              echo "| $repo | $release_tag | ❌ Invalid Previous Release Tag: No matching release tags found |" >> $GITHUB_STEP_SUMMARY
-              exit 1
-            else
-              # Set previous_release_tag to empty string for new repositories
-              previous_release_tag=""
-            fi
+            [[ -z "$previous_tag_check" ]] && previous_release_tag=""
         
             create_release $repo "$previous_release_tag" $release_tag
           done
