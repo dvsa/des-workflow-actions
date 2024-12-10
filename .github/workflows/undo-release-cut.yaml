@@ -71,7 +71,7 @@ jobs:
 
       - name: 🗑️ Delete Release Branch
         if: inputs.delete-release-branch == 'true'
-        uses: dvsa/des-workflow-actions/.github/actions/git-functions/delete-branches@master
+        uses: dvsa/des-workflow-actions/.github/actions/git-functions/delete-branches@main
         with:
           branch-name: ${{ inputs.branch-to-delete }}
           repos-json-filename: repositories.json
@@ -79,7 +79,7 @@ jobs:
 
       - name: 🗑️ Delete Release Tags
         if: inputs.delete-release-tag == 'true'
-        uses: dvsa/des-workflow-actions/.github/actions/git-functions/delete-releases@master
+        uses: dvsa/des-workflow-actions/.github/actions/git-functions/delete-releases@main
         with:
           branch-name: ${{ inputs.branch-to-delete }}
           tag-to-delete: ${{ inputs.tag-to-delete }}
