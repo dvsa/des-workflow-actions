@@ -50,9 +50,14 @@ runs:
             exit 1
           fi
         
-          # Generate the release tag for a component (frontend/backend)
+          # Generate the release tag for a component (frontend/backend) and set base branch
           existing_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | tail -n 1 || true)
-          [ -z $existing_tag ] && release_tag="${{ inputs.branch-name }}.0" || release_tag="${existing_tag%.*}.$(( ${existing_tag##*.} + 1 ))"
+          if [[ -z "$existing_tag" ]]; then
+            release_tag="${{ inputs.branch-name }}.0"
+          else 
+            release_tag="${existing_tag%.*}.$(( ${existing_tag##*.} + 1 ))"
+            base_branch="${{ inputs.branch-name }}"
+          fi
         
           # Output table heading to GitHub Summary
           echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
@@ -63,9 +68,9 @@ runs:
             # Set default value for previous_release_tag (latest release tag)
             previous_release_tag=$(echo "$component_tags" | tail -n 1)
         
-            if [[ "${{ inputs.base-branch }}" != "default" ]]; then
-              base_branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/${{ inputs.base-branch }} |  jq -r '.[].ref')
-              [[ -n "$base_branch_exists" ]] && previous_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.base-branch }}\\..*" | tail -n 1)
+            if [[ -n "$existing_tag" ]]; then
+              base_branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/$base_branch |  jq -r '.[].ref')
+              [[ -n "$base_branch_exists" ]] && previous_release_tag=$(echo "$component_tags" | grep -E "^$base_branch\\..*" | tail -n 1 || true)
             fi
             
             # Fall back to empty string for previous tag if no tags exists to support new repositories being added to repositories.json
