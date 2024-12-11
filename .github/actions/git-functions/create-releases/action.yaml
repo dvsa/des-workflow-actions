@@ -64,7 +64,7 @@ runs:
             previous_release_tag=$(echo "$component_tags" | tail -n 1)
 
             # Fall back to empty string for previous tag if no tags exists to support new repositories being added to repositories.json
-            previous_tag_check=$(gh api /repos/dvsa/$repo/releases | jq -r ".[] | select(.tag_name | test(\"$previous_release_tag\")) | .tag_name")          
+            previous_tag_check=$(gh api /repos/dvsa/$repo/git/matching-refs/tags/$previous_release_tag | jq -r ".[].ref")          
             [[ -z "$previous_tag_check" ]] && previous_release_tag=""
         
             create_release $repo "$previous_release_tag" $release_tag
