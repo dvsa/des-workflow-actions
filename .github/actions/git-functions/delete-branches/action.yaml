@@ -19,7 +19,7 @@ runs:
       shell: bash
       run: |
         # Delete Branches
-        delete_branches () {
+        delete_branch () {
           local repo=$1
           branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/${{ inputs.branch-name }} |  jq -r '.[].ref')
         
@@ -54,6 +54,6 @@ runs:
         
           for repo in $component_repos; do
             repo_name=$(jq -r '.repoName' <<< $repo)
-            delete_branches $repo_name
+            delete_branch $repo_name
           done
         done

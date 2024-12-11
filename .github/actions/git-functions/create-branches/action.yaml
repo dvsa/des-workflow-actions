@@ -22,7 +22,7 @@ runs:
       shell: bash
       run: |
         # Create Branches
-        create_branches () {
+        create_branch () {
           local repo=$1 base_branch=$2
           branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/${{ inputs.branch-name }} |  jq -r '.[].ref')
         
@@ -61,6 +61,6 @@ runs:
               [[ -n $base_branch_exists ]] && base_branch=${{ inputs.base-branch }} 
             fi
         
-            create_branches $repo_name $base_branch
+            create_branch $repo_name $base_branch
           done
         done
