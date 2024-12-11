@@ -1,0 +1,87 @@
+name: ↩️ Undo Release Cut
+run-name: "↩️ Undo Release Cut (${{ inputs.release-type }}) | ${{ inputs.tag-to-delete }} | Delete Branch: ${{ inputs.delete-release-branch && '✅' || '❎' }} | Delete Tag: ${{ inputs.delete-release-tag && '✅' || '❎' }}"
+
+on:
+  workflow_call:
+    inputs:
+      branch-to-delete:
+        type: string
+        required: true
+      tag-to-delete:
+        type: string
+        required: true
+      delete-release-branch:
+        type: string
+        required: true
+      delete-release-tag:
+        type: string
+        required: true
+      release-type:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  release-cut:
+    name: ↩️ Undo Release Cut
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
+    steps:
+      - name: ✔️ Validate Release Branch
+        id: validate_release_tag
+        run: |
+          if [[ ! "${{ inputs.branch-to-delete }}" =~ ^release-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid Release Branch '${{ inputs.branch-to-delete }}'. Branch should be in the format release-x.x.x"
+            exit 1
+          fi
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DES_AWS_ROLE }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🔍 Get Repositories
+        id: get_repositories
+        run: |
+          aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
+          echo "repositories=$(cat repositories.json | jq -rc)" >> $GITHUB_OUTPUT
+          
+          [ "${{ inputs.release-type }}" == "full" ] && release_type="frontend backend" || release_type=${{ inputs.release-type }}
+          echo "release_type=$release_type" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Check Release Creation Date
+        run: |
+          for release_component in ${{ steps.get_repositories.outputs.release_type }}; do
+            component_repos=$(jq -rc ".$release_component[].repoName" repositories.json)
+            date_created=$(gh api /repos/MarcBowen/$(echo "$component_repos" | head -n 1)/releases | jq -r '.[] | select(.tag_name | test("${{ inputs.tag-to-delete }}")) | .published_at')
+            date_created_timestamp=$(date -d "$date_created" +%s)
+            current_timestamp=$(date +%s)
+            timestamp_difference=$((current_timestamp - date_created_timestamp))
+          
+            if [ "$timestamp_difference" -ge 86400 ]; then
+              echo "❌ Error: \`${{ inputs.tag-to-delete }}\` will not be deleted as the deletion timeframe has expired (24 hours)" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          done
+
+      - name: 🗑️ Delete Release Branch
+        if: inputs.delete-release-branch == 'true'
+        uses: dvsa/des-workflow-actions/.github/actions/git-functions/delete-branches@main
+        with:
+          branch-name: ${{ inputs.branch-to-delete }}
+          repos-json-filename: repositories.json
+          release-type: ${{ steps.get_repositories.outputs.release_type }}
+
+      - name: 🗑️ Delete Release Tags
+        if: inputs.delete-release-tag == 'true'
+        uses: dvsa/des-workflow-actions/.github/actions/git-functions/delete-releases@main
+        with:
+          branch-name: ${{ inputs.branch-to-delete }}
+          tag-to-delete: ${{ inputs.tag-to-delete }}
+          repos-json-filename: repositories.json
+          release-type: ${{ steps.get_repositories.outputs.release_type }}

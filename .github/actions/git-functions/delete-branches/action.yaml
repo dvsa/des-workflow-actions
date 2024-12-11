@@ -1,0 +1,59 @@
+name: Delete GitHub Branches
+description: Delete GitHub Branches
+
+inputs:
+  branch-name:
+    description: Name of the Branch to perform actions upon
+    required: true
+  release-type:
+    description: Type of Release (full, frontend, backend)
+    required: true
+  repos-json-filename:
+    description: File name containing the repositories JSON content
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Delete Branches
+      shell: bash
+      run: |
+        # Delete Branches
+        delete_branch () {
+          local repo=$1
+          branch_exists=$(gh api /repos/dvsa/$repo/git/matching-refs/heads/${{ inputs.branch-name }} |  jq -r '.[].ref')
+        
+          if [[ -z $branch_exists ]]; then
+            status="☑️ Does not exist"
+          else        
+            gh api -X DELETE /repos/dvsa/$repo/git/refs/heads/${{ inputs.branch-name }} && status="🗑️ Deleted" || status="❌ Failed"
+          fi
+      
+          echo "| $repo | ${{ inputs.branch-name }} | $status |" >> $GITHUB_STEP_SUMMARY
+        }
+
+        # Main Logic
+        gh auth setup-git
+        echo "## ${{ inputs.action }} Branch Summary" >> $GITHUB_STEP_SUMMARY
+
+        for release_component in ${{ inputs.release-type }}; do
+          component_repos=$(jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }})
+          first_component_repo_name=$(jq -rc ".$release_component[0].repoName" ${{ inputs.repos-json-filename }})
+          component_tags=$(gh api /repos/dvsa/$first_component_repo_name/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
+          
+          # Prevent deletion of branches with multiple releases
+          latest_patch_version=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | sort -V | tail -n 1 | awk -F. '{print $NF}' || true)
+          if [[ "$latest_patch_version" -gt 0 ]]; then
+            echo "❌ Error: Branch has multiple matching releases so won't be deleted" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | Branch | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+        
+          for repo in $component_repos; do
+            repo_name=$(jq -r '.repoName' <<< $repo)
+            delete_branch $repo_name
+          done
+        done
