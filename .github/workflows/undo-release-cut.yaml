@@ -1,5 +1,4 @@
 name: ↩️ Undo Release Cut
-run-name: "↩️ Undo Release Cut (${{ inputs.release-type }}) | ${{ inputs.tag-to-delete }} | Delete Branch: ${{ inputs.delete-release-branch && '✅' || '❎' }} | Delete Tag: ${{ inputs.delete-release-tag && '✅' || '❎' }}"
 
 on:
   workflow_call:
@@ -58,7 +57,7 @@ jobs:
         run: |
           for release_component in ${{ steps.get_repositories.outputs.release_type }}; do
             component_repos=$(jq -rc ".$release_component[].repoName" repositories.json)
-            date_created=$(gh api /repos/MarcBowen/$(echo "$component_repos" | head -n 1)/releases | jq -r '.[] | select(.tag_name | test("${{ inputs.tag-to-delete }}")) | .published_at')
+            date_created=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/releases | jq -r '.[] | select(.tag_name | test("${{ inputs.tag-to-delete }}")) | .published_at')
             date_created_timestamp=$(date -d "$date_created" +%s)
             current_timestamp=$(date +%s)
             timestamp_difference=$((current_timestamp - date_created_timestamp))
