@@ -144,6 +144,7 @@ jobs:
           
           object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${filename}"
           echo "object_url=$object_url" >> $GITHUB_OUTPUT
+          echo "filename=$filename" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
         if: always()
@@ -152,4 +153,12 @@ jobs:
           webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
           job: ${{ toJson(job) }}
           steps: ${{ toJson(steps) }}
-          overwrite: "{title: `Branch: ${{ inputs.branch }} | Artefact: ${{ steps.get_s3_object_url.outputs.object_url }} | BY: ${{ github.actor }}`}"
+          overwrite: |
+            {
+              "title": "Branch: ${{ inputs.branch }} | BY: ${{ github.actor }}",
+              "sections": [
+                {
+                  "activitySubtitle": "Artefact download: [${{ steps.get_s3_object_url.outputs.filename }}](https://dvsa-des-mobile-artefacts.s3.eu-west-1.amazonaws.com/github-actions/develop/12633257099/des-develop-develop.12633257099.app.zip)"
+                }
+              ]
+            }
