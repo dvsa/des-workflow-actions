@@ -75,10 +75,23 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: mobile-build-${{ github.repository_id }}
 
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+            des-mobile-app/env
+            des-globals/env
+          parse-json-secrets: true
+
       - name: ⚙️ Set Configuration Files
+        env:
+          IONIC_TOKEN: ${{ env.DES_MOBILE_APP_ENV_IONIC_TOKEN }}
+          DVSA_PACKAGE_TOKEN: ${{ env.DES_MOBILE_APP_ENV_DVSA_PACKAGE_TOKEN }}
+          IONIC_PRODUCT_KEY: ${{ env.DES_MOBILE_APP_ENV_IONIC_PRODUCT_KEY }}
+          IONIC_APP_ID: ${{ env.DES_MOBILE_APP_ENV_IONIC_APP_ID }}
+          IONIC_ORG_ID: ${{ env.DES_MOBILE_APP_ENV_IONIC_ORG_ID }}
         run: |
-          aws secretsmanager get-secret-value --secret-id npmrc --query SecretString | jq . --raw-output  > .npmrc
-          aws secretsmanager get-secret-value --secret-id ionic-config --query SecretString | jq . --raw-output  > ionic.config.json
+          aws secretsmanager get-secret-value --secret-id des-mobile-app-build-config --query SecretString | jq . --raw-output > build-config.sh && bash build-config.sh
           aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
 
       - name: ➕ Install Dependencies
@@ -112,3 +125,40 @@ jobs:
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
         run: bundle exec fastlane release_build
+
+      - name: 🔍 Get S3 Object URL
+        id: get_s3_object_url
+        run: |
+          filename="des-${{ inputs.environment }}-${{ inputs.branch }}-${{ github.run_id }}.app.zip"
+          
+          if [[ ${{ inputs.environment }} == "release" ]]; then
+            version=$(echo ${{ inputs.branch }} | cut -d '-' -f 2)
+            path="release/${version}"
+            short_commit=$(git rev-parse --short HEAD)
+            filename="DrivingExaminerService-${version}-${{ github.run_id }}-${short_commit}.ipa"
+          elif [[ ${{ inputs.environment }} == "feature" ]]; then
+            path="feature/${{ inputs.branch }}/${{ github.run_id }}"
+          else
+            path=${{ inputs.environment }}/${{ github.run_id }}
+          fi 
+          
+          object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${filename}"
+          echo "object_url=$object_url" >> $GITHUB_OUTPUT
+          echo "filename=$filename" >> $GITHUB_OUTPUT
+
+      - name: 🔔 Send MS Teams Notification
+        if: always()
+        uses: skitionek/notify-microsoft-teams@v1.0.4
+        with:
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
+          job: ${{ toJson(job) }}
+          steps: ${{ toJson(steps) }}
+          overwrite: |
+            {
+              "title": "📱 Build Mobile Artefact - Branch: ${{ inputs.branch }} | Environment: ${{ inputs.environment }} | BY: ${{ github.actor }}",
+              "sections": [
+                {
+                  "activitySubtitle": "Artefact download: [${{ steps.get_s3_object_url.outputs.filename }}](${{ steps.get_s3_object_url.outputs.object_url }})"
+                }
+              ]
+            }
