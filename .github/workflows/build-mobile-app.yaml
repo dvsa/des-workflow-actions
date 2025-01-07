@@ -155,10 +155,10 @@ jobs:
           steps: ${{ toJson(steps) }}
           overwrite: |
             {
-              "title": "📱 Build Mobile Artefact - Branch: ${{ inputs.branch }} | BY: ${{ github.actor }}",
+              "title": "📱 Build Mobile Artefact - Branch: ${{ inputs.branch }} | Environment: ${{ inputs.environment }} | BY: ${{ github.actor }}",
               "sections": [
                 {
-                  "activitySubtitle": "Artefact download: [${{ steps.get_s3_object_url.outputs.filename }}](https://dvsa-des-mobile-artefacts.s3.eu-west-1.amazonaws.com/github-actions/develop/12633257099/des-develop-develop.12633257099.app.zip)"
+                  "activitySubtitle": "Artefact download: [${{ steps.get_s3_object_url.outputs.filename }}](${{ steps.get_s3_object_url.outputs.object_url }})"
                 }
               ]
             }
