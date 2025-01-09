@@ -19,7 +19,6 @@ runs:
       id: ms-teams-json
       shell: bash
       run: |
-        count=0
         declare -a steps_context_array=()
         for job in $(echo '${{ inputs.needs-context }}' | jq -c '.[]'); do
           job_status=$(echo "$job" | jq -r '.result')
@@ -31,8 +30,6 @@ runs:
           if [ "$steps_context" != 'null' ]; then
             steps_context_array+=("$steps_context")
           fi
-        
-          count=$((count + 1))
         done
         
         if [ "$unsuccessful_status" ]; then
