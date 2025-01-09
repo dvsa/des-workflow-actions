@@ -3,10 +3,14 @@ name: 🤖 CI
 on:
   workflow_call:
     inputs:
+      branch:
+        description: The branch to run the workflow against
+        type: string
+        required: false
       dynamodb:
         description: Require an install of Serverless DynamoDB
-        default: false
         type: boolean
+        default: false
     secrets:
       DES_ACCESS_TOKEN:
         required: true
@@ -18,6 +22,8 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: 🔍 Read .nvmrc
         id: nvm

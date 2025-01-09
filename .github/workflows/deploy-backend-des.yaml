@@ -24,6 +24,8 @@ jobs:
   build:
     name: 🧱 Build
     uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
+    with:
+      branch: ${{ inputs.branch || github.ref_name }}
     secrets: inherit
 
   upload-artifacts:
@@ -31,15 +33,13 @@ jobs:
     needs: build
     if: ${{ inputs.environment == 'dev' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
-        shell: bash
         run: |        
           echo "SERVICE_NAME=$(jq -r '.name | sub("des-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
           echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
@@ -61,7 +61,7 @@ jobs:
       - name: 📥 Download Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ github.event.repository.name }}-artifacts-${{ github.event.pull_request.number || github.run_id }}
+          name: ${{ github.event.repository.name }}-artifacts-${{ github.run_id }}
           path: artifacts
 
       - name: ☁️ Upload Artifacts to S3
@@ -96,13 +96,13 @@ jobs:
       !startsWith(inputs.branch, 'release-') && 
       !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment)
     runs-on: ubuntu-latest
-
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
-        shell: bash
         run: |
           echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
           echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
@@ -110,7 +110,7 @@ jobs:
       - name: 📥 Download Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ github.event.repository.name }}-artifacts-${{ github.event.pull_request.number || github.run_id }}
+          name: ${{ github.event.repository.name }}-artifacts-${{ github.run_id }}
           path: artifacts
 
       - name: 🪪 Configure AWS Credentials
@@ -162,3 +162,39 @@ jobs:
           
             echo "✅ Deployed \`$artifact_filename\` to the \`$lambda_function_name\` Lambda function" >> $GITHUB_STEP_SUMMARY
           done
+
+  send-teams-notification:
+    if: |
+      always() &&
+      (needs.upload-artifacts.result == 'success' || needs.upload-artifacts.result == 'skipped' || needs.upload-artifacts.result == 'failure') &&
+      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped' || needs.deploy.result == 'failure')
+    needs: [build, upload-artifacts, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 📝 Generate MS Teams Notify JSON
+        id: ms-teams-json
+        uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@main
+        with:
+          needs-context: ${{ toJSON(needs) }}
+
+      - name: 🔔 Send MS Teams Notification
+        if: always()
+        uses: skitionek/notify-microsoft-teams@v1.0.4
+        with:
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_RELEASE_MANIFEST }}
+          job: ${{ steps.ms-teams-json.outputs.job-context }}
+          needs: ${{ toJson(needs) }}
+          steps: ${{ steps.ms-teams-json.outputs.steps-context }}
+          overwrite: "{title: `${{ github.repository }} | ${{ inputs.branch || github.ref_name }} | BY: ${{ github.actor }}`}"
