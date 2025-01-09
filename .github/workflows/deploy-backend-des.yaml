@@ -164,8 +164,11 @@ jobs:
           done
 
   send-teams-notification:
-    if: always()
-    needs: [build, deploy]
+    if: |
+      always() &&
+      (needs.upload-artifacts.result == 'success' || needs.upload-artifacts.result == 'skipped' || needs.upload-artifacts.result == 'failure') &&
+      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped' || needs.deploy.result == 'failure')
+    needs: [build, upload-artifacts, deploy]
     runs-on: ubuntu-latest
     steps:
       - name: 🔑 Configure AWS Credentials
