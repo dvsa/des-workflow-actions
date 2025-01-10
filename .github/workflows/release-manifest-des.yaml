@@ -112,15 +112,16 @@ jobs:
           version=$(jq -r .version package.json)
           timestamp=$(aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
           grep ${{ needs.pre_creation_checks.outputs.short_sha }} | sort -r | head -n 1 | rev | cut -d '-' -f 2 | rev)
+          short_sha=${{ needs.pre_creation_checks.outputs.short_sha }}
           
           for function in functions/*; do
-            funtion_name=$(basename $file | tr '-' '_')
-            echo "${funtion_name}_version = \"${funtion_name}-${version}-${timestamp}-${{ needs.pre_creation_checks.outputs.short_sha }}.zip\"" >> $file_name
+            function_name=$(basename $function)
+            echo "${function_name//-/_}_version = \"${function_name}-${version}-${timestamp}-${short_sha}.zip\"" >> $file_name
           done
 
       - name: ☁️ Upload Release Manifest
         run: |
-          aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/${{ env.FILE_NAME }}
+          aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/
           echo "## Release Manifest:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${{ env.FILE_NAME }} to S3" >> $GITHUB_STEP_SUMMARY
 

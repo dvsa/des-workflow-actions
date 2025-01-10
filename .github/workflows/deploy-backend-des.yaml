@@ -23,7 +23,7 @@ permissions:
 jobs:
   build:
     name: 🧱 Build
-    uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/ci-backend-des.yaml@main
     with:
       branch: ${{ inputs.branch || github.ref_name }}
     secrets: inherit
@@ -31,7 +31,7 @@ jobs:
   upload-artifacts:
     name: ☁️ Upload Artifacts to S3
     needs: build
-    if: ${{ inputs.environment == 'dev' }}
+    if: contains(fromJSON('["dev", "release"]'), inputs.environment)
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
@@ -67,7 +67,7 @@ jobs:
       - name: ☁️ Upload Artifacts to S3
         run: |
           echo "## Functions:" >> $GITHUB_STEP_SUMMARY    
-          manifest="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-$(date +%s)-${{ env.SHORT_SHA }}.manifest"
+          manifest_filename="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-$(date +%s)-${{ env.SHORT_SHA }}.manifest"
 
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
@@ -78,15 +78,16 @@ jobs:
             echo "✅ Uploaded \`$artifact_filename\` to S3" >> $GITHUB_STEP_SUMMARY
           
             # Add function to manifest
-            function_name="$(echo ${artifact_filename%%-${{ env.VERSION }}*} | tr '-' '_')"
-            echo "${function_name}_filename = \"$artifact_filename\"" >> "$manifest"
+            tf_variable_name="$(echo ${artifact_filename%%-${{ env.VERSION }}*} | tr '-' '_')_version"
+            echo "${tf_variable_name} = \"$artifact_filename\"" >> "$manifest_filename"
           done
           
-          # Upload manifest to S3
-          aws s3 cp $manifest s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
-
-          echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Uploaded \`$manifest\` to S3" >> $GITHUB_STEP_SUMMARY
+          # Upload manifest to S3 for dev builds
+          if [[ ${{ inputs.environment }} == "dev" ]]; then
+            aws s3 cp $manifest_filename s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
+            echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Uploaded \`$manifest_filename\` to S3" >> $GITHUB_STEP_SUMMARY
+          fi
 
   deploy:
     name: 🚀 Deploy
@@ -128,24 +129,13 @@ jobs:
 
       - name: 🚀 Deploy Lambda Package
         run: |
-          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY       
-          lambda_functions=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, \
-          'mes-${{ inputs.environment }}-api')].FunctionName" --output text | tr '\t' '\n')
+          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
           
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            function_name="${artifact_filename%%-${{ env.VERSION }}*}"
+            lambda_function_name="mes-${{ inputs.environment }}-api-${artifact_filename%%-${{ env.VERSION }}*}"
           
             mv "$artifact" "artifacts/$artifact_filename"
-          
-            # Find matching Lambda function using function name
-            pattern=$(echo $function_name | sed 's/-/\/ \&\& \//g')
-            lambda_function_name=$(echo "$lambda_functions" | awk "/$pattern/")
-          
-            if [[ -z $lambda_function_name ]]; then
-              echo "Deployment aborted: No equivalent Lambda function found for $function_name"
-              exit 1
-            fi    
           
             aws lambda update-function-code --function-name $lambda_function_name \
             --zip-file fileb://artifacts/$artifact_filename \
