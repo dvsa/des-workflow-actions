@@ -23,7 +23,7 @@ permissions:
 jobs:
   build:
     name: 🧱 Build
-    uses: dvsa/des-workflow-actions/.github/workflows/ci-backend-des.yaml@main
+    uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
     with:
       branch: ${{ inputs.branch || github.ref_name }}
     secrets: inherit
