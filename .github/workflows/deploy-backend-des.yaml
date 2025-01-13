@@ -23,7 +23,7 @@ permissions:
 jobs:
   build:
     name: 🧱 Build
-    uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@MES-10158-ci-workflow-branch-update
+    uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
     with:
       branch: ${{ inputs.branch || github.ref_name }}
     secrets: inherit
