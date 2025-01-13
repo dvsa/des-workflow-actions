@@ -62,21 +62,19 @@ runs:
       if: (inputs.environment == 'uat' && steps.s3_check.outputs.release_manifest_exists == 'false')
       shell: bash
       run: |
-        if ${{ steps.s3_check.outputs.release_manifest_exists == 'false' }}; then
-          IFS=" " read -ra services <<< "${{ env.COMPONENT_SERVICES }}"
-          for service in "${services[@]}"; do
-            s3_key=mes/gha/manifests/releases/${service}_${{ inputs.release-tag }}.manifest
-            if aws s3 cp s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key} ${service}.manifest; then
-              cat ${service}.manifest >> ${{ env.FILE_NAME }}
-            else
-              echo "No release manifest exists for ${service} service."
-            fi
-          done
-          
-          if [[ -s ${{ env.FILE_NAME }} ]]; then
-            s3_key=mes/gha/releases/${{ inputs.component }}_${{ inputs.release-tag }}.tfvars
-            aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key}
+        IFS=" " read -ra services <<< "${{ env.COMPONENT_SERVICES }}"
+        for service in "${services[@]}"; do
+          s3_key=mes/gha/manifests/releases/${service}_${{ inputs.release-tag }}.manifest
+          if aws s3 cp s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key} ${service}.manifest; then
+            cat ${service}.manifest >> ${{ env.FILE_NAME }}
+          else
+            echo "No release manifest exists for ${service} service."
           fi
+        done
+        
+        if [[ -s ${{ env.FILE_NAME }} ]]; then
+          s3_key=mes/gha/releases/${{ inputs.component }}_${{ inputs.release-tag }}.tfvars
+          aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key}
         fi
 
     - name: 📝 Output Command
