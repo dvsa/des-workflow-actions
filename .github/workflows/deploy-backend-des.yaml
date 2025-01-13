@@ -3,10 +3,6 @@ name: 🚀 Deploy
 on:
   workflow_call:
     inputs:
-      branch:
-        description: The branch of the service to build the artifact/s from
-        type: string
-        required: true
       environment:
         description: The associated Terraform environment to deploy the service to
         type: string
@@ -24,8 +20,6 @@ jobs:
   build:
     name: 🧱 Build
     uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
-    with:
-      branch: ${{ inputs.branch || github.ref_name }}
     secrets: inherit
 
   upload-artifacts:
@@ -37,7 +31,7 @@ jobs:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || github.ref_name }}
+          ref: ${{ github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
         run: |        
@@ -94,14 +88,14 @@ jobs:
     needs: [build, upload-artifacts]
     if: |
       always() && !failure() && !cancelled() && 
-      !startsWith(inputs.branch, 'release-') && 
+      !startsWith(github.ref_name, 'release-') && 
       !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment)
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || github.ref_name }}
+          ref: ${{ github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
         run: |
@@ -187,4 +181,4 @@ jobs:
           job: ${{ steps.ms-teams-json.outputs.job-context }}
           needs: ${{ toJson(needs) }}
           steps: ${{ steps.ms-teams-json.outputs.steps-context }}
-          overwrite: "{title: `${{ github.repository }} | ${{ inputs.branch || github.ref_name }} | BY: ${{ github.actor }}`}"
+          overwrite: "{title: `${{ github.repository }} | ${{ github.ref_name }} | BY: ${{ github.actor }}`}"
