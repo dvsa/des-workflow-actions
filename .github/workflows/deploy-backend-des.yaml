@@ -155,11 +155,12 @@ jobs:
     needs: [build, upload-artifacts, deploy]
     runs-on: ubuntu-latest
     steps:
-      - name: 🔑 Configure AWS Credentials
+      - name: 🪪 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
+          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          role-session-name: GHA
 
       - name: 🤫 Get AWS Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
