@@ -134,9 +134,9 @@ jobs:
           [[ "${{ inputs.environment }}" == "feature" ]] && path="feature/${{ inputs.branch }}" || path="${{ inputs.environment }}"
           
           if [[ "${{ inputs.build-ipa }}" == "true" ]]; then
-            path+="/${version}"
+            path="${path}/${version}"
           elif [[ "${{ inputs.build-simulator }}" == "true" ]]; then
-            path+="/${{ github.run_id }}"
+            path="${path}/${{ github.run_id }}"
           fi
           
           object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${{ env.ARTEFACT_FILENAME }}"
