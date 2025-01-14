@@ -128,13 +128,15 @@ jobs:
 
       - name: 🔍 Get S3 Object URL
         id: get_s3_object_url
-        run: |        
-          if [[ ${{ inputs.environment }} == "release" ]]; then
-            path="release/${version}"
-          elif [[ ${{ inputs.environment }} == "feature" ]]; then
-            path="feature/${{ inputs.branch }}/${{ github.run_id }}"
-          else
-            path=${{ inputs.environment }}/${{ github.run_id }}
+        run: |
+          version=$(echo ${{ env.ARTEFACT_FILENAME }} | cut -d '-' -f 2)
+          
+          [[ ${{ inputs.environment }} == "feature" ]] && path="feature/${{ inputs.branch }}" || path="${{ inputs.environment }}"
+          
+          if [[ ${{ inputs.build-ipa }} == "true" ]]; then
+            path+="/${version}"
+          elif [[ ${{ inputs.build-simulator }} == "true" ]]; then
+            path+="/${{ github.run_id }}"
           fi
           
           object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${{ env.ARTEFACT_FILENAME }}"
