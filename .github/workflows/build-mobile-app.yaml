@@ -134,8 +134,8 @@ jobs:
           if [[ ${{ inputs.environment }} == "release" ]]; then
             version=$(echo ${{ inputs.branch }} | cut -d '-' -f 2)
             path="release/${version}"
-            short_sha=$(echo ${{ github.sha }} | cut -c1-7)
-            filename="DrivingExaminerService-${version}-${{ github.run_id }}-${short_sha}.ipa"
+            short_commit=$(git rev-parse --short HEAD)
+            filename="DrivingExaminerService-${version}-${{ github.run_id }}-${short_commit}.ipa"
           elif [[ ${{ inputs.environment }} == "feature" ]]; then
             path="feature/${{ inputs.branch }}/${{ github.run_id }}"
           else
