@@ -129,13 +129,13 @@ jobs:
       - name: 🔍 Get S3 Object URL
         id: get_s3_object_url
         run: |
-          version=$(echo ${{ env.ARTEFACT_FILENAME }} | cut -d '-' -f 2)
+          version="$(echo "${{ env.ARTEFACT_FILENAME }}" | cut -d '-' -f 2)"
           
-          [[ ${{ inputs.environment }} == "feature" ]] && path="feature/${{ inputs.branch }}" || path="${{ inputs.environment }}"
+          [[ "${{ inputs.environment }}" == "feature" ]] && path="feature/${{ inputs.branch }}" || path="${{ inputs.environment }}"
           
-          if [[ ${{ inputs.build-ipa }} == "true" ]]; then
+          if [[ "${{ inputs.build-ipa }}" == "true" ]]; then
             path+="/${version}"
-          elif [[ ${{ inputs.build-simulator }} == "true" ]]; then
+          elif [[ "${{ inputs.build-simulator }}" == "true" ]]; then
             path+="/${{ github.run_id }}"
           fi
           
