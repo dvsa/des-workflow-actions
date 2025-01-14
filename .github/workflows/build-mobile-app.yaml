@@ -128,23 +128,17 @@ jobs:
 
       - name: 🔍 Get S3 Object URL
         id: get_s3_object_url
-        run: |
-          filename="des-${{ inputs.environment }}-${{ inputs.branch }}-${{ github.run_id }}.app.zip"
-          
+        run: |        
           if [[ ${{ inputs.environment }} == "release" ]]; then
-            version=$(echo ${{ inputs.branch }} | cut -d '-' -f 2)
             path="release/${version}"
-            short_commit=$(git rev-parse --short HEAD)
-            filename="DrivingExaminerService-${version}-${{ github.run_id }}-${short_commit}.ipa"
           elif [[ ${{ inputs.environment }} == "feature" ]]; then
             path="feature/${{ inputs.branch }}/${{ github.run_id }}"
           else
             path=${{ inputs.environment }}/${{ github.run_id }}
-          fi 
+          fi
           
-          object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${filename}"
+          object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${{ env.ARTEFACT_FILENAME }}"
           echo "object_url=$object_url" >> $GITHUB_OUTPUT
-          echo "filename=$filename" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
         if: always()
@@ -158,7 +152,7 @@ jobs:
               "title": "📱 Build Mobile Artefact - Branch: ${{ inputs.branch }} | Environment: ${{ inputs.environment }} | BY: ${{ github.actor }}",
               "sections": [
                 {
-                  "activitySubtitle": "Artefact download: [${{ steps.get_s3_object_url.outputs.filename }}](${{ steps.get_s3_object_url.outputs.object_url }})"
+                  "activitySubtitle": "Artefact download: [${{ env.ARTEFACT_FILENAME }}](${{ steps.get_s3_object_url.outputs.object_url }})"
                 }
               ]
             }
