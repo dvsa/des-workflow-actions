@@ -14,29 +14,29 @@ on:
         description: The Terraform environment to deploy to
         type: string
         required: true
+      dmsbase:
+        description: Whether to deploy the DMSBASE component
+        type: boolean
+        default: true
+        required: false
       api:
-        description: Whether to deploy the API component when deploying to dev (default is true for other environments)
+        description: Whether to deploy the API component
         type: boolean
         default: true
         required: false
       drs:
-        description: Whether to deploy the DRS component when deploying to dev (default is true for other environments)
+        description: Whether to deploy the DRS component
         type: boolean
         default: true
         required: false
       dms:
-        description: Whether to deploy the DMS component when deploying to dev (default is true for other environments)
+        description: Whether to deploy the DMS component
         type: boolean
         default: true
         required: false
       release-tag:
         description: The version of the microservices to be deployed
         type: string
-        required: false
-      drs-early-run:
-        description: Whether to deploy the DRS component before the API component (required when changes are made to the ref-data VPC endpoint service)
-        type: boolean
-        default: false
         required: false
       tf-args:
         description: Additional Terraform arguments
@@ -108,7 +108,7 @@ jobs:
   deploy-dmsbase:
     name: 🧩 DMSBASE
     needs: [start-ec2-runner, stop-dms-tasks]
-    if: always() && !failure() && !cancelled() && inputs.tf-environment != 'dev'
+    if: always() && !failure() && !cancelled() && inputs.tf-environment != 'dev' && inputs.dmsbase == true
     strategy:
       max-parallel: 1
       matrix:
@@ -121,32 +121,11 @@ jobs:
       tf-environment: ${{ inputs.tf-environment == 'perf' && 'nonprod' || inputs.tf-environment }}
       tf-component: dmsbase
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 0
-    secrets: inherit
-
-  deploy-drs-early-run:
-    name: 🧩 DRS (Early Run)
-    needs: [start-ec2-runner, deploy-dmsbase]
-    if: always() && !failure() && !cancelled() && inputs.drs-early-run == true
-    strategy:
-      max-parallel: 1
-      matrix:
-        tf-action: [plan, apply]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
-    with:
-      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
-      branch: ${{ inputs.branch }}
-      aws-account: ${{ inputs.aws-account }}
-      tf-environment: ${{ inputs.tf-environment }}
-      tf-component: drs
-      release-tag: ${{ inputs.release-tag }}
-      tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: early-run
     secrets: inherit
 
   deploy-api:
     name: 🧩 API
-    needs: [start-ec2-runner, deploy-drs-early-run]
+    needs: [start-ec2-runner, deploy-dmsbase]
     if: always() && !failure() && !cancelled() && inputs.api == true
     strategy:
       max-parallel: 1
@@ -162,7 +141,6 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: ${{ inputs.tf-environment != 'dev' && '1' || '' }}
     secrets: inherit
 
   deploy-drs:
@@ -183,7 +161,6 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: ${{ inputs.tf-environment != 'dev' && '2' || '' }}
     secrets: inherit
 
   create-db-users:
@@ -247,7 +224,6 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: ${{ inputs.tf-environment != 'dev' && '3' || '' }}
     secrets: inherit
 
   full-dms-deploy:
