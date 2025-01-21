@@ -61,7 +61,7 @@ jobs:
         run: npm run package
 
       - name: ☁️ Upload to GitHub Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: '${{env.SERVICE_NAME}}-artefacts-${{github.run_id}}'
           retention-days: 3
