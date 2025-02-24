@@ -30,8 +30,6 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
         run: |        
@@ -96,8 +94,6 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
         run: |
