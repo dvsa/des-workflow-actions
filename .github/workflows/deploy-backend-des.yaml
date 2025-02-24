@@ -65,6 +65,8 @@ jobs:
 
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
+            function_name="${artifact_filename%%-${{ env.VERSION }}*}"
+            version="${artifact_filename#$function_name-}"
             mv "$artifact" "artifacts/$artifact_filename"
             
             # Upload function to S3
@@ -72,8 +74,8 @@ jobs:
             echo "✅ Uploaded \`$artifact_filename\` to S3" >> $GITHUB_STEP_SUMMARY
           
             # Add function to manifest
-            tf_variable_name="$(echo ${artifact_filename%%-${{ env.VERSION }}*} | tr '-' '_')_version"
-            echo "${tf_variable_name} = \"$artifact_filename\"" >> "$manifest_filename"
+            tf_variable_name="${function_name//-/_}_version"
+            echo "${function_name//-/_}_version = \"$version\"" >> "$manifest_filename"
           done
           
           # Upload manifest to S3 for dev builds
@@ -89,7 +91,7 @@ jobs:
     if: |
       always() && !failure() && !cancelled() && 
       !startsWith(github.ref_name, 'release-') && 
-      !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment)
+      !contains(fromJSON('["live", "prod", "prep", "uat", "release"]'), inputs.environment)
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
@@ -127,7 +129,7 @@ jobs:
           
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            lambda_function_name="mes-${{ inputs.environment }}-api-${artifact_filename%%-${{ env.VERSION }}*}"
+            lambda_function_name="mes-${{ inputs.environment }}-${{ inputs.component }}-${artifact_filename%%-${{ env.VERSION }}*}"
           
             mv "$artifact" "artifacts/$artifact_filename"
           
