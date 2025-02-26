@@ -97,6 +97,7 @@ jobs:
 
       - name: ⚙️ Set Environment Variables
         run: |
+          echo "SERVICE_NAME=$(jq -r '.name | sub("des-"; "") | sub ("-service"; "")' package.json)" >> $GITHUB_ENV
           echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
           echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
@@ -125,7 +126,7 @@ jobs:
           
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            lambda_function_name="mes-${{ inputs.environment }}-${{ inputs.component }}-${artifact_filename%%-${{ env.VERSION }}*}"
+            lambda_function_name="mes-${{ inputs.environment }}-${{ inputs.component }}-${{ env.SERVICE_NAME }}-${artifact_filename%%-${{ env.VERSION }}*}"
           
             mv "$artifact" "artifacts/$artifact_filename"
           
