@@ -15,20 +15,13 @@ permissions:
 jobs:
   pre_creation_checks:
     outputs:
-      branch: ${{ steps.get_branch.outputs.branch }}
       service_name: ${{ steps.get_service.outputs.service_name }}
       short_sha: ${{ steps.set_outputs.outputs.short_sha }}
       release_build_required: ${{ steps.s3_files.outputs.release_build_required }}
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 Get Branch
-        id: get_branch
-        run: echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
-
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.get_branch.outputs.branch }}
 
       - name: ⚙️ Set Outputs
         id: set_outputs
@@ -74,7 +67,6 @@ jobs:
     if: ${{ needs.pre_creation_checks.outputs.release_build_required == 'true' }}
     uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend-des.yaml@main
     with:
-      branch: ${{ needs.pre_creation_checks.outputs.branch }}
       environment: release
       component: ${{ inputs.component }}
     secrets: inherit
@@ -89,8 +81,6 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.pre_creation_checks.outputs.branch }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -112,15 +102,16 @@ jobs:
           version=$(jq -r .version package.json)
           timestamp=$(aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
           grep ${{ needs.pre_creation_checks.outputs.short_sha }} | sort -r | head -n 1 | rev | cut -d '-' -f 2 | rev)
+          short_sha=${{ needs.pre_creation_checks.outputs.short_sha }}
           
           for function in functions/*; do
-            funtion_name=$(basename $file | tr '-' '_')
-            echo "${funtion_name}_version = \"${funtion_name}-${version}-${timestamp}-${{ needs.pre_creation_checks.outputs.short_sha }}.zip\"" >> $file_name
+            function_name=$(basename $function)
+            echo "${function_name//-/_}_version = \"${version}-${timestamp}-${short_sha}.zip\"" >> $file_name
           done
 
       - name: ☁️ Upload Release Manifest
         run: |
-          aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/${{ env.FILE_NAME }}
+          aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/releases/
           echo "## Release Manifest:" >> $GITHUB_STEP_SUMMARY
           echo "✅ Uploaded ${{ env.FILE_NAME }} to S3" >> $GITHUB_STEP_SUMMARY
 

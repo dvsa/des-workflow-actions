@@ -3,10 +3,6 @@ name: 🚀 Deploy
 on:
   workflow_call:
     inputs:
-      branch:
-        description: The branch of the service to build the artifact/s from
-        type: string
-        required: true
       environment:
         description: The associated Terraform environment to deploy the service to
         type: string
@@ -24,20 +20,16 @@ jobs:
   build:
     name: 🧱 Build
     uses: dvsa/appdev-github-actions/.github/workflows/ci-backend.yaml@main
-    with:
-      branch: ${{ inputs.branch || github.ref_name }}
     secrets: inherit
 
   upload-artifacts:
     name: ☁️ Upload Artifacts to S3
     needs: build
-    if: ${{ inputs.environment == 'dev' }}
+    if: contains(fromJSON('["dev", "release"]'), inputs.environment)
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
         run: |        
@@ -67,10 +59,12 @@ jobs:
       - name: ☁️ Upload Artifacts to S3
         run: |
           echo "## Functions:" >> $GITHUB_STEP_SUMMARY    
-          manifest="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-$(date +%s)-${{ env.SHORT_SHA }}.manifest"
+          manifest_filename="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-$(date +%s)-${{ env.SHORT_SHA }}.manifest"
 
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
+            function_name="${artifact_filename%%-${{ env.VERSION }}*}"
+            version="${artifact_filename#$function_name-}"
             mv "$artifact" "artifacts/$artifact_filename"
             
             # Upload function to S3
@@ -78,29 +72,28 @@ jobs:
             echo "✅ Uploaded \`$artifact_filename\` to S3" >> $GITHUB_STEP_SUMMARY
           
             # Add function to manifest
-            function_name="$(echo ${artifact_filename%%-${{ env.VERSION }}*} | tr '-' '_')"
-            echo "${function_name}_filename = \"$artifact_filename\"" >> "$manifest"
+            tf_variable_name="${function_name//-/_}_version"
+            echo "${function_name//-/_}_version = \"$version\"" >> "$manifest_filename"
           done
           
-          # Upload manifest to S3
-          aws s3 cp $manifest s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
-
-          echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Uploaded \`$manifest\` to S3" >> $GITHUB_STEP_SUMMARY
+          # Upload manifest to S3 for dev builds
+          if [[ ${{ inputs.environment }} == "dev" ]]; then
+            aws s3 cp $manifest_filename s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/manifests/dev/
+            echo "## Manifest:" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Uploaded \`$manifest_filename\` to S3" >> $GITHUB_STEP_SUMMARY
+          fi
 
   deploy:
     name: 🚀 Deploy
     needs: [build, upload-artifacts]
     if: |
       always() && !failure() && !cancelled() && 
-      !startsWith(inputs.branch, 'release-') && 
-      !contains(fromJSON('["live", "prod", "prep", "uat"]'), inputs.environment)
+      !startsWith(github.ref_name, 'release-') && 
+      !contains(fromJSON('["live", "prod", "prep", "uat", "release"]'), inputs.environment)
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: ⚙️ Set Environment Variables
         run: |
@@ -128,24 +121,13 @@ jobs:
 
       - name: 🚀 Deploy Lambda Package
         run: |
-          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY       
-          lambda_functions=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, \
-          'mes-${{ inputs.environment }}-api')].FunctionName" --output text | tr '\t' '\n')
+          echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
           
           for artifact in artifacts/*; do
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            function_name="${artifact_filename%%-${{ env.VERSION }}*}"
+            lambda_function_name="mes-${{ inputs.environment }}-${{ inputs.component }}-${artifact_filename%%-${{ env.VERSION }}*}"
           
             mv "$artifact" "artifacts/$artifact_filename"
-          
-            # Find matching Lambda function using function name
-            pattern=$(echo $function_name | sed 's/-/\/ \&\& \//g')
-            lambda_function_name=$(echo "$lambda_functions" | awk "/$pattern/")
-          
-            if [[ -z $lambda_function_name ]]; then
-              echo "Deployment aborted: No equivalent Lambda function found for $function_name"
-              exit 1
-            fi    
           
             aws lambda update-function-code --function-name $lambda_function_name \
             --zip-file fileb://artifacts/$artifact_filename \
@@ -171,11 +153,12 @@ jobs:
     needs: [build, upload-artifacts, deploy]
     runs-on: ubuntu-latest
     steps:
-      - name: 🔑 Configure AWS Credentials
+      - name: 🪪 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
+          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          role-session-name: GHA
 
       - name: 🤫 Get AWS Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
@@ -197,4 +180,4 @@ jobs:
           job: ${{ steps.ms-teams-json.outputs.job-context }}
           needs: ${{ toJson(needs) }}
           steps: ${{ steps.ms-teams-json.outputs.steps-context }}
-          overwrite: "{title: `${{ github.repository }} | ${{ inputs.branch || github.ref_name }} | BY: ${{ github.actor }}`}"
+          overwrite: "{title: `${{ github.repository }} | ${{ github.ref_name }} | BY: ${{ github.actor }}`}"
