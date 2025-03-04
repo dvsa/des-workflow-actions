@@ -6,7 +6,7 @@ inputs:
     required: true
   task-wait-timeout:
     description: How long to wait in seconds for the task to complete
-    required: true
+    required: false
   sleep-time:
     description: The number of seconds to sleep before checking the task progress
     required: false
@@ -47,6 +47,7 @@ runs:
         sleep ${{ inputs.sleep-time }}
 
     - name: ⏳ Wait for Task to Complete
+      if: ${{ inputs.task-wait-timeout }}
       shell: bash
       run: |
         elapsed=0

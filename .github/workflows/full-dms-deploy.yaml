@@ -110,8 +110,8 @@ jobs:
 
       - name: 🏃 Run Static Task Full Load
         run: |
-          echo "⏳ Giving AWS checks a chance to complete"
-          sleep 90
+#          echo "⏳ Giving AWS checks a chance to complete"
+#          sleep 90
 
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.static_task_arn }} \
           --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type reload-target --query 'ReplicationTask.Status'
@@ -126,7 +126,7 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ⏳ Wait for Static Task Full Load
-        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-for-replication-task@main
         with:
           task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
           task-wait-timeout: 6000
@@ -134,11 +134,10 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ⏳ Wait for Date Filtered Task Full Load
-        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-for-replication-task@main
         with:
           task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
           task-wait-timeout: 1200
-          sleep-time: 60
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ⏹️ Stop Static Task
@@ -171,20 +170,18 @@ jobs:
           aws dms start-replication-task --replication-task-arn ${{ steps.dms-tasks.outputs.date_filtered_task_arn }} \
           --region ${{ secrets.DVSA_AWS_REGION }} --start-replication-task-type resume-processing --query 'ReplicationTask.Status'
           
-          echo "▶️ Tasks resumed."
+          echo "▶️ Tasks resuming..."
 
-      - name: ⏳ Wait for Static Task Full Load
-        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+      - name: ⏳ Wait for Static Task to Resume
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-for-replication-task@main
         with:
           task-arn: ${{ steps.dms-tasks.outputs.static_task_arn }}
-          task-wait-timeout: 600
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
-      - name: ⏳ Wait for Date Filtered Task Full Load
-        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-until-task-complete@main
+      - name: ⏳ Wait for Date Filtered Task to Resume
+        uses: dvsa/des-workflow-actions/.github/actions/dms-functions/wait-for-replication-task@main
         with:
           task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
-          task-wait-timeout: 600
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🏃 Run Journals Poller
