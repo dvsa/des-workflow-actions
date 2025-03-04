@@ -189,7 +189,6 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: ✅ Enable Pollers and DMS Task Updater
-        if: github.event_name == 'workflow_call'
         run: |
           IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
           for rule in "${cw_rules[@]}"; do
