@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch
+        type: string
+        required: true
+
+env:
+  CI: true
+  DES_IONIC_CONFIG_JSON: ${{ secrets.DES_IONIC_CONFIG_JSON }}
+  DES_IONIC_KEY: ${{ secrets.DES_IONIC_KEY }}
+  DES_ACCESS_TOKEN: ${{ secrets.DES_ACCESS_TOKEN }}
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-checks:
+    runs-on: mito-2
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: 🔍 Read .nvmrc
+        id: nvm
+        run: echo "node-version=$(cat .nvmrc)" >> $GITHUB_OUTPUT
+
+      - name: 🔧 Create .npmrc
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=$DES_ACCESS_TOKEN" >> ~/.npmrc
+
+          # Use npm registry for @dvsa/biome-config
+          echo "@dvsa/biome-config:registry=https://registry.npmjs.org/" >> .npmrc
+
+          # Use GitHub Packages registry for all other @dvsa scoped packages
+          echo "@dvsa:registry=https://npm.pkg.github.com" >> .npmrc
+
+          echo "@ionic-enterprise:registry=https://registry.ionicframework.com/" >> .npmrc
+          echo "//registry.ionicframework.com/:_authToken=$DES_IONIC_KEY" >> .npmrc
+
+      - name: 🔧 Create ionic.config.json
+        run: echo "$DES_IONIC_CONFIG_JSON" >> ionic.config.json
+
+      - name: ⚙️ Setup Node.js ${{ steps.nvm.outputs.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvm.outputs.node-version }}
+
+      - name: ➕ Install dependencies
+        run: npm ci
+
+      - name: 📝 Configure Ruby Gems
+        run: |
+          echo "PATH=$HOME/.gem/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
+          echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
+
+      - name: ⚒️ Build project
+        run: npm run build:ci
+
+      - name: 📝 Lint codebase
+        run: npm run lint
+
+      - name: 🧪️ Execute unit tests
+        run: npm run test
