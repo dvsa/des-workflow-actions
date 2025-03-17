@@ -149,11 +149,11 @@ jobs:
               "sections": [
                 {
                   "facts": [{
-                    "name": "Artefact download",
-                    "value": "[${{ env.ARTEFACT_FILENAME }}](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
+                    "name": "📥 Download:",
+                    "value": "[Download Artefact](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
                   }, {
-                    "name": "Install link",
-                    "value": "[Click Here](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
+                    "name": "📲 Install:",
+                    "value": "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
                   }]
                 }
               ]
