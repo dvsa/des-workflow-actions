@@ -145,10 +145,8 @@ jobs:
           steps: ${{ toJson(steps) }}
           overwrite: |
             {
+              "title": "📱 ${{ github.actor }} Triggered a Mobile App Build",
               "sections": [{
-                "activityTitle": "📱 ${{ github.actor }} Triggered a Mobile App Build",
-                "activitySubtitle": "DES Mobile App",
-
                   "facts": [{
                     "name": "🏷️ Branch/Tag:",
                     "value": "${{ inputs.branch || github.ref_name }}"
