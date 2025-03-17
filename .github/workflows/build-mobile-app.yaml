@@ -145,16 +145,22 @@ jobs:
           steps: ${{ toJson(steps) }}
           overwrite: |
             {
-              "title": "📱 Branch/Tag: ${{ inputs.branch || github.ref_name }} | Environment: ${{ inputs.environment }} | BY: ${{ github.actor }}",
-              "sections": [
-                {
+              "sections": [{
+                "activityTitle": "📱 ${{ github.actor }} Triggered a Mobile App Build",
+                "activitySubtitle": "DES Mobile App",
+
                   "facts": [{
+                    "name": "🏷️ Branch/Tag:",
+                    "value": "${{ inputs.branch || github.ref_name }}"
+                  }, {
+                    "name": "⚙️ Environment:",
+                    "value": "${{ inputs.environment }}"
+                  }, {
                     "name": "📥 Download:",
                     "value": "[Download Artefact](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
                   }, {
                     "name": "📲 Install:",
                     "value": "[Open Installation Page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
                   }]
-                }
-              ]
+              }]
             }
