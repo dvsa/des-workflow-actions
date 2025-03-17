@@ -7,7 +7,7 @@ on:
         required: true
       branch:
         type: string
-        required: true
+        required: false
       environment:
         type: string
         required: true
@@ -25,7 +25,7 @@ on:
       build-ipa:
         type: string
         required: false
-        default: false
+        default: true
 
     secrets:
       AWS_ROLE:
@@ -45,7 +45,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     env:
       RUN_ID: ${{ github.run_id }}
-      BRANCH: ${{ inputs.branch }}
+      GH_REF_NAME: ${{ inputs.branch || github.ref_name }}
       ENVIRONMENT: ${{ inputs.environment }}
       AWS_REGION: eu-west-1
       LC_ALL: 'en_US.UTF-8'
@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-mobile-app
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
@@ -124,23 +124,17 @@ jobs:
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
-        run: bundle exec fastlane release_build
+        run: bundle exec fastlane build
 
-      - name: 🔍 Get S3 Object URL
+      - name: 🔍 Get S3 Object URLs
         id: get_s3_object_url
-        run: |
-          version="$(echo "${{ env.ARTEFACT_FILENAME }}" | cut -d '-' -f 2)"
+        run: |        
+          artefact_base_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${{ env.S3_PATH }}"
+          artefact_download_url="${artefact_base_url}/${{ env.ARTEFACT_FILENAME }}"
+          artefact_install_url="${artefact_base_url}/${{ env.INSTALL_URL }}"
           
-          [[ "${{ inputs.environment }}" == "feature" ]] && path="feature/${{ inputs.branch }}" || path="${{ inputs.environment }}"
-          
-          if [[ "${{ inputs.build-ipa }}" == "true" ]]; then
-            path="${path}/${version}"
-          elif [[ "${{ inputs.build-simulator }}" == "true" ]]; then
-            path="${path}/${{ github.run_id }}"
-          fi
-          
-          object_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${path}/${{ env.ARTEFACT_FILENAME }}"
-          echo "object_url=$object_url" >> $GITHUB_OUTPUT
+          echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
+          echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
         if: always()
@@ -151,10 +145,16 @@ jobs:
           steps: ${{ toJson(steps) }}
           overwrite: |
             {
-              "title": "📱 Build Mobile Artefact - Branch: ${{ inputs.branch }} | Environment: ${{ inputs.environment }} | BY: ${{ github.actor }}",
+              "title": "📱 Branch/Tag: ${{ inputs.branch || github.ref_name }} | Environment: ${{ inputs.environment }} | BY: ${{ github.actor }}",
               "sections": [
                 {
-                  "activitySubtitle": "Artefact download: [${{ env.ARTEFACT_FILENAME }}](${{ steps.get_s3_object_url.outputs.object_url }})"
+                  "facts": [{
+                    "name": "Artefact download",
+                    "value": "[${{ env.ARTEFACT_FILENAME }}](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
+                  }, {
+                    "name": "Install link",
+                    "value": "[Click Here](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
+                  }]
                 }
               ]
             }
