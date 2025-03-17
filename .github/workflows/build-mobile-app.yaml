@@ -153,7 +153,7 @@ jobs:
                     "value": "[Download Artefact](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
                   }, {
                     "name": "📲 Install:",
-                    "value": "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
+                    "value": "[Open Installation Page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
                   }]
                 }
               ]
