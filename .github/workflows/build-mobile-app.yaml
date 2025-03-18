@@ -145,7 +145,7 @@ jobs:
           steps: ${{ toJson(steps) }}
           overwrite: |
             {
-              "title": "📱 ${{ github.actor }} Triggered a Mobile App Build",
+              "title": "📱 ${{ github.actor }} triggered a mobile app build",
               "sections": [{
                   "facts": [{
                     "name": "🏷️ Branch/Tag:",
@@ -155,10 +155,10 @@ jobs:
                     "value": "${{ inputs.environment }}"
                   }, {
                     "name": "📥 Download:",
-                    "value": "[Download Artefact](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
+                    "value": "[download artefact](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
                   }, {
                     "name": "📲 Install:",
-                    "value": "[Open Installation Page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
+                    "value": "[open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
                   }]
               }]
             }
