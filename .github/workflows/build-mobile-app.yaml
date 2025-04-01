@@ -139,7 +139,7 @@ jobs:
       - name: 📝Generate MS Teams JSON
         id: generate_ms_teams_json
         run: |
-          json=$(jq -n \
+          json=$(jq -nc \
           --arg actor "${{ github.actor }}" \
           --arg branch "${{ inputs.branch || github.ref_name }}" \
           --arg environment "${{ inputs.environment }}" \
