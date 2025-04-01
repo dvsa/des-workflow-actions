@@ -176,4 +176,4 @@ jobs:
           webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
           job: ${{ toJson(job) }}
           steps: ${{ toJson(steps) }}
-          overwrite: ${{ fromJSON(steps.generate_ms_teams_json.outputs.json) }}
+          overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
