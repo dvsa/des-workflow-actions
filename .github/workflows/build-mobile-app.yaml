@@ -167,7 +167,7 @@ jobs:
 
           jq -cR << $json
           
-          echo "json=$json" >> $GITHUB_OUTPUT
+          echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
         if: always()
