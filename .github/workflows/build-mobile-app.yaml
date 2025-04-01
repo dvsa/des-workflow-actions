@@ -154,19 +154,13 @@ jobs:
               ]
             }]
           }')"
-          
-          echo $json
-          
+                    
           if [[ "${{ inputs.environment }}" == "feature" ]]; then
             json=$(jq '.sections[].facts += [{
               name: "📲 Install:", value: "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
             }]' <<< "$json")
           fi
-          
-          echo $json
-
-          jq -cR << $json
-          
+                    
           echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
