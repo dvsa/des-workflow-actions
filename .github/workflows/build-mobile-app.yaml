@@ -139,7 +139,7 @@ jobs:
       - name: 📝Generate MS Teams JSON
         id: generate_ms_teams_json
         run: |
-          json=$(jq -n \
+          json="$(jq -n \
           --arg actor "${{ github.actor }}" \
           --arg branch "${{ inputs.branch || github.ref_name }}" \
           --arg environment "${{ inputs.environment }}" \
@@ -153,7 +153,7 @@ jobs:
                 { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
               ]
             }]
-          }')
+          }')"
           
           echo $json
           
@@ -165,9 +165,9 @@ jobs:
           
           echo $json
 
-          echo $json | jq -cR
+          jq -cR << $json
           
-          echo "json=$(echo $json | jq -cR)" >> $GITHUB_OUTPUT
+          echo "json=$json" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
         if: always()
