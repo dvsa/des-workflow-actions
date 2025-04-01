@@ -136,6 +136,33 @@ jobs:
           echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
           echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
 
+      - name: 📝Generate MS Teams JSON
+        id: generate_ms_teams_json
+        run: |
+          json=$(jq -n \
+          --arg actor "${{ github.actor }}" \
+          --arg branch "${{ inputs.branch || github.ref_name }}" \
+          --arg environment "${{ inputs.environment }}" \
+          --arg download_url "${{ steps.get_s3_object_url.outputs.artefact_download_url }}" \
+          '{
+            title: "📱 \($actor) triggered a mobile app build",
+            sections: [{
+              facts: [
+                { name: "🏷️ Branch/Tag:", value: $branch },
+                { name: "⚙️ Environment:", value: $environment },
+                { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
+              ]
+            }]
+          }')
+          
+          if [[ "${{ inputs.environment }}" == "feature" ]]; then
+            json=$(jq '.sections[].facts += [{
+              name: "📲 Install:", value: "[Open installation page](\(${{ steps.get_s3_object_url.outputs.artefact_install_url }}))"
+            }]' <<< "$json")
+          fi
+          
+          echo "json=$json" >> $GITHUB_OUTPUT
+
       - name: 🔔 Send MS Teams Notification
         if: always()
         uses: skitionek/notify-microsoft-teams@v1.0.4
@@ -143,22 +170,4 @@ jobs:
           webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
           job: ${{ toJson(job) }}
           steps: ${{ toJson(steps) }}
-          overwrite: |
-            {
-              "title": "📱 ${{ github.actor }} triggered a mobile app build",
-              "sections": [{
-                  "facts": [{
-                    "name": "🏷️ Branch/Tag:",
-                    "value": "${{ inputs.branch || github.ref_name }}"
-                  }, {
-                    "name": "⚙️ Environment:",
-                    "value": "${{ inputs.environment }}"
-                  }, {
-                    "name": "📥 Download:",
-                    "value": "[Download artefact](${{ steps.get_s3_object_url.outputs.artefact_download_url }})"
-                  }, {
-                    "name": "📲 Install:",
-                    "value": "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
-                  }]
-              }]
-            }
+          overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
