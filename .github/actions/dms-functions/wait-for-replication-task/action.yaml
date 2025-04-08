@@ -34,7 +34,7 @@ runs:
             exit 1
           fi
           
-          echo "⏳ Waiting on the replication task to become running"
+          echo "⏳ Waiting for the replication task to reach the 'running' state..."
           sleep ${{ inputs.interval }}
           elapsed=$((elapsed + ${{ inputs.interval }}))
         done
@@ -43,7 +43,7 @@ runs:
       if: ${{ inputs.sleep-time }}
       shell: bash
       run: |
-        echo "😴 Going to sleep for $(( ${{ inputs.sleep-time }} / 60 )) minutes to give the task a chance to run .."
+        echo "😴 Going to sleep for $(( ${{ inputs.sleep-time }} / 60 )) minutes to give the task a chance to run..."
         sleep ${{ inputs.sleep-time }}
 
     - name: ⏳ Wait for Task to Complete
@@ -55,7 +55,7 @@ runs:
         
         until [ "$progress_percent" == "100" ]; do
           if [ $elapsed -ge ${{ inputs.task-wait-timeout }} ]; then
-            echo "🚫 Timeout reached: Replication task did not become running within $(( ${{ inputs.task-wait-timeout }} / 60 )) minutes."
+            echo "🚫 Timeout reached: Replication task did not complete within $(( ${{ inputs.task-wait-timeout }} / 60 )) minutes."
             exit 1
           fi
         
