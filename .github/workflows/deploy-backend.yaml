@@ -207,34 +207,34 @@ jobs:
           echo job-context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
           echo steps-context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
-  send-teams-notification:
-    if: always()
-    needs: [build, deploy]
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-
-      - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: des-globals/env
-          parse-json-secrets: true
-
-      - name: 📝 Generate MS Teams Notify JSON
-        id: ms-teams-json
-        uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@main
-        with:
-          needs-context: ${{ toJSON(needs) }}
-
-      - name: 🔔 Send MS Teams Notification
-        uses: skitionek/notify-microsoft-teams@v1.0.4
-        with:
-          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_SERVICE_BUILDS }}
-          job: ${{ steps.ms-teams-json.outputs.job-context }}
-          needs: ${{ toJson(needs) }}
-          steps: ${{ steps.ms-teams-json.outputs.steps-context }}
-          overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
+#  send-teams-notification:
+#    if: always()
+#    needs: [build, deploy]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: 🔑 Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v3
+#        with:
+#          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+#          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+#
+#      - name: 🤫 Get Secrets
+#        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+#        with:
+#          secret-ids: des-globals/env
+#          parse-json-secrets: true
+#
+#      - name: 📝 Generate MS Teams Notify JSON
+#        id: ms-teams-json
+#        uses: dvsa/des-workflow-actions/.github/actions/generate-ms-teams-json@main
+#        with:
+#          needs-context: ${{ toJSON(needs) }}
+#
+#      - name: 🔔 Send MS Teams Notification
+#        uses: skitionek/notify-microsoft-teams@v1.0.4
+#        with:
+#          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_SERVICE_BUILDS }}
+#          job: ${{ steps.ms-teams-json.outputs.job-context }}
+#          needs: ${{ toJson(needs) }}
+#          steps: ${{ steps.ms-teams-json.outputs.steps-context }}
+#          overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
