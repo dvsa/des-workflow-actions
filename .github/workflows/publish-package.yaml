@@ -10,7 +10,7 @@ on:
         required: true
         type: string
     secrets:
-      ACCESS_TOKEN:
+      NODE_AUTH_TOKEN:
         required: true
 
 jobs:
@@ -36,9 +36,9 @@ jobs:
           cache: 'npm'
 
       - name: Create .npmrc
-        run: echo "//npm.pkg.github.com/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
+        run: echo "//registry.npmjs.org/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
         env:
-          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          ACCESS_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: Install dependencies
         run: npm ci
@@ -66,4 +66,4 @@ jobs:
         if: ${{ env.VERSION_BUMPED == 'true' }}
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
