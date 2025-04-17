@@ -36,7 +36,7 @@ jobs:
           cache: 'npm'
 
       - name: Create .npmrc
-        run: echo "//npm.pkg.github.com/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
+        run: echo "//registry.npmjs.org/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
         env:
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
