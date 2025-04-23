@@ -104,9 +104,11 @@ jobs:
           grep ${{ needs.pre_creation_checks.outputs.short_sha }} | sort -r | head -n 1 | rev | cut -d '-' -f 2 | rev)
           short_sha=${{ needs.pre_creation_checks.outputs.short_sha }}
           
-          for function in functions/*; do
-            function_name=$(basename $function)
-            echo "${function_name//-/_}_version = \"${version}-${timestamp}-${short_sha}.zip\"" >> $file_name
+          for fnc in src/functions/*; do
+            function_name=$(basename $fnc)
+            tf_variable_name="${function_name//-/_}_version"
+          
+            echo "$tf_variable_name = \"${version}-${timestamp}-${short_sha}.zip\"" >> $file_name
           done
 
       - name: ☁️ Upload Release Manifest
