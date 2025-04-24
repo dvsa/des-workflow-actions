@@ -62,18 +62,24 @@ jobs:
           manifest_filename="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-$(date +%s)-${{ env.SHORT_SHA }}.manifest"
 
           for artifact in artifacts/*; do
+            repo_name=$(jq -r '.name ' package.json)
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            function_name="${artifact_filename%%-${{ env.VERSION }}*}"
-            version="${artifact_filename#$function_name-}"
-            mv "$artifact" "artifacts/$artifact_filename"
             
-            # Upload function to S3
-            aws s3 cp artifacts/$artifact_filename s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/$artifact_filename
-            echo "✅ Uploaded \`$artifact_filename\` to S3" >> $GITHUB_STEP_SUMMARY
+            # Skip if the artifact is an API proxy build artefact
+            if [[ $artifact_filename != "$repo_name"* ]]; then
+              # Upload function to S3
+              mv "$artifact" "artifacts/$artifact_filename"
           
-            # Add function to manifest
-            tf_variable_name="${function_name//-/_}_version"
-            echo "${function_name//-/_}_version = \"$version\"" >> "$manifest_filename"
+              aws s3 cp artifacts/$artifact_filename s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/$artifact_filename
+              echo "✅ Uploaded \`$artifact_filename\` to S3" >> $GITHUB_STEP_SUMMARY
+            
+              # Add function to manifest
+              function_name="${artifact_filename%%-${{ env.VERSION }}*}"
+              version="${artifact_filename#$function_name-}"
+              tf_variable_name="${function_name//-/_}_version"
+          
+              echo "$tf_variable_name = \"$version\"" >> "$manifest_filename"
+            fi
           done
           
           # Upload manifest to S3 for dev builds
@@ -125,25 +131,30 @@ jobs:
           echo "## Deployments:" >> $GITHUB_STEP_SUMMARY
           
           for artifact in artifacts/*; do
+            repo_name=$(jq -r '.name ' package.json)
             artifact_filename="$(basename $artifact '.zip')-${{ env.SHORT_SHA }}.zip"
-            lambda_function_name="mes-${{ inputs.environment }}-${{ inputs.component }}-${{ env.SERVICE_NAME }}-${artifact_filename%%-${{ env.VERSION }}*}"
+                    
+            # Skip if the artifact is an API proxy build artefact
+            if [[ $artifact_filename != "$repo_name"* ]]; then
+              lambda_function_name="mes-${{ inputs.environment }}-${{ inputs.component }}-${{ env.SERVICE_NAME }}-${artifact_filename%%-${{ env.VERSION }}*}"
+            
+              mv "$artifact" "artifacts/$artifact_filename"
+            
+              aws lambda update-function-code --function-name $lambda_function_name \
+              --zip-file fileb://artifacts/$artifact_filename \
+              --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
+            
+              aws lambda wait function-updated --function-name $lambda_function_name
+              status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
+              --query "LastUpdateStatus" --output text)
+            
+              if [ $status == "Failed" ]; then
+                echo "Failed to update ${lambda_function_name}"
+                exit 1
+              fi
           
-            mv "$artifact" "artifacts/$artifact_filename"
-          
-            aws lambda update-function-code --function-name $lambda_function_name \
-            --zip-file fileb://artifacts/$artifact_filename \
-            --query "{FunctionName: FunctionName, LastUpdateStatus: LastUpdateStatus}"
-          
-            aws lambda wait function-updated --function-name $lambda_function_name
-            status=$(aws lambda get-function-configuration --function-name $lambda_function_name \
-            --query "LastUpdateStatus" --output text)
-          
-            if [ $status == "Failed" ]; then
-              echo "Failed to update ${lambda_function_name}"
-              exit 1
+              echo "✅ Deployed \`$artifact_filename\` to the \`$lambda_function_name\` Lambda function" >> $GITHUB_STEP_SUMMARY
             fi
-          
-            echo "✅ Deployed \`$artifact_filename\` to the \`$lambda_function_name\` Lambda function" >> $GITHUB_STEP_SUMMARY
           done
 
   send-teams-notification:
