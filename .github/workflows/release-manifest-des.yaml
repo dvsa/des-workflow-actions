@@ -15,7 +15,7 @@ permissions:
 jobs:
   pre_creation_checks:
     outputs:
-      service_name: ${{ steps.get_service.outputs.service_name }}
+      service_name: ${{ steps.set_outputs.outputs.service_name }}
       short_sha: ${{ steps.set_outputs.outputs.short_sha }}
       release_build_required: ${{ steps.s3_files.outputs.release_build_required }}
     runs-on: ubuntu-latest
