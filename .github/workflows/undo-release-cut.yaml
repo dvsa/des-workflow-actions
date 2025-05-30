@@ -54,6 +54,7 @@ jobs:
           echo "release_type=$release_type" >> $GITHUB_OUTPUT
 
       - name: 🔍 Check Release Creation Date
+        if: inputs.delete-release-tag == 'true'
         run: |
           for release_component in ${{ steps.get_repositories.outputs.release_type }}; do
             component_repos=$(jq -rc ".$release_component[].repoName" repositories.json)
