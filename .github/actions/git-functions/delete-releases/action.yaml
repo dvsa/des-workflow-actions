@@ -39,11 +39,12 @@ runs:
           echo "| Repository | Tag | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
         
-          # Get all repositories in a component (frontend/backend) and get shared component tags
-          component_repos=$(jq -rc ".$release_component[].repoName" ${{ inputs.repos-json-filename }})
-          component_tags=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
+          # Get shared component tags (frontend/backend)
+          first_component_repo_name=$(jq -rc ".$release_component[0].repoName" ${{ inputs.repos-json-filename }})
+          component_tags=$(gh api /repos/dvsa/$first_component_repo_name/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
         
-          for repo in $component_repos; do     
+          # Loop through all repositories in a component (frontend/backend)
+          jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }} | while read -r repo; do
             latest_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | sort -V | tail -n 1 || true)
 
             if ! echo "$component_tags" | grep -q "${{ inputs.tag-to-delete }}"; then
