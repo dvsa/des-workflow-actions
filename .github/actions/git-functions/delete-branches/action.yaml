@@ -37,7 +37,6 @@ runs:
         echo "## ${{ inputs.action }} Branch Summary" >> $GITHUB_STEP_SUMMARY
 
         for release_component in ${{ inputs.release-type }}; do
-          component_repos=$(jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }})
           first_component_repo_name=$(jq -rc ".$release_component[0].repoName" ${{ inputs.repos-json-filename }})
           component_tags=$(gh api /repos/dvsa/$first_component_repo_name/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
           
@@ -52,7 +51,8 @@ runs:
           echo "| Repository | Branch | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
         
-          for repo in $component_repos; do
+          # Loop through all repositories in a component (frontend/backend)
+          jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }} | while read -r repo; do
             repo_name=$(jq -r '.repoName' <<< $repo)
             delete_branch $repo_name
           done

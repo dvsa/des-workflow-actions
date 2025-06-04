@@ -47,18 +47,16 @@ runs:
           echo "| Repository | Branch | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
         
-          # Get all repositories in a component (frontend/backend)
-          component_repos=$(jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }})
-
-          for repo in $component_repos; do      
+          # Loop through all repositories in a component (frontend/backend)
+          jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }} | while read -r repo; do
             # Set base_branch to the default base branch for the repository
             base_branch=$(jq -r '.baseBranch' <<< $repo)
-            repo_name=$(jq -r '.repoName' <<< $repo)      
+            repo_name=$(jq -r '.repoName' <<< $repo)
         
             if [[ "${{ inputs.base-branch }}" != "default" ]]; then
               # Falls back to the default base_branch_exists is empty to support new repositories being added to repositories.json
               base_branch_exists=$(gh api /repos/dvsa/$repo_name/git/matching-refs/heads/${{ inputs.base-branch }} |  jq -r '.[].ref')
-              [[ -n $base_branch_exists ]] && base_branch=${{ inputs.base-branch }} 
+              [[ -n $base_branch_exists ]] && base_branch=${{ inputs.base-branch }}
             fi
         
             create_branch $repo_name $base_branch

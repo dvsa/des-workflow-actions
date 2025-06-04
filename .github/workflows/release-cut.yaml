@@ -86,9 +86,8 @@ jobs:
               echo "${{ steps.create-release-tag.outputs.frontend-release-tag }}" || \
               echo "${{ steps.create-release-tag.outputs.backend-release-tag }}"
             )
-            component_repos=$(jq -rc ".$release_component[].repoName" repositories.json)
-          
-            for repo in $component_repos; do
+
+            jq -rc ".$release_component[]" repositories.json | while read -r repo; do
               component=$(jq -r '.component' <<< $repo)
               repo_name=$(jq -r '.repoName' <<< $repo)
               commit_hash=$(gh api /repos/dvsa/$repo_name/commits/$release_tag | jq -r '.sha')
