@@ -14,11 +14,19 @@ inputs:
   repos-json-filename:
     description: File name containing the repositories JSON content
     required: true
+outputs:
+  frontend-release-tag:
+    description: The release tag created for the frontend
+    value: ${{ steps.create-release.outputs.frontend-release-tag }}
+  backend-release-tag:
+    description: The release tag created for the backend
+    value: ${{ steps.create-release.outputs.backend-release-tag }}
 
 runs:
   using: composite
   steps:
     - name: Create Release
+      id: create-release
       shell: bash
       run: |
         # Create Release
@@ -38,7 +46,7 @@ runs:
         gh auth setup-git
         echo "## Create Tag Summary" >> $GITHUB_STEP_SUMMARY
         
-        for release_component in ${{ inputs.release-type }}; do          
+        for release_component in ${{ inputs.release-type }}; do
           # Get all repositories in a component (frontend/backend) and get shared component tags
           component_repos=$(jq -rc ".$release_component[].repoName" ${{ inputs.repos-json-filename }})
           component_tags=$(gh api /repos/dvsa/$(echo "$component_repos" | head -n 1)/git/matching-refs/tags | jq -r '.[].ref' | cut -d '/' -f 3 | sort -V)
@@ -50,10 +58,11 @@ runs:
             exit 1
           fi
         
-          # Generate the release tag for a component (frontend/backend)
+          # Generate the release tag for a component (frontend/backend) and output to $GITHUB_OUTPUT
           existing_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | tail -n 1 || true)
           [[ -z "$existing_tag" ]] && release_tag="${{ inputs.branch-name }}.0" || release_tag="${existing_tag%.*}.$(( ${existing_tag##*.} + 1 ))"
-        
+          [[ ${{ inputs.release-type }} == "frontend" ]] && echo "frontend-release-tag=$release_tag" >> $GITHUB_OUTPUT || echo "backend-release-tag=$release_tag" >> $GITHUB_OUTPUT
+          
           # Output table heading to GitHub Summary
           echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
           echo "| Repository | Tag | Status |" >> $GITHUB_STEP_SUMMARY

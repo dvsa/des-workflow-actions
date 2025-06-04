@@ -65,9 +65,34 @@ jobs:
 
       - name: ✨ Create Release Tag
         if: inputs.create-release-tag == 'true'
+        id: create-release-tag
         uses: dvsa/des-workflow-actions/.github/actions/git-functions/create-releases@main
         with:
           base-branch: ${{ inputs.base-branch }}
           branch-name: ${{ inputs.release-branch }}
           repos-json-filename: repositories.json
           release-type: ${{ steps.get_repositories.outputs.release_type }}
+
+      - name: ✨ Generate Git Commit Hash Summary
+        if: inputs.create-release-tag == 'true'
+        run: |
+          echo "## Git Commit Hash Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Version | Repository | Git Commit |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          
+          for release_component in ${{ steps.get_repositories.outputs.release_type }}; do
+            release_tag=$(
+              [[ ${{ steps.get_repositories.outputs.release_type }} == "frontend" ]] && \
+              echo "${{ steps.create-release-tag.outputs.frontend-release-tag }}" || \
+              echo "${{ steps.create-release-tag.outputs.backend-release-tag }}"
+            )
+            component_repos=$(jq -rc ".$release_component[]" repositories.json)
+          
+            for repo in $component_repos; do
+              component=$(jq -r '.component' <<< $repo)
+              repo_name=$(jq -r '.repoName' <<< $repo)
+              commit_hash=$(gh api /repos/dvsa/$repo_name/commits/$release_tag | jq -r '.sha')
+          
+              echo "| $component | $release_tag | https://github.com/dvsa/$repo_name | $commit_hash |" >> $GITHUB_STEP_SUMMARY
+            done
+          done
