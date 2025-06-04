@@ -86,7 +86,7 @@ jobs:
               echo "${{ steps.create-release-tag.outputs.frontend-release-tag }}" || \
               echo "${{ steps.create-release-tag.outputs.backend-release-tag }}"
             )
-            component_repos=$(jq -rc ".$release_component[]" repositories.json)
+            component_repos=$(jq -rc ".$release_component[].repoName" repositories.json)
           
             for repo in $component_repos; do
               component=$(jq -r '.component' <<< $repo)
