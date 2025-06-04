@@ -78,7 +78,7 @@ jobs:
         run: |
           echo "## Git Commit Hash Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Version | Repository | Git Commit |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           
           for release_component in ${{ steps.get_repositories.outputs.release_type }}; do
             release_tag=$(
