@@ -44,6 +44,12 @@ jobs:
           role-to-assume: ${{ secrets.DES_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
+      - name: 🤫 Get AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
       - name: 🔍 Get Repositories
         id: get_repositories
         run: |
@@ -85,3 +91,27 @@ jobs:
           tag-to-delete: ${{ inputs.tag-to-delete }}
           repos-json-filename: repositories.json
           release-type: ${{ steps.get_repositories.outputs.release_type }}
+
+      - name: 🗑️ Delete Release Manifests
+        if: inputs.delete-release-tag == 'true'
+        run: | 
+          aws s3api list-objects-v2 \
+          --bucket ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }} \
+          --prefix mes/gha/manifests/releases/ \
+          --query 'Contents[?contains(Key, `${{ inputs.tag-to-delete }}`)].Key' \
+          > manifests_to_delete.json
+  
+          jq '{Objects: map({Key: .}), Quiet: true}' manifests_to_delete.json > delete.json
+  
+          delete_output=$(aws s3api delete-objects \
+          --bucket ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }} \
+          --delete file://delete.json)
+  
+          expected_count=$(jq '.Objects | length' delete.json)
+          deleted_count=$(jq '.Deleted | length' <<< "$delete_output")
+  
+          if [[ "$expected_count" -eq "$deleted_count" ]]; then
+            echo "✅ All $expected_count objects successfully deleted."
+          else
+            echo "❌ Only $deleted_count of $expected_count objects deleted."
+          fi
