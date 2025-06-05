@@ -70,13 +70,15 @@ runs:
         
           # Loop through all repositories in a component (frontend/backend)
           jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }} | while read -r repo; do
+            repo_name=$(jq -r '.repoName' <<< $repo)
+
             # Get the latest release tag
             previous_release_tag=$(echo "$component_tags" | tail -n 1)
 
             # Fall back to empty string for previous tag if no tags exists to support new repositories being added to repositories.json
-            previous_tag_check=$(gh api /repos/dvsa/$repo/git/matching-refs/tags/$previous_release_tag | jq -r ".[].ref")          
+            previous_tag_check=$(gh api /repos/dvsa/$repo_name/git/matching-refs/tags/$previous_release_tag | jq -r ".[].ref")          
             [[ -z "$previous_tag_check" ]] && previous_release_tag=""
         
-            create_release $repo "$previous_release_tag" $release_tag
+            create_release $repo_name "$previous_release_tag" $release_tag
           done
         done
