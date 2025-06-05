@@ -45,15 +45,16 @@ runs:
         
           # Loop through all repositories in a component (frontend/backend)
           jq -rc ".$release_component[]" ${{ inputs.repos-json-filename }} | while read -r repo; do
+            repo_name=$(jq -r '.repoName' <<< $repo)
             latest_release_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | sort -V | tail -n 1 || true)
 
             if ! echo "$component_tags" | grep -q "${{ inputs.tag-to-delete }}"; then
-              echo "| $repo | ${{ inputs.tag-to-delete }} | ☑️ Does not exist |" >> $GITHUB_STEP_SUMMARY
+              echo "| $repo_name | ${{ inputs.tag-to-delete }} | ☑️ Does not exist |" >> $GITHUB_STEP_SUMMARY
             elif [[ "${{ inputs.tag-to-delete }}" != "$latest_release_tag" ]]; then
-              echo "| $repo | ${{ inputs.tag-to-delete }} | ❌ Invalid tag: Most recent tag must be provided |" >> $GITHUB_STEP_SUMMARY
+              echo "| $repo_name | ${{ inputs.tag-to-delete }} | ❌ Invalid tag: Most recent tag must be provided |" >> $GITHUB_STEP_SUMMARY
               exit 1
             else
-              delete_release $repo ${{ inputs.tag-to-delete }}
+              delete_release $repo_name ${{ inputs.tag-to-delete }}
             fi
           done
         done
