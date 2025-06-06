@@ -101,7 +101,7 @@ jobs:
           --query 'Contents[?contains(Key, `${{ inputs.tag-to-delete }}`)].Key' \
           > manifests_to_delete.json
   
-          jq '{Objects: map({Key: .}), Quiet: true}' manifests_to_delete.json > delete.json
+          jq '{Objects: map({Key: .}), Quiet: false}' manifests_to_delete.json > delete.json
   
           delete_output=$(aws s3api delete-objects \
           --bucket ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }} \
