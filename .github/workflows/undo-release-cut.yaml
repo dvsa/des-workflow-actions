@@ -93,7 +93,7 @@ jobs:
           release-type: ${{ steps.get_repositories.outputs.release_type }}
 
       - name: 🗑️ Delete Release Manifests
-        if: inputs.delete-release-tag == 'true'
+        if: inputs.delete-release-tag == 'true' && contains(fromJSON('["backend"]'), inputs.release-type)
         run: | 
           aws s3api list-objects-v2 \
           --bucket ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }} \
@@ -109,9 +109,10 @@ jobs:
   
           expected_count=$(jq '.Objects | length' delete.json)
           deleted_count=$(jq '.Deleted | length' <<< "$delete_output")
-  
+          echo "## Delete Release Manifest" >> $GITHUB_STEP_SUMMARY
+          
           if [[ "$expected_count" -eq "$deleted_count" ]]; then
-            echo "✅ All $expected_count objects successfully deleted."
+            echo "✅ All $expected_count release manifests successfully deleted." >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Only $deleted_count of $expected_count objects deleted."
+            echo "❌ Only $deleted_count of $expected_count release manifests deleted." >> $GITHUB_STEP_SUMMARY
           fi

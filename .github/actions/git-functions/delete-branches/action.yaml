@@ -34,7 +34,7 @@ runs:
 
         # Main Logic
         gh auth setup-git
-        echo "## ${{ inputs.action }} Branch Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## Delete Branch Summary" >> $GITHUB_STEP_SUMMARY
 
         for release_component in ${{ inputs.release-type }}; do
           first_component_repo_name=$(jq -rc ".$release_component[0].repoName" ${{ inputs.repos-json-filename }})
