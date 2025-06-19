@@ -1,0 +1,153 @@
+name: 📝 Generate UAT Release Note
+description: "Action to generate a DES UAT release note."
+inputs:
+  release-tag:
+    description: Release Tag
+    required: true
+  release-type:
+    description: Release Type (frontend, backend, full)
+    required: true
+  frontend-release-tag:
+    description: Frontend Release Tag
+    required: false
+  backend-release-tag:
+    description: Backend Release Tag
+    required: false
+  parent-page-id:
+    description: Parent Page ID in Confluence
+    required: true
+  confluence-user:
+    description: Confluence Username
+    required: true
+  confluence-token:
+    description: Confluence API Token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 📨 Checkout
+      uses: actions/checkout@v4
+
+    - name: 🔑 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.DES_AWS_ROLE }}
+        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+
+    - name: 🔍 Get Repositories
+      id: get_repositories
+      shell: bash
+      run: |
+        aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
+
+        [ "${{ inputs.release-type }}" == "full" ] && release_types="frontend backend" || release_types=${{ inputs.release-type }}
+        echo "release_types=$release_types" >> $GITHUB_OUTPUT
+
+    - name: 📝 Generate UAT Release Note
+      shell: bash
+      run: |
+        RELEASE_TAG=${{ inputs.release-tag }}
+        VERSION="${RELEASE_TAG#release-}"
+        BRANCH_VERSION=${VERSION%.*}
+        RELEASE_TYPE=""
+        RELEASE_STEPS_LIST=""
+        IMPLEMENTATION_WINDOW_ROWS=""
+        RELEASE_STEPS_SECTION=""
+        GIT_HASH_TABLE=""
+        
+        # Set variables for full and frontend releases
+        if [ "${{ inputs.release-type }}" == "full" ] || [ "${{ inputs.release-type }}" == "frontend" ]; then
+          [ "${{ inputs.release-type }}" == "frontend" ] && RELEASE_TYPE="(FE Only)"
+          RELEASE_STEPS_LIST+="<li><a href='#Mobile-App'>Mobile App</a></li>"
+          IMPLEMENTATION_WINDOW_ROWS+="<tr><td>Mobile App</td><td><code>$(date '+%d-%h-%Y' | sed 's/-/ /g')</code></td></tr>"
+          RELEASE_STEPS_SECTION+="<h3 id='Mobile-App'>Mobile App</h3><p>For UAT builds, download the IPA from the 'GHA - Build Mobile App Artefact' Teams Channel and upload to Intune</p>"
+        fi
+        
+        # Set variables for full and backend releases
+        if [ "${{ inputs.release-type }}" == "full" ] || [ "${{ inputs.release-type }}" == "backend" ]; then
+          [ "${{ inputs.release-type }}" == "backend" ] && RELEASE_TYPE="(BE Only)"
+          RELEASE_STEPS_LIST+="<li><a href='#Backend'>Backend</a></li>"
+          IMPLEMENTATION_WINDOW_ROWS+="<tr><td>Backend</td><td><code>$(date '+%d-%h-%Y' | sed 's/-/ /g')</code></td></tr>"
+          RELEASE_STEPS_SECTION+="<h3 id='Backend'>Backend</h3>\
+          <table>\
+            <thead>\
+              <tr>\
+                <th>Name</th>\
+                <th>Value</th>\
+              </tr>\
+            </thead>\
+            <tbody>\
+              <tr><td>Terraform Branch</td><td>$(echo ${RELEASE_TAG%.*})</td></tr>\
+              <tr><td>Terraform Environment</td><td>uat</td></tr>\
+              <tr><td>DMSBASE</td><td>True</td></tr>\
+              <tr><td>API</td><td>True</td></tr>\
+              <tr><td>DRS</td><td>True</td></tr>\
+              <tr><td>DMS</td><td>True</td></tr>\
+              <tr><td>Release Tag</td><td>$RELEASE_TAG</td></tr>\
+              <tr><td>Full DMS Deploy</td><td>False</td></tr>\
+              <tr><td>TARS Replica DB Script Branch</td><td>develop</td></tr>\
+              <tr><td>Additional Terraform Arguments</td><td>N/A</td></tr>\
+            </tbody>\
+          </table>"
+        fi
+        
+        # Generate the git commit hash table
+        for release_component in ${{ steps.get_repositories.outputs.release_types }}; do
+          release_tag=$([[ "$release_component" == "frontend" ]] && echo "${{ inputs.frontend-release-tag }}" || echo "${{ inputs.backend-release-tag }}")
+        
+          while read -r repo; do
+            component=$(jq -r '.component' <<< $repo)
+            repo_name=$(jq -r '.repoName' <<< $repo)
+            ref_exists=$(gh api /repos/dvsa/$repo_name/commits/$release_tag > /dev/null; echo $?)
+
+            if [[ "$ref_exists" == "0" ]]; then
+              commit_hash=$(gh api /repos/dvsa/$repo_name/commits/$release_tag | jq -r '.sha')
+            else 
+              commit_hash="No commit found for $release_tag"
+            fi
+        
+            GIT_HASH_TABLE+="<tr><td>$component</td><td>$release_tag</td><td><a href='https://github.com/dvsa/$repo_name'>$repo_name</a></td><td>$commit_hash</td></tr>"
+          done < <(jq -rc ".$release_component[]" repositories.json)
+        done
+        
+        # Update the template's placeholders with the actual values
+        sed -e "s/\$RELEASE_TAG/${RELEASE_TAG}/g" \
+            -e "s/\$VERSION/${VERSION}/g" \
+            -e "s/\$BRANCH_VERSION/${BRANCH_VERSION}/g" \
+            -e "s/\$RELEASE_STEPS_LIST/${RELEASE_STEPS_LIST//\//\\/}/" \
+            -e "s/\$IMPLEMENTATION_WINDOW_ROWS/${IMPLEMENTATION_WINDOW_ROWS//\//\\/}/" \
+            -e "s/\$RELEASE_STEPS_SECTION/${RELEASE_STEPS_SECTION//\//\\/}/" \
+            -e "s/\$GIT_HASH_TABLE/${GIT_HASH_TABLE//\//\\/}/" \
+            ${GITHUB_ACTION_PATH}/uat-release-note-template.txt > uat-release-note.txt
+
+        # Build the JSON content for the Confluence API request
+        jq -n \
+        --arg html "$(cat uat-release-note.txt)" \
+        --arg page_id "${{ inputs.parent-page-id }}" \
+        --arg title "DES Release Note - Release-$VERSION $RELEASE_TYPE" '{
+          type: "page",
+          ancestors: [{type: "page", id: $page_id }],
+          title: $title,
+          space: {key: "MES"},
+          body: {
+            storage: {
+              value: $html,
+              representation: "storage"
+            }
+          },
+          metadata: {
+            properties: {
+              editor: {
+                value: "v2"
+              }
+            }
+          }
+        }' > content.json
+        
+        # Publish the page to Confluence
+        curl -v -u ${{ inputs.confluence-user }}:${{ inputs.confluence-token }} -X POST \
+        -H 'Content-Type: application/json' \
+        -H 'Accept: application/json' \
+        -d @content.json \
+        "https://dvsa.atlassian.net/wiki/rest/api/content/?os_authType=basic"

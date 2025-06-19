@@ -23,14 +23,27 @@ permissions:
   id-token: write
 
 jobs:
+  start-ec2-runner:
+    name: ▶️ Start EC2 Runner
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: start
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+
   release-cut:
     name: ✂️ Release Cut
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
+    outputs:
+      release-type: ${{ steps.get-repositories.outputs.release-type }}
+      frontend-release-tag: ${{ steps.create-release-tag.outputs.frontend-release-tag }}
+      backend-release-tag: ${{ steps.create-release-tag.outputs.backend-release-tag }}
     steps:
       - name: ✔️ Validate Inputs
-        id: validate_release_tag
         run: |
           pattern="^release-[0-9]+\.[0-9]+\.[0-9]+$"
           
@@ -47,12 +60,12 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🔍 Get Repositories
-        id: get_repositories
+        id: get-repositories
         run: |
           aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
           
           [ "${{ inputs.release-type }}" == "full" ] && release_type="frontend backend" || release_type=${{ inputs.release-type }}
-          echo "release_type=$release_type" >> $GITHUB_OUTPUT
+          echo "release-type=$release_type" >> $GITHUB_OUTPUT
 
       - name: ✨ Create Release Branch
         if: inputs.create-release-branch == 'true'
@@ -61,7 +74,7 @@ jobs:
           base-branch: ${{ inputs.base-branch }}
           branch-name: ${{ inputs.release-branch }}
           repos-json-filename: repositories.json
-          release-type: ${{ steps.get_repositories.outputs.release_type }}
+          release-type: ${{ steps.get-repositories.outputs.release-type }}
 
       - name: ✨ Create Release Tag
         if: inputs.create-release-tag == 'true'
@@ -71,27 +84,45 @@ jobs:
           base-branch: ${{ inputs.base-branch }}
           branch-name: ${{ inputs.release-branch }}
           repos-json-filename: repositories.json
-          release-type: ${{ steps.get_repositories.outputs.release_type }}
+          release-type: ${{ steps.get-repositories.outputs.release-type }}
 
-      - name: ✨ Generate Git Commit Hash Summary
-        if: inputs.create-release-tag == 'true'
-        run: |
-          echo "## Git Commit Hash Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Version | Repository | Git Commit |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          
-          for release_component in ${{ steps.get_repositories.outputs.release_type }}; do
-            release_tag=$(
-              [[ ${{ steps.get_repositories.outputs.release_type }} == "frontend" ]] && \
-              echo "${{ steps.create-release-tag.outputs.frontend-release-tag }}" || \
-              echo "${{ steps.create-release-tag.outputs.backend-release-tag }}"
-            )
+  generate-uat-release-note:
+    name: 📝 Generate UAT Release Note
+    needs: [start-ec2-runner, release-cut]
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    if: inputs.create-release-tag == 'true'
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
+    steps:
+      - name: 🧐 Check/Create Parent Pages for the Release Note
+        id: parent-page
+        uses: dvsa/des-workflow-actions/.github/actions/confluence/check_uat_release_parent_pages@main
+        with:
+          release-tag: ${{ steps.create-release-tag.outputs.frontend-release-tag }}
+          confluence-user: ${{ secrets.CONFLUENCE_USER }}
+          confluence-token: ${{ secrets.CONFLUENCE_TOKEN }}
 
-            jq -rc ".$release_component[]" repositories.json | while read -r repo; do
-              component=$(jq -r '.component' <<< $repo)
-              repo_name=$(jq -r '.repoName' <<< $repo)
-              commit_hash=$(gh api /repos/dvsa/$repo_name/commits/$release_tag | jq -r '.sha')
-          
-              echo "| $component | $release_tag | https://github.com/dvsa/$repo_name | $commit_hash |" >> $GITHUB_STEP_SUMMARY
-            done
-          done
+      - name: 📝 Generate UAT Release Note
+        uses: dvsa/des-workflow-actions/.github/actions/confluence/generate-uat-release-note@main
+        with:
+          release-tag: ${{ steps.create-release-tag.outputs.frontend-release-tag }}
+          release-type: ${{ jobs.release-cut.outputs.release-type }}
+          frontend-release-tag: ${{ jobs.release-cut.outputs.frontend-release-tag }}
+          backend-release-tag: ${{ jobs.release-cut.outputs.backend-release-tag }}
+          parent-page-id: ${{ steps.parent-page.outputs.parent-page-id }}
+          confluence-username: ${{ secrets.CONFLUENCE_USER }}
+          confluence-api-token: ${{ secrets.CONFLUENCE_TOKEN }}
+
+  stop-ec2-runner:
+    name: ⏹️ Stop EC2 Runner
+    needs: [start-ec2-runner, generate-uat-release-note]
+    if: always()
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    with:
+      action: stop
+      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}

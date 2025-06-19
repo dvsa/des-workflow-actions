@@ -1,0 +1,104 @@
+name: 🧐 Check/Create Parent Pages for DES UAT Release Note
+description: "Action to check for and create parent pages for a DES UAT release note in Confluence."
+inputs:
+  release-tag:
+    description: Release Tag
+    required: true
+  confluence-username:
+    description: Confluence Username
+    required: true
+  confluence-api-token:
+    description: Confluence API Token
+    required: true
+outputs:
+  parent-page-id:
+    description: The ID of the parent page obtained/created.
+    value: ${{ steps.parent_page.outputs.parent-page-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: 🧐 Check/Create Parent Page
+      id: parent_page
+      shell: bash
+      run: |
+        # Get page ID
+        get_page_id () {
+          local page_title=$1
+          curl -s -u ${{ inputs.confluence-username }}:${{ inputs.confluence-api-token }} \
+          -H "Content-Type: application/json" \
+          "https://dvsa.atlassian.net/wiki/rest/api/content?space=MES&title=$page_title" | jq -r '.results[].id'
+        }
+        
+        # Generate JSON
+        generate_json () {
+          local parent_page_id=$1 page_title=$2 file_name=$3
+        
+          jq -n \
+            --arg parent_page_id "$parent_page_id" \
+            --arg page_title "$page_title" \
+            '{
+              type: "page",
+              ancestors: [{type: "page", id: ($parent_page_id | tonumber)}],
+              title: $page_title,
+              space: {key: "MES"},
+              body: {
+                storage: {
+                  value: "",
+                  representation: "storage"
+                }
+              }
+            }' > "${file_name}.json"
+
+        }
+        
+        # Publish Page
+        publish_page () {
+          local file_name=$1
+        
+          page_id=$(curl -s -u ${{ inputs.confluence-username }}:${{ inputs.confluence-api-token }} \
+          -X POST \
+          -H "Content-Type: application/json" \
+          -d @$file_name.json \
+          "https://dvsa.atlassian.net/wiki/rest/api/content/?os_authType=basic" | jq -r '.id')
+        
+          echo ${page_id} > ${file_name}_id.txt
+        }
+        
+        release_tag=${{ inputs.release-tag }}
+        version=${release_tag#release-}
+        branch_version=${version%.*}
+        major_version=${version%%.*}
+        branch_page_id=$(get_page_id "V$branch_version")
+        
+        # Check if branch page already exists and create if not
+        if [[ -z "$branch_page_id" ]]; then
+          uat_version_page_id=$(get_page_id "UAT%20Release%20$major_version.x")
+          
+          # Check if UAT version page exists and create if not
+          if [[ -z "$uat_version_page_id" ]]; then
+            major_version_page_id=$(get_page_id "Release%20$major_version.x")
+          
+            # Check if major version page exists and create if not
+            if [[ -z "$major_version_page_id" ]]; then
+                echo "Creating major version page..."
+                generate_json 24249265 "Release $major_version.x" "major_version_page"
+                publish_page major_version_page
+            fi
+          
+            echo "Creating UAT major version page..."
+            major_version_page_id=$(cat major_version_page_id.txt)
+            generate_json $major_version_page_id "UAT Release $major_version.x" "uat_version_page"
+            publish_page uat_version_page
+            uat_version_page_id=$(cat uat_version_page_id.txt)
+          fi
+          
+          echo "Creating branch page..."
+          generate_json $uat_version_page_id "V$branch_version" "branch_page"
+          publish_page branch_page
+          echo "parent-page-id=$(cat branch_page_id.txt)" >> $GITHUB_OUTPUT
+        
+        else
+          echo "Parent page already exists."
+          echo "parent-page-id=$branch_page_id" >> $GITHUB_OUTPUT
+        fi
