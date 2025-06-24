@@ -25,6 +25,7 @@ permissions:
 jobs:
   start-ec2-runner:
     name: ▶️ Start EC2 Runner
+    if: inputs.create-release-tag == 'true'
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: start
@@ -116,7 +117,7 @@ jobs:
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
     needs: [start-ec2-runner, generate-uat-release-note]
-    if: always()
+    if: always() && inputs.create-release-tag == 'true'
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: stop
