@@ -106,9 +106,9 @@ jobs:
         uses: dvsa/des-workflow-actions/.github/actions/confluence/generate-uat-release-note@main
         with:
           release-tag: ${{ steps.create-release-tag.outputs.frontend-release-tag }}
-          release-type: ${{ jobs.release-cut.outputs.release-type }}
-          frontend-release-tag: ${{ jobs.release-cut.outputs.frontend-release-tag }}
-          backend-release-tag: ${{ jobs.release-cut.outputs.backend-release-tag }}
+          release-type: ${{ needs.release-cut.outputs.release-type }}
+          frontend-release-tag: ${{ needs.release-cut.outputs.frontend-release-tag }}
+          backend-release-tag: ${{ needs.release-cut.outputs.backend-release-tag }}
           parent-page-id: ${{ steps.parent-page.outputs.parent-page-id }}
           confluence-username: ${{ secrets.CONFLUENCE_USER }}
           confluence-api-token: ${{ secrets.CONFLUENCE_TOKEN }}
