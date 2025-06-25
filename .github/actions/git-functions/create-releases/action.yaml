@@ -61,7 +61,7 @@ runs:
           # Generate the release tag for a component (frontend/backend) and output to $GITHUB_OUTPUT
           existing_tag=$(echo "$component_tags" | grep -E "^${{ inputs.branch-name }}\\..*" | tail -n 1 || true)
           [[ -z "$existing_tag" ]] && release_tag="${{ inputs.branch-name }}.0" || release_tag="${existing_tag%.*}.$(( ${existing_tag##*.} + 1 ))"
-          [[ ${{ inputs.release-type }} == "frontend" ]] && echo "frontend-release-tag=$release_tag" >> $GITHUB_OUTPUT || echo "backend-release-tag=$release_tag" >> $GITHUB_OUTPUT
+          [[ "${{ inputs.release-type }}" == "frontend" ]] && echo "frontend-release-tag=$release_tag" >> $GITHUB_OUTPUT || echo "backend-release-tag=$release_tag" >> $GITHUB_OUTPUT
           
           # Output table heading to GitHub Summary
           echo "#### Repositories ($release_component)" >> $GITHUB_STEP_SUMMARY
