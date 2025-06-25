@@ -16,6 +16,12 @@ inputs:
   parent-page-id:
     description: Parent Page ID in Confluence
     required: true
+  des-aws-role:
+    description: AWS Role to Assume
+    required: true
+  dvsa-aws-region:
+    description: AWS Region for DVSA
+    required: true
   confluence-user:
     description: Confluence Username
     required: true
@@ -32,8 +38,8 @@ runs:
     - name: 🔑 Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.DES_AWS_ROLE }}
-        aws-region: ${{ secrets.DVSA_AWS_REGION }}
+        role-to-assume: ${{ inputs.des-aws-role }}
+        aws-region: ${{ inputs.dvsa-aws-region }}
 
     - name: 🔍 Get Repositories
       id: get_repositories
