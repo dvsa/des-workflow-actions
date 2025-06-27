@@ -93,7 +93,7 @@ jobs:
           release-type: ${{ steps.get_repositories.outputs.release_type }}
 
       - name: 🗑️ Delete Release Files
-        if: inputs.delete-release-tag == 'true' && contains(fromJSON('["backend"]'), inputs.release-type)
+        if: inputs.delete-release-tag == 'true' && contains(fromJSON('["full", "backend"]'), inputs.release-type)
         run: |
           for prefix in mes/gha/manifests/releases/ mes/gha/releases/; do
             [[ $prefix == mes/gha/manifests/releases/ ]] && file_type="manifests" || file_type="tfvars"
@@ -101,8 +101,13 @@ jobs:
             aws s3api list-objects-v2 \
             --bucket ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }} \
             --prefix $prefix \
-            --query 'Contents[?contains(Key, `${{ inputs.tag-to-delete }}`)].Key' \
+            --query "Contents[?contains(Key, '${{ inputs.tag-to-delete }}')].Key" \
             > files_to_delete.json
+          
+            if jq -e 'length == 0' files_to_delete.json > /dev/null; then
+              echo "❌ No release $file_type found for deletion."
+              continue
+            fi
             
             jq '{Objects: map({Key: .}), Quiet: false}' files_to_delete.json > delete.json
             
