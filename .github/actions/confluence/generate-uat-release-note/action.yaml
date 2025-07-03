@@ -5,7 +5,7 @@ inputs:
     description: Release Tag
     required: true
   release-type:
-    description: Release Type (frontend, backend, full)
+    description: Release Type (frontend, backend, frontend backend)
     required: true
   frontend-release-tag:
     description: Frontend Release Tag
@@ -15,12 +15,6 @@ inputs:
     required: false
   parent-page-id:
     description: Parent Page ID in Confluence
-    required: true
-  des-aws-role:
-    description: AWS Role to Assume
-    required: true
-  dvsa-aws-region:
-    description: AWS Region for DVSA
     required: true
   confluence-user:
     description: Confluence Username
@@ -35,21 +29,6 @@ runs:
     - name: 📨 Checkout
       uses: actions/checkout@v4
 
-    - name: 🔑 Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ inputs.des-aws-role }}
-        aws-region: ${{ inputs.dvsa-aws-region }}
-
-    - name: 🔍 Get Repositories
-      id: get_repositories
-      shell: bash
-      run: |
-        aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
-
-        [ "${{ inputs.release-type }}" == "full" ] && release_types="frontend backend" || release_types=${{ inputs.release-type }}
-        echo "release_types=$release_types" >> $GITHUB_OUTPUT
-
     - name: 📝 Generate UAT Release Note
       shell: bash
       run: |
@@ -63,7 +42,7 @@ runs:
         GIT_HASH_TABLE=""
         
         # Set variables for full and frontend releases
-        if [ "${{ inputs.release-type }}" == "full" ] || [ "${{ inputs.release-type }}" == "frontend" ]; then
+        if [ "${{ inputs.release-type }}" == "frontend backend" ] || [ "${{ inputs.release-type }}" == "frontend" ]; then
           [ "${{ inputs.release-type }}" == "frontend" ] && RELEASE_TYPE="(FE Only)"
           RELEASE_STEPS_LIST+="<li><a href='#Mobile-App'>Mobile App</a></li>"
           IMPLEMENTATION_WINDOW_ROWS+="<tr><td>Mobile App</td><td><code>$(date '+%d-%h-%Y' | sed 's/-/ /g')</code></td></tr>"
@@ -71,7 +50,7 @@ runs:
         fi
         
         # Set variables for full and backend releases
-        if [ "${{ inputs.release-type }}" == "full" ] || [ "${{ inputs.release-type }}" == "backend" ]; then
+        if [ "${{ inputs.release-type }}" == "frontend backend" ] || [ "${{ inputs.release-type }}" == "backend" ]; then
           [ "${{ inputs.release-type }}" == "backend" ] && RELEASE_TYPE="(BE Only)"
           RELEASE_STEPS_LIST+="<li><a href='#Backend'>Backend</a></li>"
           IMPLEMENTATION_WINDOW_ROWS+="<tr><td>Backend</td><td><code>$(date '+%d-%h-%Y' | sed 's/-/ /g')</code></td></tr>"
@@ -99,7 +78,7 @@ runs:
         fi
         
         # Generate the git commit hash table
-        for release_component in ${{ steps.get_repositories.outputs.release_types }}; do
+        for release_component in ${{ inputs.release-type }}; do
           release_tag=$([[ "$release_component" == "frontend" ]] && echo "${{ inputs.frontend-release-tag }}" || echo "${{ inputs.backend-release-tag }}")
         
           while read -r repo; do
