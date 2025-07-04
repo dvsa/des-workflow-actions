@@ -111,6 +111,8 @@ jobs:
           frontend-release-tag: ${{ needs.release-cut.outputs.frontend-release-tag }}
           backend-release-tag: ${{ needs.release-cut.outputs.backend-release-tag }}
           parent-page-id: ${{ steps.parent-page.outputs.parent-page-id }}
+          des-aws-role: ${{ secrets.DES_AWS_ROLE }}
+          dvsa-aws-region: ${{ secrets.DVSA_AWS_REGION }}
           confluence-user: ${{ secrets.CONFLUENCE_USER }}
           confluence-token: ${{ secrets.CONFLUENCE_TOKEN }}
 
