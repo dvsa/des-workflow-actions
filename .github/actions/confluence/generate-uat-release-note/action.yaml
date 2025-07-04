@@ -21,6 +21,7 @@ inputs:
     required: true
   dvsa-aws-region:
     description: AWS Region for DVSA
+    required: true
   confluence-user:
     description: Confluence Username
     required: true
@@ -122,6 +123,7 @@ runs:
             -e "s/\$RELEASE_STEPS_LIST/${RELEASE_STEPS_LIST//\//\\/}/" \
             -e "s/\$IMPLEMENTATION_WINDOW_ROWS/${IMPLEMENTATION_WINDOW_ROWS//\//\\/}/" \
             -e "s/\$RELEASE_STEPS_SECTION/${RELEASE_STEPS_SECTION//\//\\/}/" \
+            -e "s/\$GIT_RELEASE_TAG_SUMMARY/${GIT_RELEASE_TAG_SUMMARY//\//\\/}/" \
             -e "s/\$GIT_HASH_TABLE/${GIT_HASH_TABLE//\//\\/}/" \
             ${GITHUB_ACTION_PATH}/uat-release-note-template.txt > uat-release-note.txt
 
