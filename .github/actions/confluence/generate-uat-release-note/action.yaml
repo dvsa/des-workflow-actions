@@ -16,6 +16,11 @@ inputs:
   parent-page-id:
     description: Parent Page ID in Confluence
     required: true
+  des-aws-role:
+    description: AWS Role to Assume
+    required: true
+  dvsa-aws-region:
+    description: AWS Region for DVSA
   confluence-user:
     description: Confluence Username
     required: true
@@ -29,16 +34,29 @@ runs:
     - name: 📨 Checkout
       uses: actions/checkout@v4
 
+    - name: 🔑 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.des-aws-role }}
+        aws-region: ${{ inputs.dvsa-aws-region }}
+
+    - name: 🔍 Get Repositories
+      id: get_repositories
+      shell: bash
+      run: aws secretsmanager get-secret-value --secret-id des-repositories --query SecretString | jq . --raw-output  > repositories.json
+
     - name: 📝 Generate UAT Release Note
       shell: bash
       run: |
         RELEASE_TAG=${{ inputs.release-tag }}
         VERSION="${RELEASE_TAG#release-}"
         BRANCH_VERSION=${VERSION%.*}
+        BACKEND_RELEASE_TAG=${{ inputs.backend-release-tag }}
         RELEASE_TYPE=""
         RELEASE_STEPS_LIST=""
         IMPLEMENTATION_WINDOW_ROWS=""
         RELEASE_STEPS_SECTION=""
+        GIT_RELEASE_TAG_SUMMARY=""
         GIT_HASH_TABLE=""
         
         # Set variables for full and frontend releases
@@ -63,13 +81,13 @@ runs:
               </tr>\
             </thead>\
             <tbody>\
-              <tr><td>Terraform Branch</td><td>$(echo ${RELEASE_TAG%.*})</td></tr>\
+              <tr><td>Terraform Branch</td><td>$(echo ${BACKEND_RELEASE_TAG%.*})</td></tr>\
               <tr><td>Terraform Environment</td><td>uat</td></tr>\
               <tr><td>DMSBASE</td><td>True</td></tr>\
               <tr><td>API</td><td>True</td></tr>\
               <tr><td>DRS</td><td>True</td></tr>\
               <tr><td>DMS</td><td>True</td></tr>\
-              <tr><td>Release Tag</td><td>$RELEASE_TAG</td></tr>\
+              <tr><td>Release Tag</td><td>$BACKEND_RELEASE_TAG</td></tr>\
               <tr><td>Full DMS Deploy</td><td>False</td></tr>\
               <tr><td>TARS Replica DB Script Branch</td><td>develop</td></tr>\
               <tr><td>Additional Terraform Arguments</td><td>N/A</td></tr>\
@@ -80,6 +98,7 @@ runs:
         # Generate the git commit hash table
         for release_component in ${{ inputs.release-type }}; do
           release_tag=$([[ "$release_component" == "frontend" ]] && echo "${{ inputs.frontend-release-tag }}" || echo "${{ inputs.backend-release-tag }}")
+          GIT_RELEASE_TAG_SUMMARY+="<span>All $release_component repositories have been tagged with <code>$release_tag</code></span><br>"
         
           while read -r repo; do
             component=$(jq -r '.component' <<< $repo)
