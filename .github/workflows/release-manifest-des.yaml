@@ -32,7 +32,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get AWS Secrets
@@ -85,7 +85,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get AWS Secrets
@@ -125,7 +125,7 @@ jobs:
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get AWS Secrets

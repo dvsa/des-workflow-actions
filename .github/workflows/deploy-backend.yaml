@@ -207,9 +207,17 @@ jobs:
           echo job-context=$(echo '${{ toJSON(job) }}' | jq -c) >> $GITHUB_OUTPUT
           echo steps-context=$(echo '${{ toJSON(steps) }}' | jq -c) >> $GITHUB_OUTPUT
 
+  sonar-scan:
+    name: 📡 SonarQube Scan
+    if: github.event_name == 'push' && github.ref_name == 'develop'
+    uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@main
+    with:
+      test-script-name: 'test:jasmine-coverage'
+    secrets: inherit
+
   send-teams-notification:
     if: always()
-    needs: [build, deploy]
+    needs: [build, deploy, sonar-scan]
     runs-on: ubuntu-latest
     steps:
       - name: 🔑 Configure AWS Credentials
