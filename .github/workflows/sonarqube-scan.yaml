@@ -1,0 +1,72 @@
+name: 📡 SonarQube Scan
+
+on:
+  workflow_call:
+    inputs:
+      test-script-name:
+        description: Name of the npm test script to run
+        type: string
+        required: true
+      lcov-report-paths:
+        description: Path to LCOV report files
+        type: string
+        default: 'coverage/lcov.info'
+        required: false
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  sonar-scan:
+    name: 📡 SonarQube Scan
+    runs-on: X64
+    steps:
+      - name: 📨 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🪪 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION}}
+          role-session-name: GHA
+
+      - name: 🤫 Get Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: des-globals/env
+          parse-json-secrets: true
+
+      - name: 🔍 Read .nvmrc
+        id: nvm
+        run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
+
+      - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NVMRC }}
+          cache: 'npm'
+
+      - name: 🔧 Create `.npmrc`
+        run: echo "//npm.pkg.github.com/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
+        env:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+
+      - name: ➕ Install Dependencies
+        run: npm ci
+
+      - name: 🧪️ Execute Unit Tests with Coverage
+        run: npm run ${{ inputs.test-script-name }}
+
+      - name: 📡 Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ github.event.repository.name }}
+            -Dsonar.sources=src
+            -Dsonar.exclusions=src/**/__tests__/**/*,src/**/__mocks__/**/*
+            -Dsonar.typescript.lcov.reportPaths=${{ inputs.lcov-report-paths }}

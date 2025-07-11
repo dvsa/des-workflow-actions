@@ -41,7 +41,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
-          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          aws-region: ${{ secrets.DVSA_AWS_REGION}}
           role-session-name: GHA
 
       - name: 🤫 Get Secrets
@@ -117,7 +117,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
-          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          aws-region: ${{ secrets.DVSA_AWS_REGION}}
           role-session-name: GHA
 
       - name: 🪪 Configure NonProd AWS Credentials
@@ -157,19 +157,25 @@ jobs:
             fi
           done
 
+  sonar-scan:
+    name: 📡 SonarQube Scan
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@main
+    with:
+      test-script-name: 'test:coverage'
+    secrets: inherit
+
   send-teams-notification:
     if: |
-      always() &&
-      (needs.upload-artifacts.result == 'success' || needs.upload-artifacts.result == 'skipped' || needs.upload-artifacts.result == 'failure') &&
-      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped' || needs.deploy.result == 'failure')
-    needs: [build, upload-artifacts, deploy]
+      always()
+    needs: [build, upload-artifacts, deploy, sonar-scan]
     runs-on: ubuntu-latest
     steps:
       - name: 🪪 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
-          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          aws-region: ${{ secrets.DVSA_AWS_REGION}}
           role-session-name: GHA
 
       - name: 🤫 Get AWS Secrets
