@@ -60,7 +60,7 @@ jobs:
         run: npm run ${{ inputs.test-script-name }}
 
       - name: 📡 Run SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ env.DES_GLOBALS_ENV_SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.DES_GLOBALS_ENV_SONAR_HOST_URL }}
