@@ -210,7 +210,7 @@ jobs:
   sonar-scan:
     name: 📡 SonarQube Scan
     if: github.event_name == 'push' && github.ref_name == 'develop'
-    uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@MES-10445-sonarqube-scan
     with:
       test-script-name: 'test:jasmine-coverage'
     secrets: inherit
