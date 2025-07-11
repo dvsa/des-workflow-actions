@@ -29,7 +29,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
-          aws-region: ${{ vars.DVSA_AWS_REGION}}
+          aws-region: ${{ secrets.DVSA_AWS_REGION}}
           role-session-name: GHA
 
       - name: 🤫 Get Secrets
