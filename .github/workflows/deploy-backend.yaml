@@ -213,7 +213,10 @@ jobs:
     uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@main
     with:
       test-script-name: 'test:jasmine-coverage'
-    secrets: inherit
+    secrets:
+      DES_MGMT_ROLE: ${{ secrets.DES_MGMT_ROLE }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
   send-teams-notification:
     if: always()
