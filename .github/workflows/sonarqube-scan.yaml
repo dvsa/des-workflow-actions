@@ -65,7 +65,7 @@ jobs:
         run: |
           echo "//npm.pkg.github.com/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
           
-          if [[ "${{ github.repository.name }}" == "des-mobile-app" ]]; then
+          if [[ "${{ github.event.repository.name }}" == "des-mobile-app" ]]; then
             # Use npm registry for @dvsa/biome-config
             echo "@dvsa/biome-config:registry=https://registry.npmjs.org/" >> .npmrc
   
