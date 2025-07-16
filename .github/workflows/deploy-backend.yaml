@@ -17,10 +17,6 @@ on:
         description: The associated Terraform component for the service
         type: string
         required: true
-      branch:
-        description: The branch of the service to build the artefact/s from
-        type: string
-        default: develop
 
 permissions:
   id-token: write
@@ -37,8 +33,6 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch }}
 
       - name: ⚙️ Set Up Node
         id: node-setup
@@ -108,7 +102,7 @@ jobs:
           echo "GIT_REV=$(ls artefacts/ | grep -v 'coverage' | head -n 1 | cut -d - -f 3 | cut -d . -f 1 )" >> $GITHUB_ENV
 
       - name: ☁️️ Manifest
-        if: ${{ !startsWith(inputs.branch, 'release-') }}
+        if: ${{ !startsWith(github.ref_name, 'release-') }}
         id: create_manifest
         run: |
           file_name="${{ env.SERVICE_NAME }}_${{ env.VERSION }}-${{ env.GIT_REV }}.manifest"
@@ -141,7 +135,7 @@ jobs:
 
   deploy:
     needs: build
-    if: ${{ !startsWith(inputs.branch, 'release-') }}
+    if: ${{ !startsWith(github.ref_name, 'release-') }}
     runs-on: ubuntu-latest
     outputs:
       job-context: ${{ steps.set-outputs.outputs.job-context }}
