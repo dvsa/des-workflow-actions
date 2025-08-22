@@ -3,9 +3,9 @@ name: 📋 Create Release Manifest
 on:
   workflow_call:
     inputs:
-      branch:
-        description: The release branch
-        type: string
+#      branch:
+#        description: The release branch
+#        type: string
       component:
         description: The associated Terraform component for the service if a release build is required
         type: string
@@ -84,7 +84,7 @@ jobs:
     if: ${{ needs.pre_creation_checks.outputs.release_build_required == 'true' }}
     uses: dvsa/des-workflow-actions/.github/workflows/deploy-backend.yaml@main
     with:
-      branch: ${{ needs.pre_creation_checks.outputs.branch }}
+#      branch: ${{ needs.pre_creation_checks.outputs.branch }}
       component: ${{ inputs.component }}
     secrets: inherit
 
@@ -98,8 +98,8 @@ jobs:
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.pre_creation_checks.outputs.branch }}
+#        with:
+#          ref: ${{ needs.pre_creation_checks.outputs.branch }}
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
