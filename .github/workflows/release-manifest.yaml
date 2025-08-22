@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)"
-          echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
+          echo "branch=$(echo 'release-4.21.0.0' | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
@@ -63,7 +63,7 @@ jobs:
           SHORT_COMMIT: ${{ steps.get_short_commit.outputs.short_commit }}
         run: |
           release_build_required=false
-          s3_key="mes/gha/manifests/releases/${{ env.SERVICE_NAME }}_${{ github.ref_name }}.manifest"
+          s3_key="mes/gha/manifests/releases/${{ env.SERVICE_NAME }}_release-4.21.0.0.manifest"
           if aws s3 ls s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/$s3_key; then
             echo "The manifest for ${{ github.ref_name }} already exists, this job will not override the existing manifest."
             exit 1
@@ -114,7 +114,7 @@ jobs:
       - name: 📝 Create Release manifest
         shell: bash
         run: |
-          file_name=${{ needs.pre_creation_checks.outputs.service_name }}_${{ github.ref_name }}.manifest
+          file_name=${{ needs.pre_creation_checks.outputs.service_name }}_release-4.21.0.0.manifest
           echo "FILE_NAME=$file_name" >> $GITHUB_ENV
           
           version=$(aws s3 ls ${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/gha/functions/ | 
