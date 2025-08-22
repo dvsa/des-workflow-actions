@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
+          echo "Github ref_name value retrieved is ${{ github.ref_name }} "
 #
 #      - name: 📨 Checkout
 #        uses: actions/checkout@v4
