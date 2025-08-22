@@ -15,7 +15,7 @@ permissions:
 jobs:
   pre_creation_checks:
     outputs:
-      branch: release-4.21.0
+      branch: 'release-4.21.0'
       service_name: ${{ steps.get_service.outputs.service_name }}
       short_commit: ${{ steps.get_short_commit.outputs.short_commit }}
       release_build_required: ${{ steps.s3_files.outputs.release_build_required }}
