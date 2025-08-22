@@ -15,7 +15,7 @@ permissions:
 jobs:
   pre_creation_checks:
     outputs:
-      branch: 'release-4.21.0'
+      branch: ${{ steps.get_branch.outputs.branch }}
       service_name: ${{ steps.get_service.outputs.service_name }}
       short_commit: ${{ steps.get_short_commit.outputs.short_commit }}
       release_build_required: ${{ steps.s3_files.outputs.release_build_required }}
@@ -25,8 +25,7 @@ jobs:
         id: get_branch
         shell: bash
         run: |
-          echo "branch=$(echo ${{ github.ref_name }} | cut -d '.' -f -3)"
-          echo "branch=$(echo 'release-4.21.0.0' | cut -d '.' -f -3)" >> $GITHUB_OUTPUT
+          echo "branch='release-4.21.0'" >> $GITHUB_OUTPUT
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
