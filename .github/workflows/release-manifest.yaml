@@ -3,6 +3,9 @@ name: 📋 Create Release Manifest
 on:
   workflow_call:
     inputs:
+      branch:
+        description: The release branch
+        type: string
       component:
         description: The associated Terraform component for the service if a release build is required
         type: string
