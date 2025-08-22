@@ -18,22 +18,22 @@ permissions:
 jobs:
   pre_creation_checks:
     outputs:
-      branch: ${{ steps.get_branch.outputs.branch }}
+#      branch: ${{ steps.get_branch.outputs.branch }}
       service_name: ${{ steps.get_service.outputs.service_name }}
       short_commit: ${{ steps.get_short_commit.outputs.short_commit }}
       release_build_required: ${{ steps.s3_files.outputs.release_build_required }}
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 Get Branch
-        id: get_branch
-        shell: bash
-        run: |
-          echo "branch='release-4.21.0'" >> $GITHUB_OUTPUT
-
+#      - name: 🔍 Get Branch
+#        id: get_branch
+#        shell: bash
+#        run: |
+#          echo "branch='release-4.21.0'" >> $GITHUB_OUTPUT
+#
       - name: 📨 Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.get_branch.outputs.branch }}
+#        with:
+#          ref: ${{ steps.get_branch.outputs.branch }}
 
       - name: 🔍 Determine service name
         id: get_service
