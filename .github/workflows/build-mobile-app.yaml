@@ -50,12 +50,16 @@ jobs:
       AWS_REGION: eu-west-1
       LC_ALL: 'en_US.UTF-8'
       LANG: 'en_US.UTF-8'
+      GEM_HOME: "~/.gem/des"
 
     steps:
-      - name: ⚙️ Set Environment
-        run: |
-          echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
-          echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
+      - name: 🚀 Setup Paths
+        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
+
+#      - name: ⚙️ Set Environment
+#        run: |
+#          echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
+#          echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
