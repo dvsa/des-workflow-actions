@@ -107,6 +107,7 @@ jobs:
           npm run config:${{ inputs.config-type }}
           npm run schema-version
           bundle install --jobs $(sysctl -n hw.physicalcpu)
+          rbenv version
 #          bundle config set path .gem
 
       - name: ⚒️ Build Project
