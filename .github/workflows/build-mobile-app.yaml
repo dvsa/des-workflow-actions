@@ -35,9 +35,9 @@ on:
       AWS_ROLE:
         required: true
 
-defaults:
-  run:
-    shell: zsh {0}
+# defaults:
+#   run:
+#     shell: zsh {0}
 
 permissions:
   contents: write
