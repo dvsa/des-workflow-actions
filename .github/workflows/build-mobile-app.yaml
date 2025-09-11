@@ -58,9 +58,8 @@ jobs:
       LANG: 'en_US.UTF-8'
 
     steps:
-      - name: ⚙️ Set Environment
-        run: |
-          echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
+      - name: 🚀 Setup Paths
+        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
 
       - name: 📨 Checkout
         uses: actions/checkout@v4
