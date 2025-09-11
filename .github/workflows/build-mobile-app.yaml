@@ -116,7 +116,7 @@ jobs:
 
       - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
         if: ${{ inputs.build-simulator == 'true' }}
-        run: bundle exec fastlane simulator
+        run: bundle exec fastlane build_sim
 
       #      - name: ⚙️ Bump Version
       #        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
@@ -130,7 +130,7 @@ jobs:
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
-        run: bundle exec fastlane build
+        run: bundle exec fastlane build_ipa
 
       - name: 🔍 Get S3 Object URLs
         id: get_s3_object_url
