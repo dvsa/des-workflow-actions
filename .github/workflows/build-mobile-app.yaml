@@ -60,7 +60,6 @@ jobs:
     steps:
       - name: ⚙️ Set Environment
         run: |
-          echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
           echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
 
       - name: 📨 Checkout
