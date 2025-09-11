@@ -26,6 +26,10 @@ on:
         type: string
         required: false
         default: true
+      upload_path:
+        type: string
+        required: true
+        default: 'default-upload-path'
 
     secrets:
       AWS_ROLE:
@@ -45,8 +49,10 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     env:
       RUN_ID: ${{ github.run_id }}
+      GEM_HOME: "~/.gem/smc"
       GH_REF_NAME: ${{ inputs.branch || github.ref_name }}
       ENVIRONMENT: ${{ inputs.environment }}
+      UPLOAD_PATH: ${{ inputs.upload_path }}
       AWS_REGION: eu-west-1
       LC_ALL: 'en_US.UTF-8'
       LANG: 'en_US.UTF-8'
