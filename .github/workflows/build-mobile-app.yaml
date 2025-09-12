@@ -58,14 +58,14 @@ jobs:
       LANG: 'en_US.UTF-8'
 
     steps:
-      - name: 🚀 Setup Paths
-        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
-
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-mobile-app
           ref: ${{ inputs.branch || github.ref_name }}
+
+      - name: 🚀 Setup Paths
+        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
