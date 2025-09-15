@@ -65,7 +65,7 @@ jobs:
           ref: ${{ inputs.branch || github.ref_name }}
 
       - name: 🚀 Setup Paths
-        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
+        run: echo "$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin:/opt/homebrew/bin:/opt/homebrew/sbin" >> $GITHUB_PATH
 
       - name: 🔎 Debug Ruby & Pods
         run: |
