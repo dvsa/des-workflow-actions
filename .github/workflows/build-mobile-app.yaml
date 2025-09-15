@@ -116,8 +116,8 @@ jobs:
           npm ci
           npm run config:${{ inputs.config-type }}
           npm run schema-version
+          bundle config set path ${{ env.GEM_HOME }}
           bundle install --jobs $(sysctl -n hw.physicalcpu)
-#          bundle config set path .gem
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
