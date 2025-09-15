@@ -64,8 +64,8 @@ jobs:
           repository: dvsa/des-mobile-app
           ref: ${{ inputs.branch || github.ref_name }}
 
-#      - name: 🚀 Setup Paths
-#        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
+      - name: 🚀 Setup Paths
+        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims" >> $GITHUB_PATH
 
       - name: 🔎 Debug Ruby & Pods
         run: |
