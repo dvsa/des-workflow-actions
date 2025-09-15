@@ -67,6 +67,16 @@ jobs:
       - name: 🚀 Setup Paths
         run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
 
+      - name: 🔎 Debug Ruby & Pods
+        run: |
+          which ruby
+          ruby -v
+          which bundle
+          bundle -v
+          which pod
+          pod --version
+          gem env
+
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
