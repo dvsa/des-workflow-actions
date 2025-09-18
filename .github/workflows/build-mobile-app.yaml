@@ -76,6 +76,7 @@ jobs:
           which pod
           pod --version
           gem env
+          xcodebuild -version
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
