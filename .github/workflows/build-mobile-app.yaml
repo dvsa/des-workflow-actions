@@ -107,7 +107,7 @@ jobs:
           IONIC_ORG_ID: ${{ env.DES_MOBILE_APP_ENV_IONIC_ORG_ID }}
         run: |
           aws secretsmanager get-secret-value --secret-id des-mobile-app-build-config --query SecretString | jq . --raw-output > build-config.sh && bash build-config.sh
-          aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
+          aws secretsmanager get-secret-value --secret-id des-mobile-app/fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
 
       - name: ➕ Install Dependencies
         run: |
