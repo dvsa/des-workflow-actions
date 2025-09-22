@@ -49,6 +49,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     env:
       RUN_ID: ${{ github.run_id }}
+      GEM_HOME: ~/.gem/des
       GH_REF_NAME: ${{ inputs.branch || github.ref_name }}
       ENVIRONMENT: ${{ inputs.environment }}
       UPLOAD_PATH: ${{ inputs.upload_path }}
