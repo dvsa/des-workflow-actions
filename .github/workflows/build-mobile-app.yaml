@@ -128,7 +128,7 @@ jobs:
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
-        run: bundle exec fastlane build_ipa --verbose
+        run: bundle exec fastlane build_ipa
 
       # - name: 🔍 Get S3 Object URLs
       #   id: get_s3_object_url
