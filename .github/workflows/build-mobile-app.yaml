@@ -112,9 +112,9 @@ jobs:
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
-      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
-        if: ${{ inputs.build-simulator == 'true' }}
-        run: bundle exec fastlane build_sim
+      # - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
+      #   if: ${{ inputs.build-simulator == 'true' }}
+      #   run: bundle exec fastlane build_sim
 
       #      - name: ⚙️ Bump Version
       #        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
