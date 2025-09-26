@@ -112,6 +112,8 @@ jobs:
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
+      - run: cd ./ios/App && pod repo update && pod install
+
       # - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
       #   if: ${{ inputs.build-simulator == 'true' }}
       #   run: bundle exec fastlane build_sim
