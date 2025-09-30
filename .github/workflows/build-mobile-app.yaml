@@ -112,7 +112,7 @@ jobs:
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
-      - run: cd ./ios/App && pod repo update && pod install
+      - run: cd ./ios/App && pod deintegrate && pod install --repo-update
 
       # - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
       #   if: ${{ inputs.build-simulator == 'true' }}
