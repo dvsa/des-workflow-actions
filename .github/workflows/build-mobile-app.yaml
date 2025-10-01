@@ -35,9 +35,9 @@ on:
       AWS_ROLE:
         required: true
 
-# defaults:
-#   run:
-#     shell: zsh {0}
+defaults:
+  run:
+    shell: zsh {0}
 
 permissions:
   contents: write
@@ -49,7 +49,6 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     env:
       RUN_ID: ${{ github.run_id }}
-      GEM_HOME: ~/.gems/des
       GH_REF_NAME: ${{ inputs.branch || github.ref_name }}
       ENVIRONMENT: ${{ inputs.environment }}
       UPLOAD_PATH: ${{ inputs.upload_path }}
@@ -65,7 +64,16 @@ jobs:
           ref: ${{ inputs.branch || github.ref_name }}
 
       - name: 🚀 Setup Paths
-        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims:${{ env.GEM_HOME }}/bin" >> $GITHUB_PATH
+        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims" >> $GITHUB_PATH
+
+
+      - run: |
+          bundler -v
+          bundle -v
+          ruby -v
+          which bundle
+          which bundler
+          which ruby
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
