@@ -35,10 +35,6 @@ on:
       AWS_ROLE:
         required: true
 
-defaults:
-  run:
-    shell: zsh {0}
-
 permissions:
   contents: write
   id-token: write
@@ -65,15 +61,6 @@ jobs:
 
       - name: 🚀 Setup Paths
         run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims" >> $GITHUB_PATH
-
-
-      - run: |
-          bundler -v
-          bundle -v
-          ruby -v
-          which bundle
-          which bundler
-          which ruby
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
@@ -120,68 +107,66 @@ jobs:
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
-      - run: cd ./ios/App && pod deintegrate && pod install --repo-update
-
-      # - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
-      #   if: ${{ inputs.build-simulator == 'true' }}
-      #   run: bundle exec fastlane build_sim
+      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
+        if: ${{ inputs.build-simulator == 'true' }}
+        run: bundle exec fastlane build_sim
 
       #      - name: ⚙️ Bump Version
       #        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
       #        run: node .github/scripts/update-des-app-version.js ${{ github.ref_name }}
 
-      # - name: 🚀 Deploy Sentry
-      #   if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
-      #   run: |
-      #     aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
-      #     npm run sentry-deploy
+      - name: 🚀 Deploy Sentry
+        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
+        run: |
+          aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
+          npm run sentry-deploy
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
         run: bundle exec fastlane build_ipa
 
-      # - name: 🔍 Get S3 Object URLs
-      #   id: get_s3_object_url
-      #   run: |        
-      #     artefact_base_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${{ env.S3_PATH }}"
-      #     artefact_download_url="${artefact_base_url}/${{ env.ARTEFACT_FILENAME }}"
-      #     artefact_install_url="${artefact_base_url}/${{ env.INSTALL_URL }}"
+      - name: 🔍 Get S3 Object URLs
+        id: get_s3_object_url
+        run: |        
+          artefact_base_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${{ env.S3_PATH }}"
+          artefact_download_url="${artefact_base_url}/${{ env.ARTEFACT_FILENAME }}"
+          artefact_install_url="${artefact_base_url}/${{ env.INSTALL_URL }}"
           
-      #     echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
-      #     echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
+          echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
+          echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
 
-      # - name: 📝Generate MS Teams JSON
-      #   id: generate_ms_teams_json
-      #   run: |
-      #     json="$(jq -n \
-      #     --arg actor "${{ github.actor }}" \
-      #     --arg branch "${{ inputs.branch || github.ref_name }}" \
-      #     --arg environment "${{ inputs.environment }}" \
-      #     --arg download_url "${{ steps.get_s3_object_url.outputs.artefact_download_url }}" \
-      #     '{
-      #       title: "📱 \($actor) triggered a mobile app build",
-      #       sections: [{
-      #         facts: [
-      #           { name: "🏷️ Branch/Tag:", value: $branch },
-      #           { name: "⚙️ Environment:", value: $environment },
-      #           { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
-      #         ]
-      #       }]
-      #     }')"
+      - name: 📝 Generate MS Teams JSON
+        id: generate_ms_teams_json
+        run: |
+          json="$(jq -n \
+          --arg actor "${{ github.actor }}" \
+          --arg branch "${{ inputs.branch || github.ref_name }}" \
+          --arg environment "${{ inputs.environment }}" \
+          --arg download_url "${{ steps.get_s3_object_url.outputs.artefact_download_url }}" \
+          '{
+            title: "📱 \($actor) triggered a mobile app build",
+            sections: [{
+              facts: [
+                { name: "🏷️ Branch/Tag:", value: $branch },
+                { name: "⚙️ Environment:", value: $environment },
+                { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
+              ]
+            }]
+          }')"
                     
-      #     if [[ "${{ inputs.environment }}" == "feature" ]]; then
-      #       json=$(jq '.sections[].facts += [{
-      #         name: "📲 Install:", value: "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
-      #       }]' <<< "$json")
-      #     fi
+          if [[ "${{ inputs.environment }}" == "feature" ]]; then
+            json=$(jq '.sections[].facts += [{
+              name: "📲 Install:", value: "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
+            }]' <<< "$json")
+          fi
                     
-      #     echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
+          echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
 
-      # - name: 🔔 Send MS Teams Notification
-      #   if: always()
-      #   uses: skitionek/notify-microsoft-teams@v1.0.4
-      #   with:
-      #     webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
-      #     job: ${{ toJson(job) }}
-      #     steps: ${{ toJson(steps) }}
-      #     overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
+      - name: 🔔 Send MS Teams Notification
+        if: always()
+        uses: skitionek/notify-microsoft-teams@v1.0.4
+        with:
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
+          job: ${{ toJson(job) }}
+          steps: ${{ toJson(steps) }}
+          overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
