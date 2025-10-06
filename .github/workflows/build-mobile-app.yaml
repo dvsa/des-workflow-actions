@@ -29,7 +29,6 @@ on:
       upload_path:
         type: string
         required: true
-        default: 'default-upload-path'
 
     secrets:
       AWS_ROLE:
@@ -49,8 +48,6 @@ jobs:
       ENVIRONMENT: ${{ inputs.environment }}
       UPLOAD_PATH: ${{ inputs.upload_path }}
       AWS_REGION: eu-west-1
-      LC_ALL: 'en_US.UTF-8'
-      LANG: 'en_US.UTF-8'
 
     steps:
       - name: 📨 Checkout
@@ -101,19 +98,9 @@ jobs:
           npm ci
           npm run config:${{ inputs.config-type }}
           npm run schema-version
-          bundle config set --local path .bundle
-          bundle install --jobs $(sysctl -n hw.physicalcpu)
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
-
-      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
-        if: ${{ inputs.build-simulator == 'true' }}
-        run: bundle exec fastlane build_sim
-
-      #      - name: ⚙️ Bump Version
-      #        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
-      #        run: node .github/scripts/update-des-app-version.js ${{ github.ref_name }}
 
       - name: 🚀 Deploy Sentry
         if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
@@ -122,51 +109,88 @@ jobs:
           npm run sentry-deploy
 
       - name: 📱 Build Mobile App (${{ inputs.environment }})
-        if: ${{ inputs.build-ipa == 'true' }}
-        run: bundle exec fastlane build_ipa
-
-      - name: 🔍 Get S3 Object URLs
-        id: get_s3_object_url
-        run: |        
-          artefact_base_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${{ env.S3_PATH }}"
-          artefact_download_url="${artefact_base_url}/${{ env.ARTEFACT_FILENAME }}"
-          artefact_install_url="${artefact_base_url}/${{ env.INSTALL_URL }}"
-          
-          echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
-          echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
-
-      - name: 📝 Generate MS Teams JSON
-        id: generate_ms_teams_json
         run: |
-          json="$(jq -n \
-          --arg actor "${{ github.actor }}" \
-          --arg branch "${{ inputs.branch || github.ref_name }}" \
-          --arg environment "${{ inputs.environment }}" \
-          --arg download_url "${{ steps.get_s3_object_url.outputs.artefact_download_url }}" \
-          '{
-            title: "📱 \($actor) triggered a mobile app build",
-            sections: [{
-              facts: [
-                { name: "🏷️ Branch/Tag:", value: $branch },
-                { name: "⚙️ Environment:", value: $environment },
-                { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
-              ]
-            }]
-          }')"
-                    
-          if [[ "${{ inputs.environment }}" == "feature" ]]; then
-            json=$(jq '.sections[].facts += [{
-              name: "📲 Install:", value: "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
-            }]' <<< "$json")
+          bundle config set --local path .bundle
+          bundle install --jobs $(sysctl -n hw.physicalcpu)
+          
+          echo "| Item | Link |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ inputs.build-ipa }}" == "true"; then
+            bundle exec fastlane build_ipa
+          
+            echo "| QR | $(cat ./fastlane/builds/url-qr.txt) |" >> $GITHUB_STEP_SUMMARY
+            echo "| IPA | $(cat ./fastlane/builds/url-ipa.txt) |" >> $GITHUB_STEP_SUMMARY
+            echo "| INFO PAGE | $(cat ./fastlane/builds/url-html.txt) |" >> $GITHUB_STEP_SUMMARY
           fi
-                    
-          echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
+          
+          if [[ "${{ inputs.build-simulator }}" == "true" ]]; then
+            bundle exec fastlane build_sim
+            echo "| APP | $(cat ./fastlane/simulator/url-app.txt) |" >> $GITHUB_STEP_SUMMARY
+          fi
 
-      - name: 🔔 Send MS Teams Notification
+      #      - name: 🔍 Get S3 Object URLs
+      #        id: get_s3_object_url
+      #        run: |
+      #          artefact_base_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${{ env.S3_PATH }}"
+      #          artefact_download_url="${artefact_base_url}/${{ env.ARTEFACT_FILENAME }}"
+      #          artefact_install_url="${artefact_base_url}/${{ env.INSTALL_URL }}"
+      #
+      #          echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
+      #          echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
+
+      #      - name: 📝Generate MS Teams JSON
+      #        id: generate_ms_teams_json
+      #        run: |
+      #          json="$(jq -n \
+      #          --arg actor "${{ github.actor }}" \
+      #          --arg branch "${{ inputs.branch || github.ref_name }}" \
+      #          --arg environment "${{ inputs.environment }}" \
+      #          --arg download_url "${{ steps.get_s3_object_url.outputs.artefact_download_url }}" \
+      #          '{
+      #            title: "📱 \($actor) triggered a mobile app build",
+      #            sections: [{
+      #              facts: [
+      #                { name: "🏷️ Branch/Tag:", value: $branch },
+      #                { name: "⚙️ Environment:", value: $environment },
+      #                { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
+      #              ]
+      #            }]
+      #          }')"
+      #
+      #          if [[ "${{ inputs.environment }}" == "feature" ]]; then
+      #            json=$(jq '.sections[].facts += [{
+      #              name: "📲 Install:", value: "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
+      #            }]' <<< "$json")
+      #          fi
+      #
+      #          echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
+
+      #      - name: 🔔 Send MS Teams Notification
+      #        if: always()
+      #        uses: skitionek/notify-microsoft-teams@v1.0.4
+      #        with:
+      #          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
+      #          job: ${{ toJson(job) }}
+      #          steps: ${{ toJson(steps) }}
+      #          overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
+
+      - name: ☁️ Upload Mobile Artifacts to Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-artifacts-${{ inputs.environment }}-${{ github.sha }}
+          path: |
+            ./fastlane/builds/*.ipa
+            ./fastlane/simulator/*.zip
+
+      - name: 🔪 Kill Xcode
         if: always()
-        uses: skitionek/notify-microsoft-teams@v1.0.4
+        run: osascript -e 'quit app "Xcode"' || true
+
+      - name: 📢 Notify Teams
+        uses: dvsa/appdev-github-actions/.github/actions/notify-teams@main
         with:
           webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
-          job: ${{ toJson(job) }}
-          steps: ${{ toJson(steps) }}
-          overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
+          ipa-link: $(cat ./fastlane/builds/url-html.txt)
+          qr-link: $(cat ./fastlane/builds/url-qr.txt)
+          information: "${{ inputs.environment }}"
