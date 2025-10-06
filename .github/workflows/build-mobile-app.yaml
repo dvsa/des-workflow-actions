@@ -98,36 +98,25 @@ jobs:
           npm ci
           npm run config:${{ inputs.config-type }}
           npm run schema-version
+          bundle config set --local path .bundle
+          bundle install --jobs $(sysctl -n hw.physicalcpu)
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
       - name: 🚀 Deploy Sentry
-        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
+        if: ${{ inputs.environment == 'prod' && inputs.build-ipa == 'true' }}
         run: |
           aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
           npm run sentry-deploy
-
+          
+      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
+        if: ${{ inputs.build-simulator == 'true' }}
+        run: bundle exec fastlane build_sim
+          
       - name: 📱 Build Mobile App (${{ inputs.environment }})
-        run: |
-          bundle config set --local path .bundle
-          bundle install --jobs $(sysctl -n hw.physicalcpu)
-          
-          echo "| Item | Link |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ inputs.build-ipa }}" == "true" ]]; then
-            bundle exec fastlane build_ipa
-          
-            echo "| QR | $(cat ./fastlane/builds/url-qr.txt) |" >> $GITHUB_STEP_SUMMARY
-            echo "| IPA | $(cat ./fastlane/builds/url-ipa.txt) |" >> $GITHUB_STEP_SUMMARY
-            echo "| INFO PAGE | $(cat ./fastlane/builds/url-html.txt) |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [[ "${{ inputs.build-simulator }}" == "true" ]]; then
-            bundle exec fastlane build_sim
-            echo "| APP | $(cat ./fastlane/simulator/url-app.txt) |" >> $GITHUB_STEP_SUMMARY
-          fi
+        if: ${{ inputs.build-ipa == 'true' }}
+        run: bundle exec fastlane build_ipa
 
       #      - name: 🔍 Get S3 Object URLs
       #        id: get_s3_object_url
