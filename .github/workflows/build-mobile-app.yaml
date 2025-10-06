@@ -116,7 +116,7 @@ jobs:
           echo "| Item | Link |" >> $GITHUB_STEP_SUMMARY
           echo "|------|------|" >> $GITHUB_STEP_SUMMARY
           
-          if [[ "${{ inputs.build-ipa }}" == "true"; then
+          if [[ "${{ inputs.build-ipa }}" == "true" ]]; then
             bundle exec fastlane build_ipa
           
             echo "| QR | $(cat ./fastlane/builds/url-qr.txt) |" >> $GITHUB_STEP_SUMMARY
