@@ -33,6 +33,8 @@ on:
     secrets:
       AWS_ROLE:
         required: true
+      WEBHOOK_URL:
+        required: true
 
 permissions:
   contents: write
