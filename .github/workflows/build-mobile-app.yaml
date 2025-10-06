@@ -175,11 +175,11 @@ jobs:
       - name: 🔪 Kill Xcode
         if: always()
         run: osascript -e 'quit app "Xcode"' || true
-#
-#      - name: 📢 Notify Teams
-#        uses: dvsa/appdev-github-actions/.github/actions/notify-teams@main
-#        with:
-#          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
-#          ipa-link: $(cat ./fastlane/builds/url-html.txt)
-#          qr-link: $(cat ./fastlane/builds/url-qr.txt)
-#          information: "${{ inputs.environment }}"
+
+      - name: 📢 Notify Teams
+        uses: dvsa/des-worfklow-actions/.github/actions/notify-teams@MES-10614-mobile-app-fastlane-updates
+        with:
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
+          ipa-link: $(cat ./fastlane/builds/url-html.txt)
+          qr-link: $(cat ./fastlane/builds/url-qr.txt)
+          information: "${{ inputs.environment }}"
