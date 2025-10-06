@@ -138,5 +138,7 @@ runs:
         }
         EOF
         )
+        
+        echo $MESSAGE
 
         curl -H "Content-Type: application/json" -d "$MESSAGE" "${{ inputs.webhook_url }}"
