@@ -26,14 +26,15 @@ on:
         type: string
         required: false
         default: true
+      upload_path:
+        type: string
+        required: true
 
     secrets:
       AWS_ROLE:
         required: true
-
-defaults:
-  run:
-    shell: zsh {0}
+      WEBHOOK_URL:
+        required: true
 
 permissions:
   contents: write
@@ -47,21 +48,18 @@ jobs:
       RUN_ID: ${{ github.run_id }}
       GH_REF_NAME: ${{ inputs.branch || github.ref_name }}
       ENVIRONMENT: ${{ inputs.environment }}
+      UPLOAD_PATH: ${{ inputs.upload_path }}
       AWS_REGION: eu-west-1
-      LC_ALL: 'en_US.UTF-8'
-      LANG: 'en_US.UTF-8'
 
     steps:
-      - name: ⚙️ Set Environment
-        run: |
-          echo "GEM_HOME=$HOME/.gem" >> $GITHUB_ENV
-          echo "PATH=$GEM_HOME/bin:$HOME/.rbenv/shims:/opt/homebrew/bin/:$PATH" >> $GITHUB_ENV
-
       - name: 📨 Checkout
         uses: actions/checkout@v4
         with:
           repository: dvsa/des-mobile-app
           ref: ${{ inputs.branch || github.ref_name }}
+
+      - name: 🚀 Setup Paths
+        run: echo "/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/shims" >> $GITHUB_PATH
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
@@ -92,7 +90,7 @@ jobs:
           IONIC_ORG_ID: ${{ env.DES_MOBILE_APP_ENV_IONIC_ORG_ID }}
         run: |
           aws secretsmanager get-secret-value --secret-id des-mobile-app-build-config --query SecretString | jq . --raw-output > build-config.sh && bash build-config.sh
-          aws secretsmanager get-secret-value --secret-id fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
+          aws secretsmanager get-secret-value --secret-id des-mobile-app/fastlane-config --query SecretString | jq . --raw-output  > config.sh && bash config.sh
 
       - name: ➕ Install Dependencies
         run: |
@@ -102,65 +100,53 @@ jobs:
           npm ci
           npm run config:${{ inputs.config-type }}
           npm run schema-version
-          bundle config set path .gem
+          bundle config set --local path .bundle
           bundle install --jobs $(sysctl -n hw.physicalcpu)
 
       - name: ⚒️ Build Project
         run: npm run build:${{ inputs.build-type }}
 
-      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
-        if: ${{ inputs.build-simulator == 'true' }}
-        run: bundle exec fastlane simulator
-
-      #      - name: ⚙️ Bump Version
-      #        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
-      #        run: node .github/scripts/update-des-app-version.js ${{ github.ref_name }}
-
       - name: 🚀 Deploy Sentry
-        if: ${{ inputs.environment == 'release' && inputs.build-ipa == 'true' }}
+        if: ${{ inputs.environment == 'prod' && inputs.build-ipa == 'true' }}
         run: |
           aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
           npm run sentry-deploy
-
+          
+      - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
+        if: ${{ inputs.build-simulator == 'true' }}
+        run: bundle exec fastlane build_sim
+          
       - name: 📱 Build Mobile App (${{ inputs.environment }})
         if: ${{ inputs.build-ipa == 'true' }}
-        run: bundle exec fastlane build
-
-      - name: 🔍 Get S3 Object URLs
-        id: get_s3_object_url
-        run: |        
-          artefact_base_url="https://${{ env.DES_MOBILE_ARTEFACTS_BUCKET }}.s3.${{ env.AWS_REGION }}.amazonaws.com/github-actions/${{ env.S3_PATH }}"
-          artefact_download_url="${artefact_base_url}/${{ env.ARTEFACT_FILENAME }}"
-          artefact_install_url="${artefact_base_url}/${{ env.INSTALL_URL }}"
-          
-          echo "artefact_download_url=$artefact_download_url" >> $GITHUB_OUTPUT
-          echo "artefact_install_url=$artefact_install_url" >> $GITHUB_OUTPUT
+        run: bundle exec fastlane build_ipa
 
       - name: 📝Generate MS Teams JSON
         id: generate_ms_teams_json
         run: |
+          download_sim_app_file_url=$(cat ./fastlane/simulator/url-app.txt )
+          download_ipa_url=$(cat ./fastlane/builds/url-ipa.txt)
+          qr_code_url=$(cat ./fastlane/builds/url-qr.txt)
+          
           json="$(jq -n \
           --arg actor "${{ github.actor }}" \
           --arg branch "${{ inputs.branch || github.ref_name }}" \
           --arg environment "${{ inputs.environment }}" \
-          --arg download_url "${{ steps.get_s3_object_url.outputs.artefact_download_url }}" \
+          --arg download_sim_app_file_url "$download_sim_app_file_url" \
+          --arg download_ipa_url "$download_ipa_url" \
+          --arg qr_code_url "$qr_code_url" \
           '{
             title: "📱 \($actor) triggered a mobile app build",
             sections: [{
               facts: [
                 { name: "🏷️ Branch/Tag:", value: $branch },
                 { name: "⚙️ Environment:", value: $environment },
-                { name: "📥 Download:", value: "[Download artefact](\($download_url))" }
+                { name: "📥 Download Simulator:", value: "[Download .app file](\($download_sim_app_file_url))" },
+                { name: "📥 Download IPA:", value: "[Download .ipa file](\($download_ipa_url))" },
+                { name: "📲 QR Code:", value: "[Open QR code image](\($qr_code_url))" }
               ]
             }]
           }')"
-                    
-          if [[ "${{ inputs.environment }}" == "feature" ]]; then
-            json=$(jq '.sections[].facts += [{
-              name: "📲 Install:", value: "[Open installation page](${{ steps.get_s3_object_url.outputs.artefact_install_url }})"
-            }]' <<< "$json")
-          fi
-                    
+
           echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: 🔔 Send MS Teams Notification
@@ -171,3 +157,23 @@ jobs:
           job: ${{ toJson(job) }}
           steps: ${{ toJson(steps) }}
           overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
+
+      - name: ☁️ Upload Mobile Artifacts to Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-artifacts-${{ inputs.environment }}-${{ github.sha }}
+          path: |
+            ./fastlane/builds/*.ipa
+            ./fastlane/simulator/*.zip
+
+      - name: 🔪 Kill Xcode
+        if: always()
+        run: osascript -e 'quit app "Xcode"' || true
+
+#      - name: 📢 Notify Teams
+#        uses: dvsa/des-workflow-actions/.github/actions/notify-teams@MES-10614-mobile-app-fastlane-updates
+#        with:
+#          webhook_url: ${{ secrets.WEBHOOK_URL }}
+#          ipa-link: $(cat ./fastlane/builds/url-html.txt)
+#          qr-link: $(cat ./fastlane/builds/url-qr.txt)
+#          information: "${{ inputs.environment }}"
