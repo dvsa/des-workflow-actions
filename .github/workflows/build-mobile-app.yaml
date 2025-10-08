@@ -123,9 +123,9 @@ jobs:
       - name: 📝Generate MS Teams JSON
         id: generate_ms_teams_json
         run: |
-          download_sim_app_file_url=$(cat ./fastlane/simulator/url-app.txt )
-          download_ipa_url=$(cat ./fastlane/builds/url-ipa.txt)
-          qr_code_url=$(cat ./fastlane/builds/url-qr.txt)
+          download_sim_app_file_url=$(cat ./fastlane/simulator/url-app.txt 2>/dev/null || echo "Not generated")
+          download_ipa_url=$(cat ./fastlane/builds/url-ipa.txt 2>/dev/null || echo "Not generated")
+          qr_code_url=$(cat ./fastlane/builds/url-qr.txt 2>/dev/null || echo "Not generated")
           
           json="$(jq -n \
           --arg actor "${{ github.actor }}" \
