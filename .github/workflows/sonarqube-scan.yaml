@@ -30,7 +30,7 @@ permissions:
 jobs:
   sonar-scan:
     name: 📡 SonarQube Scan
-    runs-on: X64
+    runs-on: MACOS-ARM64
     steps:
       - name: 📨 Checkout
         uses: actions/checkout@v4
