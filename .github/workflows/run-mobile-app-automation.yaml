@@ -24,7 +24,7 @@ permissions:
 jobs:
   run-mobile-app-automation:
     name: 📱 Run Mobile App Automation
-    runs-on: mito-2
+    runs-on: MACOS-ARM64
     outputs:
       version: ${{ steps.set-version.outputs.version }}
     steps:
