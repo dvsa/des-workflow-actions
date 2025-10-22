@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name == 'push' && github.ref_name == 'develop'
     runs-on: ubuntu-latest
     outputs:
       service-name: ${{ steps.set-outputs.outputs.service-name }}
@@ -135,7 +136,7 @@ jobs:
 
   deploy:
     needs: build
-    if: ${{ !startsWith(github.ref_name, 'release-') }}
+    if: github.event_name == 'push' && github.ref_name == 'develop'
     runs-on: ubuntu-latest
     outputs:
       job-context: ${{ steps.set-outputs.outputs.job-context }}
@@ -203,7 +204,6 @@ jobs:
 
   sonar-scan:
     name: 📡 SonarQube Scan
-    if: github.event_name == 'push' && github.ref_name == 'develop'
     uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@main
     with:
       test-script-name: 'test:jasmine-coverage'
