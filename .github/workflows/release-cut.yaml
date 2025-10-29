@@ -116,7 +116,7 @@ jobs:
       - name: 📝 Generate UAT Release Note
         uses: dvsa/des-workflow-actions/.github/actions/confluence/generate-uat-release-note@main
         with:
-          release-tag: ${{ needs.release-cut.outputs.frontend-release-tag }}
+          release-tag: ${{ steps.get-release-tag.outputs.release_tag }}
           release-type: ${{ needs.release-cut.outputs.release-type }}
           frontend-release-tag: ${{ needs.release-cut.outputs.frontend-release-tag }}
           backend-release-tag: ${{ needs.release-cut.outputs.backend-release-tag }}
