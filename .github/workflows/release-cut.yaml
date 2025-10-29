@@ -95,11 +95,21 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
     steps:
+      - name: 🔍 Get Release Tag
+        id: get-release-tag
+        run: | 
+          release_tag=${{ needs.release-cut.outputs.frontend-release-tag }}
+          if [[ -z "$release_tag" ]]; then
+            release_tag="${{ needs.release-cut.outputs.backend-release-tag }}"
+          fi
+          
+          echo "release_tag=$release_tag" >> $GITHUB_OUTPUT
+
       - name: 🧐 Check/Create Parent Pages for the Release Note
         id: parent-page
         uses: dvsa/des-workflow-actions/.github/actions/confluence/check_uat_release_parent_pages@main
         with:
-          release-tag: ${{ needs.release-cut.outputs.frontend-release-tag }}
+          release-tag: ${{ steps.get-release-tag.outputs.release_tag }}
           confluence-user: ${{ secrets.CONFLUENCE_USER }}
           confluence-token: ${{ secrets.CONFLUENCE_TOKEN }}
 
