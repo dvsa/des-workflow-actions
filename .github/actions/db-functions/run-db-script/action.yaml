@@ -51,11 +51,11 @@ runs:
           script_file="$(echo $source_script | sed "s/<USER_PASSWORD>/${user_password//&/\\&}/")"
           echo "$script_file" > temp_script.sql
         
-          mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p${{ inputs.db-password }} < temp_script.sql
+          mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p'${{ inputs.db-password }}' < temp_script.sql
         
         else                   
           for script_file in *.sql; do        
-            mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p${{ inputs.db-password }} < "$script_file"
+            mysql -h ${{ inputs.db-cname }} -u ${{ inputs.db-username }} -p'${{ inputs.db-password }}' < "$script_file"
           done 
         fi
         
