@@ -171,7 +171,7 @@ jobs:
         run: osascript -e 'quit app "Xcode"' || true
 
       - name: 📢 Notify Teams
-        uses: dvsa/des-workflow-actions/.github/actions/notify-teams@MES-10614-mobile-app-fastlane-updates
+        uses: dvsa/des-workflow-actions/.github/actions/notify-teams@MES-10686-mobile-app-teams-update
         with:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           ipa-link: $(cat ./fastlane/builds/url-html.txt)
