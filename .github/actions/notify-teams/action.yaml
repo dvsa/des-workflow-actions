@@ -30,115 +30,190 @@ runs:
           COLOR="warning"
         fi
 
-        MESSAGE=$(cat <<EOF
+#        MESSAGE=$(cat <<EOF
+#        {
+#          "type": "message",
+#          "attachments": [
+#            {
+#              "contentType": "application/vnd.microsoft.card.adaptive",
+#              "content": {
+#              "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+#                "version": "1.4",
+#                "type": "AdaptiveCard",
+#                "body": [
+#                  {
+#                    "type": "ColumnSet",
+#                    "columns": [
+#                      {
+#                        "width": "100px",
+#                        "items": [
+#                          {
+#                            "type": "Image",
+#                            "url": "https://raw.githubusercontent.com/Skitionek/notify-microsoft-teams/master/icons/$STATUS.png",
+#                            "size": "stretch"
+#                          }
+#                        ]
+#                      },
+#                      {
+#                        "width": "stretch",
+#                        "verticalContentAlignment": "center",
+#                        "items": [
+#                          {
+#                            "type": "TextBlock",
+#                            "size": "Large",
+#                            "weight": "Bolder",
+#                            "text": "${GITHUB_WORKFLOW}"
+#                          },
+#                          {
+#                            "type": "TextBlock",
+#                            "size": "Large",
+#                            "weight": "Bolder",
+#                            "text": "Env & Version: ${{ inputs.information }}"
+#                          },
+#                          {
+#                            "type": "TextBlock",
+#                            "text": "**Repository:** ${GITHUB_REPOSITORY}"
+#                          },
+#                          {
+#                            "type": "TextBlock",
+#                            "text": "**Branch:** ${GITHUB_REF_NAME}"
+#                          },
+#                          {
+#                            "type": "TextBlock",
+#                            "text": "**Who:** ${GITHUB_ACTOR}"
+#                          },
+#                          {
+#                            "type": "TextBlock",
+#                            "text": "**Status:** ${STATUS}",
+#                            "color": "${COLOR}"
+#                          }
+#                        ]
+#                      }
+#                    ]
+#                  },
+#                  {
+#                    "type": "ColumnSet",
+#                    "columns": [
+#                      {
+#                        "width": "100px",
+#                        "items": [
+#                          {
+#                            "type": "Image",
+#                            "url": "${{ inputs.qr-link }}",
+#                            "size": "stretch"
+#                          }
+#                        ]
+#                      },
+#                      {
+#                        "width": "stretch",
+#                        "items": [
+#                          {
+#                            "type": "ActionSet",
+#                            "actions": [
+#                              {
+#                                "type": "Action.OpenUrl",
+#                                "title": "View Workflow",
+#                                "url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+#                              }
+#                            ]
+#                          },
+#                          {
+#                            "type": "ActionSet",
+#                            "actions": [
+#                              {
+#                                "type": "Action.OpenUrl",
+#                                "title": "Get .ipa file",
+#                                "url": "${{inputs.ipa-link}}"
+#                              }
+#                            ]
+#                          }
+#                        ]
+#                      }
+#                    ]
+#                  }
+#                ]
+#              }
+#            }
+#          ]
+#        }
+#        EOF
+#        )
+
+        MESSAGE=$(jq -n \
+        --arg status "$STATUS" \
+        --arg color "$COLOR" \
+        --arg workflow "$GITHUB_WORKFLOW" \
+        --arg info "${{ inputs.information }}" \
+        --arg repo "$GITHUB_REPOSITORY" \
+        --arg branch "$GITHUB_REF_NAME" \
+        --arg actor "$GITHUB_ACTOR" \
+        --arg run_url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+        --arg ipa_link "${{ inputs.ipa-link }}" \
+        --arg qr_link "${{ inputs.qr-link }}" '
         {
-          "type": "message",
-          "attachments": [
-            {
-              "contentType": "application/vnd.microsoft.card.adaptive",
-              "content": {
-              "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                "version": "1.4",
-                "type": "AdaptiveCard",
-                "body": [
-                  {
-                    "type": "ColumnSet",
-                    "columns": [
-                      {
-                        "width": "100px",
-                        "items": [
-                          {
-                            "type": "Image",
-                            "url": "https://raw.githubusercontent.com/Skitionek/notify-microsoft-teams/master/icons/$STATUS.png",
-                            "size": "stretch"
-                          }
-                        ]
-                      },
-                      {
-                        "width": "stretch",
-                        "verticalContentAlignment": "center",
-                        "items": [
-                          {
-                            "type": "TextBlock",
-                            "size": "Large",
-                            "weight": "Bolder",
-                            "text": "${GITHUB_WORKFLOW}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "size": "Large",
-                            "weight": "Bolder",
-                            "text": "Env & Version: ${{ inputs.information }}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Repository:** ${GITHUB_REPOSITORY}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Branch:** ${GITHUB_REF_NAME}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Who:** ${GITHUB_ACTOR}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Status:** ${STATUS}",
-                            "color": "${COLOR}"
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "type": "ColumnSet",
-                    "columns": [
-                      {
-                        "width": "100px",
-                        "items": [
-                          {
-                            "type": "Image",
-                            "url": "${{ inputs.qr-link }}",
-                            "size": "stretch"
-                          }
-                        ]
-                      },
-                      {
-                        "width": "stretch",
-                        "items": [
-                          {
-                            "type": "ActionSet",
-                            "actions": [
-                              {
-                                "type": "Action.OpenUrl",
-                                "title": "View Workflow",
-                                "url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "ActionSet",
-                            "actions": [
-                              {
-                                "type": "Action.OpenUrl",
-                                "title": "Get .ipa file",
-                                "url": "${{inputs.ipa-link}}"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        }
-        EOF
-        )
-        
+        type: "message",
+        attachments: [
+         {
+           contentType: "application/vnd.microsoft.card.adaptive",
+           content: {
+             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+             version: "1.4",
+             type: "AdaptiveCard",
+             body: [
+               {
+                 type: "ColumnSet",
+                 columns: [
+                   {
+                     width: "100px",
+                     items: [
+                       { type: "Image", url: ("https://raw.githubusercontent.com/Skitionek/notify-microsoft-teams/master/icons/" + $status + ".png"), size: "stretch" }
+                     ]
+                   },
+                   {
+                     width: "stretch",
+                     verticalContentAlignment: "center",
+                     items: [
+                       { type: "TextBlock", size: "Large", weight: "Bolder", text: $workflow },
+                       { type: "TextBlock", size: "Large", weight: "Bolder", text:
+                                                                               ("Env & Version: " + $info) },
+                    { type: "TextBlock", text: ("**Repository:** " + $repo) },
+                       { type: "TextBlock", text: ("**Branch:** " + $branch) },
+                       { type: "TextBlock", text: ("**Who:** " + $actor) },
+                       { type: "TextBlock", text: ("**Status:** " + $status), color: $color }
+                     ]
+                   }
+                 ]
+               },
+               {
+                 type: "ColumnSet",
+                 columns: [
+                   {
+                     width: "100px",
+                     items: [
+                       { type: "Image", url: $qr_link, size: "stretch" }
+                     ]
+                   },
+                   {
+                     width: "stretch",
+                     items: [
+                       {
+                         type: "ActionSet",
+                         actions: [
+                           { type: "Action.OpenUrl", title: "View Workflow", url: $run_url },
+                           { type: "Action.OpenUrl", title: "Get .ipa file", url: $ipa_link }
+                         ]
+                       }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           }
+         }
+        ]
+        }')
+      
+      
         echo "$MESSAGE" | jq .
 
         curl -H "Content-Type: application/json" -d "$MESSAGE" "${{ inputs.webhook_url }}"
