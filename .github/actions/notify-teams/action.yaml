@@ -139,6 +139,6 @@ runs:
         EOF
         )
         
-        echo $MESSAGE
+        echo "$MESSAGE" | jq .
 
         curl -H "Content-Type: application/json" -d "$MESSAGE" "${{ inputs.webhook_url }}"
