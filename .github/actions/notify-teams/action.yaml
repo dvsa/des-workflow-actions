@@ -108,7 +108,7 @@ runs:
                           },
                           {
                             "type": "TextBlock",
-                            "text": "**🏷️ Branch/Tag:** ${GITHUB_REF_NAME}"
+                            "text": "**🏷️ Branch/Tag:** ${{ env.GH_REF_NAME }}"
                           }
                         ]
                       }
