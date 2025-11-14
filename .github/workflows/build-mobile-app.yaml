@@ -120,52 +120,6 @@ jobs:
         if: ${{ inputs.build-ipa == 'true' }}
         run: bundle exec fastlane build_ipa
 
-#      - name: 📝Generate MS Teams JSON
-#        id: generate_ms_teams_json
-#        run: |
-#          download_sim_app_file_url=$(cat ./fastlane/simulator/url-app.txt 2>/dev/null || echo "Not generated")
-#          download_ipa_url=$(cat ./fastlane/builds/url-ipa.txt 2>/dev/null || echo "Not generated")
-#          qr_code_url=$(cat ./fastlane/builds/url-qr.txt 2>/dev/null || echo "Not generated")
-#
-#          json="$(jq -n \
-#          --arg actor "${{ github.actor }}" \
-#          --arg branch "${{ inputs.branch || github.ref_name }}" \
-#          --arg environment "${{ inputs.environment }}" \
-#          --arg download_sim_app_file_url "$download_sim_app_file_url" \
-#          --arg download_ipa_url "$download_ipa_url" \
-#          --arg qr_code_url "$qr_code_url" \
-#          '{
-#            title: "📱 \($actor) triggered a mobile app build",
-#            sections: [{
-#              facts: [
-#                { name: "🏷️ Branch/Tag:", value: $branch },
-#                { name: "⚙️ Environment:", value: $environment },
-#                { name: "📥 Download Simulator:", value: "[Download .app file](\($download_sim_app_file_url))" },
-#                { name: "📥 Download IPA:", value: "[Download .ipa file](\($download_ipa_url))" },
-#                { name: "📲 QR Code:", value: "[Open QR code image](\($qr_code_url))" }
-#              ]
-#            }]
-#          }')"
-#
-#          echo "json=$(echo "$json" | jq -c .)" >> $GITHUB_OUTPUT
-#
-#      - name: 🔔 Send MS Teams Notification
-#        if: always()
-#        uses: skitionek/notify-microsoft-teams@v1.0.4
-#        with:
-#          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_MOBILE_APP }}
-#          job: ${{ toJson(job) }}
-#          steps: ${{ toJson(steps) }}
-#          overwrite: ${{ steps.generate_ms_teams_json.outputs.json }}
-
-      - name: ☁️ Upload Mobile Artifacts to Summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-artifacts-${{ inputs.environment }}-${{ github.sha }}
-          path: |
-            ./fastlane/builds/*.ipa
-            ./fastlane/simulator/*.zip
-
       - name: 🔪 Kill Xcode
         if: always()
         run: osascript -e 'quit app "Xcode"' || true
