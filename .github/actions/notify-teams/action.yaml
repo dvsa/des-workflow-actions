@@ -37,55 +37,37 @@ runs:
             {
               "contentType": "application/vnd.microsoft.card.adaptive",
               "content": {
-              "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                 "version": "1.4",
                 "type": "AdaptiveCard",
+                "msteams": {
+                  "width": "full"
+                },
                 "body": [
                   {
                     "type": "ColumnSet",
                     "columns": [
                       {
-                        "width": "100px",
-                        "items": [
-                          {
-                            "type": "Image",
-                            "url": "https://raw.githubusercontent.com/Skitionek/notify-microsoft-teams/master/icons/$STATUS.png",
-                            "size": "stretch"
-                          }
-                        ]
-                      },
-                      {
+                        "type": "Column",
                         "width": "stretch",
                         "verticalContentAlignment": "center",
                         "items": [
                           {
                             "type": "TextBlock",
-                            "size": "Large",
-                            "weight": "Bolder",
-                            "text": "${GITHUB_WORKFLOW}"
-                          },
+                            "size": "large",
+                            "weight": "bolder",
+                            "text": "📱 ${GITHUB_ACTOR} triggered a mobile app build"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Column",
+                        "width": "50px",
+                        "items": [
                           {
-                            "type": "TextBlock",
-                            "size": "Large",
-                            "weight": "Bolder",
-                            "text": "Env & Version: ${{ inputs.information }}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Repository:** ${GITHUB_REPOSITORY}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Branch:** ${GITHUB_REF_NAME}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Who:** ${GITHUB_ACTOR}"
-                          },
-                          {
-                            "type": "TextBlock",
-                            "text": "**Status:** ${STATUS}",
-                            "color": "${COLOR}"
+                            "type": "Image",
+                            "url": "https://raw.githubusercontent.com/Skitionek/notify-microsoft-teams/master/icons/${STATUS}.png",
+                            "size": "stretch"
                           }
                         ]
                       }
@@ -95,7 +77,9 @@ runs:
                     "type": "ColumnSet",
                     "columns": [
                       {
-                        "width": "100px",
+                        "type": "Column",
+                        "width": "110px",
+                        "verticalContentAlignment": "center",
                         "items": [
                           {
                             "type": "Image",
@@ -105,6 +89,36 @@ runs:
                         ]
                       },
                       {
+                        "type": "Column",
+                        "width": "stretch",
+                        "verticalContentAlignment": "center",
+                        "items": [
+                          {
+                            "type": "TextBlock",
+                            "text": "**✅ Status:** ${STATUS}",
+                            "color": "good"
+                          },
+                          {
+                            "type": "TextBlock",
+                            "text": "**🗂️ Repository:** ${GITHUB_REPOSITORY}"
+                          },
+                          {
+                            "type": "TextBlock",
+                            "text": "**⚙️ Environment:** ${{ inputs.information }}"
+                          },
+                          {
+                            "type": "TextBlock",
+                            "text": "**🏷️ Branch/Tag:** ${{ env.GH_REF_NAME }}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "ColumnSet",
+                    "columns": [
+                      {
+                        "type": "Column",
                         "width": "stretch",
                         "items": [
                           {
@@ -114,15 +128,10 @@ runs:
                                 "type": "Action.OpenUrl",
                                 "title": "View Workflow",
                                 "url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "ActionSet",
-                            "actions": [
+                              },
                               {
                                 "type": "Action.OpenUrl",
-                                "title": "Get .ipa file",
+                                "title": "Download .ipa file",
                                 "url": "${{inputs.ipa-link}}"
                               }
                             ]
@@ -138,7 +147,5 @@ runs:
         }
         EOF
         )
-        
-        echo $MESSAGE
 
         curl -H "Content-Type: application/json" -d "$MESSAGE" "${{ inputs.webhook_url }}"
