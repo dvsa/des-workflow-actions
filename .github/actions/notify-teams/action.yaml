@@ -148,4 +148,4 @@ runs:
         EOF
         )
 
-        curl -H "Content-Type: application/json" --data-binary "$MESSAGE" "${{ inputs.webhook_url }}"
+        curl -H "Content-Type: application/json" -d "$MESSAGE" "${{ inputs.webhook_url }}"
