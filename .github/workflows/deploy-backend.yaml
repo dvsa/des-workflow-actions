@@ -242,4 +242,4 @@ jobs:
           job: ${{ steps.ms-teams-json.outputs.job-context }}
           needs: ${{ toJson(needs) }}
           steps: ${{ steps.ms-teams-json.outputs.steps-context }}
-          overwrite: "{title: `${{github.repository}} | ${{github.workflow}} | BY: ${{github.actor}}`}"
+          title: '${{ github.workflow }} | ${{ github.repository }} | Branch: ${{ github.ref_name }}'
