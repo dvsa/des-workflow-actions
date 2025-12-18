@@ -1,5 +1,5 @@
 name: Generate JSON for Microsoft Teams Notification
-description: "Action to combine the steps of multiple workflow jobs into one object for the notify-microsoft-teams action to consume"
+description: "Action to combine multiple GitHub Actions jobs within a workflow into one object for the notify-microsoft-teams action to consume"
 inputs:
   needs-context:
     required: true
@@ -8,9 +8,6 @@ outputs:
   job-context:
     description: "The job context to pass to the Microsoft Teams Notification action"
     value: ${{ steps.ms-teams-json.outputs.job-context }}
-  steps-context:
-    description: "The steps context to pass to the Microsoft Teams Notification action"
-    value: ${{ steps.ms-teams-json.outputs.steps-context }}
 
 runs:
   using: composite
@@ -25,11 +22,6 @@ runs:
           if [ $job_status == 'failure' ] || [ $job_status == 'cancelled' ]; then
             unsuccessful_status=$job_status
           fi
-        
-          steps_context=$(echo "$job" | jq -r '.outputs."steps-context"')
-          if [ "$steps_context" != 'null' ]; then
-            steps_context_array+=("$steps_context")
-          fi
         done
         
         if [ "$unsuccessful_status" ]; then
@@ -39,4 +31,3 @@ runs:
         fi
         
         echo "job-context=$job_context" >> $GITHUB_OUTPUT
-        echo "steps-context=$(jq -c -s 'reduce .[] as $item ({}; . * $item)' <<< "${steps_context_array[@]}")" >> $GITHUB_OUTPUT
