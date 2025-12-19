@@ -46,6 +46,7 @@ jobs:
           parse-json-secrets: true
 
       - name: 🔄 Update Exclusions List
+        id: update-exclusions-list
         if: ${{ inputs.event-name == 'workflow_dispatch' }}
         run: |
           echo "## Update RDS Exclusions" >> $GITHUB_STEP_SUMMARY
@@ -84,6 +85,7 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🛠️ Manage NonProd Clusters
+        id: manage-nonprod-clusters
         run: |
           clusters=($(aws rds describe-db-clusters --region eu-west-1 | jq -r '.DBClusters[] | "\(.DBClusterIdentifier),\(.Status)"'))
           action=${{ inputs.action || steps.determine-action.outputs.action }}
@@ -130,9 +132,9 @@ jobs:
 
       - name: 🔔 Send MS Teams Notification
         if: always()
-        uses: skitionek/notify-microsoft-teams@v1.0.4
+        uses: skitionek/notify-microsoft-teams@v1.0.9
         with:
-          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_RDS_MANAGEMENT }}
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_DYNAMIC_WF_WEBHOOK }}
           job: ${{ toJson(job) }}
           steps: ${{ toJson(steps) }}
-          overwrite: "{title: `Action: ${{ inputs.action || steps.determine-action.outputs.action }} NonProd Clusters | BY: ${{ github.actor }}`}"
+          title: '${{ github.workflow }} | Action: ${{ inputs.action || steps.determine-action.outputs.action }}'
