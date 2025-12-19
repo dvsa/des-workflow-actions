@@ -236,7 +236,7 @@ jobs:
           needs-context: ${{ toJSON(needs) }}
 
       - name: 🔔 Send MS Teams Notification
-        uses: skitionek/notify-microsoft-teams@v1.0.4
+        uses: skitionek/notify-microsoft-teams@v1.0.9
         with:
           webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_SERVICE_BUILDS }}
           job: ${{ steps.ms-teams-json.outputs.job-context }}
