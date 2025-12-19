@@ -144,7 +144,7 @@ jobs:
         if: always()
         uses: skitionek/notify-microsoft-teams@v1.0.9
         with:
-          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_WEBHOOK_RELEASE_MANIFEST }}
+          webhook_url: ${{ env.DES_GLOBALS_ENV_MSTEAMS_DYNAMIC_WF_WEBHOOK }}
           job: ${{ steps.ms-teams-json.outputs.job-context }}
           needs: ${{ toJson(needs) }}
           title: '${{ github.workflow }} | ${{ github.repository }} | Branch: ${{ github.ref_name }}'
