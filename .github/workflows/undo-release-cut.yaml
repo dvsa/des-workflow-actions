@@ -69,7 +69,7 @@ jobs:
             current_timestamp=$(date +%s)
             timestamp_difference=$((current_timestamp - date_created_timestamp))
           
-            if [ "$timestamp_difference" -ge 432000 ]; then
+            if [ "$timestamp_difference" -ge 86400 ]; then
               echo "❌ Error: \`${{ inputs.tag-to-delete }}\` will not be deleted as the deletion timeframe has expired (24 hours)" >> $GITHUB_STEP_SUMMARY
               exit 1
             fi
