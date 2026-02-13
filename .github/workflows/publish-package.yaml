@@ -23,22 +23,21 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Read .nvmrc
         id: nvm
         run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
       - name: Setup Node.js ${{ env.NVMRC }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NVMRC }}
           cache: 'npm'
 
-      - name: Create .npmrc
-        run: echo "//registry.npmjs.org/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
-        env:
-          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      - name: Update npm to latest version for OIDC support
+        shell: bash
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
