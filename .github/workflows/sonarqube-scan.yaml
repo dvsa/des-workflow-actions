@@ -33,7 +33,7 @@ jobs:
     runs-on: MACOS-ARM64
     steps:
       - name: 📨 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🪪 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -52,7 +52,7 @@ jobs:
         run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_ENV
 
       - name: ⚙️ Setup Node.js ${{ env.NVMRC }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NVMRC }}
 
@@ -64,14 +64,11 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=$ACCESS_TOKEN" >> ~/.npmrc
           
           if [[ "${{ github.event.repository.name }}" == "des-mobile-app" ]]; then
-            # Use npm registry for @dvsa/biome-config
-            echo "@dvsa/biome-config:registry=https://registry.npmjs.org/" >> .npmrc
-  
-            # Use GitHub Packages registry for all other @dvsa scoped packages
-            echo "@dvsa:registry=https://npm.pkg.github.com" >> .npmrc
-  
-            echo "@ionic-enterprise:registry=https://registry.ionicframework.com/" >> .npmrc
-            echo "//registry.ionicframework.com/:_authToken=$DES_IONIC_KEY" >> .npmrc
+              # Use npm registry for @dvsa/biome-config
+              echo "@dvsa/biome-config:registry=https://registry.npmjs.org/" >> .npmrc
+
+              echo "@ionic-enterprise:registry=https://registry.ionicframework.com/" >> .npmrc
+              echo "//registry.ionicframework.com/:_authToken=$DES_IONIC_KEY" >> .npmrc
           fi
 
       - name: ➕ Install Dependencies
