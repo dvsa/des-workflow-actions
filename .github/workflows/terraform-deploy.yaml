@@ -24,6 +24,11 @@ on:
         type: boolean
         default: true
         required: false
+      dsp:
+        description: Whether to deploy the DSP component
+        type: boolean
+        default: true
+        required: false
       drs:
         description: Whether to deploy the DRS component
         type: boolean
@@ -143,9 +148,29 @@ jobs:
       tf-action: ${{ matrix.tf-action }}
     secrets: inherit
 
+  deploy-dsp:
+    name: 🧩 DSP
+    needs: [ start-ec2-runner, deploy-api ]
+    if: always() && !failure() && !cancelled() && inputs.dsp == true
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [ plan, apply ]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: dsp
+      release-tag: ${{ inputs.release-tag }}
+      tf-args: ${{ inputs.tf-args }}
+      tf-action: ${{ matrix.tf-action }}
+    secrets: inherit
+
   deploy-drs:
     name: 🧩 DRS
-    needs: [start-ec2-runner, deploy-api]
+    needs: [start-ec2-runner, deploy-dsp]
     if: always() && !failure() && !cancelled() && inputs.drs == true
     strategy:
       max-parallel: 1

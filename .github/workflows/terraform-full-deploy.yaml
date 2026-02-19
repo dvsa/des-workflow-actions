@@ -140,9 +140,30 @@ jobs:
       artefact-name-prefix: 1
     secrets: inherit
 
+  deploy-dsp:
+    name: 🧩 dsp
+    needs: [start-ec2-runner, set-tf-args, deploy-api]
+    if: always() && !failure() && !cancelled()
+    strategy:
+      max-parallel: 1
+      matrix:
+        tf-action: [ "${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}" ]
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    with:
+      runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
+      branch: ${{ inputs.branch }}
+      aws-account: ${{ inputs.aws-account }}
+      tf-environment: ${{ inputs.tf-environment }}
+      tf-component: dsp
+      release-tag: ${{ inputs.release-tag }}
+      tf-args: ${{ needs.set-tf-args.outputs.api-args }}
+      tf-action: ${{ matrix.tf-action }}
+      artefact-name-prefix: 2
+    secrets: inherit
+
   deploy-drs:
     name: 🧩 DRS
-    needs: [start-ec2-runner, set-tf-args, deploy-api]
+    needs: [start-ec2-runner, set-tf-args, deploy-dsp]
     if: always() && !failure() && !cancelled()
     strategy:
       max-parallel: 1
@@ -158,7 +179,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 2
+      artefact-name-prefix: 3
     secrets: inherit
 
   deploy-api-2nd-run:
@@ -179,7 +200,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ needs.set-tf-args.outputs.api-second-run-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 3
+      artefact-name-prefix: 4
     secrets: inherit
 
   deploy-last-component:
@@ -200,7 +221,7 @@ jobs:
       release-tag: ${{ inputs.release-tag }}
       tf-args: ${{ inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
-      artefact-name-prefix: 4
+      artefact-name-prefix: 5
     secrets: inherit
 
   delete-log-groups:
