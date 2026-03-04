@@ -59,6 +59,12 @@ jobs:
           ref: ${{ inputs.branch }}
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
+      - name: Debugging
+        run: |
+          cat components/dsp/api-models/post-bookings.json || echo "File not found"
+          ls -al 
+          ls -al components/dsp/api-models/
+
       - name: 📨 Checkout DSP API Gateway Model
         if: inputs.tf-component == 'dsp'
         uses: actions/checkout@v4
@@ -68,6 +74,12 @@ jobs:
           sparse-checkout: mes-dsp-booking-schema/target/index.json
           sparse-checkout-cone-mode: false
           path: components/dsp/api-models/post-bookings.json
+
+      - name: Debugging
+        run: |
+          cat components/dsp/api-models/post-bookings.json || echo "File not found"
+          ls -al 
+          ls -al components/dsp/api-models/
 
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
