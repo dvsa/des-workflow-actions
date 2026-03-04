@@ -59,6 +59,16 @@ jobs:
           ref: ${{ inputs.branch }}
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
+      - name: 📨 Checkout DSP API Gateway Model
+        if: inputs.tf-component == 'dsp'
+        uses: actions/checkout@v4
+        with:
+          repository: dvsa/mes-api-definitions
+          token: ${{ secrets.GH_TOKEN_TEMP }}
+          sparse-checkout: mes-dsp-booking-schema/target/index.json
+          sparse-checkout-cone-mode: false
+          path: components/dsp/api-models/post-bookings.json
+
       - name: 🔑 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
