@@ -1,0 +1,83 @@
+name: Disable/Enable Pollers
+description: "Action to disable or enable the DRS pollers."
+inputs:
+  aws-account:
+    description: The AWS account to target
+    required: true
+  aws_region:
+    description: The AWS region to target
+    required: true
+  tf-environment:
+    description: The Terraform environment
+    required: true
+  action:
+    description: Whether to disable or enable the pollers
+    required: true
+  mgmt-role:
+    description: The management role to assume for initial credentials
+    required: true
+  role-to-assume:
+    description: The role to assume for managing the pollers
+    required: true
+outputs:
+  drs-tf-args:
+    value: ${{ steps.update-tf-args.outputs.drs-tf-args }}
+    description: Terraform arguments to ensure the DRS pollers remains disabled
+  dms-tf-args:
+    value: ${{ steps.update-tf-args.outputs.dms-tf-args }}
+    description: Terraform arguments to ensure the DMS Task Updater remains disabled
+
+runs:
+  using: composite
+  steps:
+    - name: 🔑 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.mgmt-role }}
+        aws-region: ${{ inputs.aws_region }}
+        role-session-name: Terraform-GHA
+
+    - name: 🤫 Get Secrets
+      uses: aws-actions/aws-secretsmanager-get-secrets@v2
+      with:
+        secret-ids: des-globals/env
+        parse-json-secrets: true
+
+    - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.role-to-assume }}
+        aws-region: ${{ inputs.aws_region }}
+        role-session-name: Terraform-GHA
+
+    - name: Manage Pollers and DMS Task Updater
+      shell: bash
+      run: |
+        IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
+        for rule in "${cw_rules[@]}"; do
+          [[ "$rule" == "dms-task-updater" ]] && component=dms || component=drs
+          rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
+          aws events ${{ inputs.action }}-rule --name ${rule_name} --region ${{ inputs.aws_region }}
+
+          echo "Successfully performed '${{ inputs.action }}' on rule: ${rule_name}"
+        done
+
+    - name: ⚙️ Update tf-args to Prevent Pollers and DMS Task Updater Re-Enabling
+      id: update-tf-args
+      if: ${{ inputs.action == 'disable' }}
+      shell: bash
+      run: |
+        drs_tf_args=""
+        dms_tf_args=""
+        
+        IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
+        for rule in "${cw_rules[@]}"; do
+          if [[ "$rule" == "dms-task-updater" ]]; then
+            dms_tf_args+="-var='${rule}_cw_event_state=DISABLED' "
+          else
+            drs_tf_args+="-var='${rule}_cw_event_state=DISABLED' "
+          fi
+        done
+        
+        echo "drs-tf-args=$drs_tf_args" >> $GITHUB_OUTPUT
+        echo "dms-tf-args=$dms_tf_args" >> $GITHUB_OUTPUT
