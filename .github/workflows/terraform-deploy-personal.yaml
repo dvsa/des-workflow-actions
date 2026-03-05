@@ -129,6 +129,7 @@ jobs:
           action: disable
           mgmt-role: ${{ secrets.DES_AWS_ROLE }}
           role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
+          personal-environment: true
 
   deploy-api:
     name: 🧩 API
@@ -349,6 +350,7 @@ jobs:
           action: enable
           mgmt-role: ${{ secrets.DES_AWS_ROLE }}
           role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
+          personal-environment: true
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
