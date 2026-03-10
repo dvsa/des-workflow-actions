@@ -85,5 +85,5 @@ runs:
           fi
         done
         
-        echo "drs-tf-args=$drs_tf_args" >> $GITHUB_OUTPUT
-        echo "dms-tf-args=$dms_tf_args" >> $GITHUB_OUTPUT
+        echo "drs-tf-args=${drs_tf_args//-/_}" >> $GITHUB_OUTPUT
+        echo "dms-tf-args=${dms_tf_args//-/_}" >> $GITHUB_OUTPUT
