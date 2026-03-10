@@ -29,7 +29,7 @@ outputs:
     description: Terraform arguments to ensure the DRS pollers remains disabled
   dms-tf-args:
     value: ${{ steps.update-tf-args.outputs.dms-tf-args }}
-    description: Terraform arguments to ensure the DMS Task Updater remains disabled
+    description: Terraform arguments to ensure the DMS task updater remains disabled
 
 runs:
   using: composite
