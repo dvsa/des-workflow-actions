@@ -78,7 +78,7 @@ runs:
         
         IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
         for rule in "${cw_rules[@]}"; do
-          if [[ "$rule" == "dms-task-updater" && "${{ inputs.personal-environment }}" == "false" ]]; then
+          if [[ "$rule" == "dms-task-updater" ]]; then
             dms_tf_args+="-var='${rule//-/_}_cw_event_state=DISABLED' "
           else
             drs_tf_args+="-var='${rule//-/_}_cw_event_state=DISABLED' "
