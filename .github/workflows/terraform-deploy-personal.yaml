@@ -121,7 +121,7 @@ jobs:
     steps:
       - name: ⏹️ Disable DRS Pollers
         id: disable-pollers
-        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@MES-10916-alter-pollers-ability-update
+        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@main
         with:
           aws-account: ${{ inputs.aws-account }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
@@ -342,7 +342,7 @@ jobs:
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
       - name: ▶️ Enable DRS Pollers
-        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@MES-10916-alter-pollers-ability-update
+        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@main
         with:
           aws-account: ${{ inputs.aws-account }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
