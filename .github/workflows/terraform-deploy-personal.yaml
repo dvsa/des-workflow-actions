@@ -354,7 +354,7 @@ jobs:
 
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, load-test-data]
+    needs: [start-ec2-runner, enable-drs-pollers]
     if: always()
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
