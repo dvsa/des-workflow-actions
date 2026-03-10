@@ -79,11 +79,11 @@ runs:
         IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_DMS_CW_RULES }}"
         for rule in "${cw_rules[@]}"; do
           if [[ "$rule" == "dms-task-updater" && "${{ inputs.personal-environment }}" == "false" ]]; then
-            dms_tf_args+="-var='${rule}_cw_event_state=DISABLED' "
+            dms_tf_args+="${rule}_cw_event_state=DISABLED "
           else
-            drs_tf_args+="-var='${rule}_cw_event_state=DISABLED' "
+            drs_tf_args+="${rule}_cw_event_state=DISABLED "
           fi
         done
         
-        echo "drs-tf-args=${drs_tf_args//-/_}" >> $GITHUB_OUTPUT
-        echo "dms-tf-args=${dms_tf_args//-/_}" >> $GITHUB_OUTPUT
+        echo "drs-tf-args=-var='${drs_tf_args//-/_}'" >> $GITHUB_OUTPUT
+        echo "dms-tf-args=-var='${dms_tf_args//-/_}'" >> $GITHUB_OUTPUT
