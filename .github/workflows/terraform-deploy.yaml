@@ -43,6 +43,11 @@ on:
         description: The version of the microservices to be deployed
         type: string
         required: false
+      disable-pollers:
+        description: Whether to disable the pollers before deployment
+        type: boolean
+        default: false
+        required: false
       tf-args:
         description: Additional Terraform arguments
         type: string
@@ -110,9 +115,29 @@ jobs:
           task-arn: ${{ steps.dms-tasks.outputs.date_filtered_task_arn }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
+  disable-drs-pollers:
+    name: ⏹️ Disable DRS Pollers
+    needs: [start-ec2-runner, stop-dms-tasks]
+    if: always() && !failure() && !cancelled() && inputs.disable-pollers == true
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    outputs:
+        drs-tf-args: ${{ steps.disable-pollers.outputs.drs-tf-args }}
+        dms-tf-args: ${{ steps.disable-pollers.outputs.dms-tf-args }}
+    steps:
+      - name: ⏹️ Disable DRS Pollers
+        id: disable-pollers
+        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@main
+        with:
+          aws-account: ${{ inputs.aws-account }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          tf-environment: ${{ inputs.tf-environment }}
+          action: disable
+          mgmt-role: ${{ secrets.DES_AWS_ROLE }}
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
+
   deploy-dmsbase:
     name: 🧩 DMSBASE
-    needs: [start-ec2-runner, stop-dms-tasks]
+    needs: [start-ec2-runner, disable-drs-pollers]
     if: always() && !failure() && !cancelled() && inputs.tf-environment != 'dev' && inputs.dmsbase == true
     strategy:
       max-parallel: 1
@@ -170,7 +195,7 @@ jobs:
 
   deploy-drs:
     name: 🧩 DRS
-    needs: [start-ec2-runner, deploy-dsp]
+    needs: [start-ec2-runner, disable-drs-pollers, deploy-dsp]
     if: always() && !failure() && !cancelled() && inputs.drs == true
     strategy:
       max-parallel: 1
@@ -184,7 +209,7 @@ jobs:
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: drs
       release-tag: ${{ inputs.release-tag }}
-      tf-args: ${{ inputs.tf-args }}
+      tf-args: ${{ needs.disable-drs-pollers.outputs.drs-tf-args || inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
     secrets: inherit
 
@@ -233,7 +258,7 @@ jobs:
 
   deploy-dms:
     name: 🧩 DMS
-    needs: [start-ec2-runner, create-db-users]
+    needs: [start-ec2-runner, disable-drs-pollers, create-db-users]
     if: always() && !failure() && !cancelled() && inputs.dms == true
     strategy:
       max-parallel: 1
@@ -247,7 +272,7 @@ jobs:
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: dms
       release-tag: ${{ inputs.release-tag }}
-      tf-args: ${{ inputs.tf-args }}
+      tf-args: ${{ needs.disable-drs-pollers.outputs.dms-tf-args || inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
     secrets: inherit
 
@@ -263,9 +288,25 @@ jobs:
       db-script-branch: ${{ inputs.tars-replica-db-script-branch }}
     secrets: inherit
 
+  enable-drs-pollers:
+    name: ▶️ Enable DRS Pollers
+    needs: [start-ec2-runner, full-dms-deploy]
+    if: always() && !failure() && !cancelled() && inputs.disable-pollers == true
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    steps:
+      - name: ▶️ Enable DRS Pollers
+        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@main
+        with:
+          aws-account: ${{ inputs.aws-account }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          tf-environment: ${{ inputs.tf-environment }}
+          action: enable
+          mgmt-role: ${{ secrets.DES_AWS_ROLE }}
+          role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
+
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, full-dms-deploy]
+    needs: [start-ec2-runner, enable-drs-pollers]
     if: always()
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:

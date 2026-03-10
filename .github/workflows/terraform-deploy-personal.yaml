@@ -31,6 +31,11 @@ on:
         description: DynamoDB Test Data Branch
         type: string
         required: false
+      disable-pollers:
+        description: Whether to disable the pollers before deployment
+        type: boolean
+        default: false
+        required: false
 
 permissions:
   id-token: write
@@ -105,9 +110,30 @@ jobs:
           echo "api-second-run-args=$api_second_run_args" >> $GITHUB_OUTPUT
           echo "tf-plan-action=$tf_plan_action" >> $GITHUB_OUTPUT
 
+  disable-drs-pollers:
+    name: ⏹️ Disable DRS Pollers
+    needs: [start-ec2-runner, set-tf-args]
+    if: always() && !failure() && !cancelled() && inputs.disable-pollers == true && needs.set-tf-args.outputs.first-run == 'false'
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    outputs:
+      drs-tf-args: ${{ steps.disable-pollers.outputs.drs-tf-args }}
+      dms-tf-args: ${{ steps.disable-pollers.outputs.dms-tf-args }}
+    steps:
+      - name: ⏹️ Disable DRS Pollers
+        id: disable-pollers
+        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@main
+        with:
+          aws-account: ${{ inputs.aws-account }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          tf-environment: ${{ inputs.tf-environment }}
+          action: disable
+          mgmt-role: ${{ secrets.DES_AWS_ROLE }}
+          role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
+          personal-environment: true
+
   deploy-api:
     name: 🧩 API
-    needs: [start-ec2-runner, set-tf-args]
+    needs: [start-ec2-runner, set-tf-args, disable-drs-pollers]
     if: always() && !failure() && !cancelled()
     strategy:
       max-parallel: 1
@@ -147,7 +173,7 @@ jobs:
 
   deploy-drs:
     name: 🧩 DRS
-    needs: [start-ec2-runner, set-tf-args, deploy-dsp]
+    needs: [start-ec2-runner, set-tf-args, deploy-dsp, disable-drs-pollers]
     if: always() && !failure() && !cancelled()
     strategy:
       max-parallel: 1
@@ -160,7 +186,7 @@ jobs:
       aws-account: ${{ inputs.aws-account }}
       tf-environment: ${{ inputs.tf-environment }}
       tf-component: drs
-      tf-args: ${{ inputs.tf-args }}
+      tf-args: ${{ needs.disable-drs-pollers.outputs.drs-tf-args || inputs.tf-args }}
       tf-action: ${{ matrix.tf-action }}
       artefact-name-prefix: 2
     secrets: inherit
@@ -266,7 +292,6 @@ jobs:
           db-username: mes${{ inputs.tf-environment }}${{ env.RDS_CREDENTIALS_PERSONAL_DB_USERNAME_SUFFIX }}
           db-password: ${{ env.RDS_CREDENTIALS_TARS_DB_PASSWORD }}
 
-
       - name: ✨ Create Ref Data User
         uses: dvsa/des-workflow-actions/.github/actions/db-functions/run-db-script@main
         with:
@@ -310,9 +335,26 @@ jobs:
           python3 ./load_test_user_data.py ${{ inputs.tf-environment }}
           python3 ./load_test_journal_data.py ${{ inputs.tf-environment }}
 
+  enable-drs-pollers:
+    name: ▶️ Enable DRS Pollers
+    needs: [start-ec2-runner, load-test-data]
+    if: always() && !failure() && !cancelled() && inputs.disable-pollers == true && needs.set-tf-args.outputs.first-run == 'false'
+    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
+    steps:
+      - name: ▶️ Enable DRS Pollers
+        uses: dvsa/des-workflow-actions/.github/actions/aws-functions/manage-pollers@main
+        with:
+          aws-account: ${{ inputs.aws-account }}
+          aws-region: ${{ secrets.DVSA_AWS_REGION }}
+          tf-environment: ${{ inputs.tf-environment }}
+          action: enable
+          mgmt-role: ${{ secrets.DES_AWS_ROLE }}
+          role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
+          personal-environment: true
+
   stop-ec2-runner:
     name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, load-test-data]
+    needs: [start-ec2-runner, enable-drs-pollers]
     if: always()
     uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
