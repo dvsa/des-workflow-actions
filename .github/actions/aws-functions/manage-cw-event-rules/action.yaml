@@ -57,6 +57,11 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         role-session-name: Terraform-GHA
 
+    - name: Debugging
+      shell: bash
+      run: |
+        ls -al
+
     - name: Manage CloudWatch Event Rules
       shell: bash
       run: |
