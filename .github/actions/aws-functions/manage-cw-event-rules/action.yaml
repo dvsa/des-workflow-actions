@@ -106,13 +106,11 @@ runs:
               tfvars_file="etc/env_${{ inputs.aws-region }}_${{ inputs.tf-environment }}.tfvars"
             fi
             
-            tf_cw_state=$(grep "${rule_state_tf_var}" ${tfvars_file} | cut -d '=' -f 2 | sed 's/"//g; s/^ *//')
-            
-            echo "tfvars_file: $tfvars_file"
-            echo "tf_cw_state: $tf_cw_state"
-            
+            tfvars_state=$(grep "${rule_state_tf_var}" ${tfvars_file})
+            [[ -n "$tfvars_state" ]] && desired_rule_state=$(echo "$tfvars_state" | cut -d '=' -f 2 | sed 's/"//g; s/^ *//')
+                        
             # The ${rule_state_tf_var} default value is ENABLED, so only skip enabling if tfvars explicitly indicates DISABLED
-            if [[ "$tf_cw_state" != "" ]]; then
+            if [[ "$desired_rule_state" == "DISABLED" ]]; then
               echo "Skipping enabling ${rule_name} as tfvars indicates it should be disabled"
               continue
             fi
