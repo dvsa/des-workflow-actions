@@ -79,19 +79,20 @@ runs:
       shell: bash
       run: |
         IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_CW_EVENT_RULES }}"
-        echo "cw_rules: ${cw_rules[@]}"
         for rule in "${cw_rules[@]}"; do
-          echo "rule: $rule"
-          echo "Looking for: variable \"${rule//-/_}_cw_event_state\" in components/*/variables.tf"
-          ls -al components/*/variables.tf || echo "No variables.tf files found"
+          rule_state_tf_var="${rule//-/_}_cw_event_state"
         
-          component=$(grep -l "variable \"${rule//-/_}_cw_event_state\"" components/*/variables.tf | awk -F'/' '{print $2}')
+          # Determine component from variables.tf file that contains the expected variable
+          component_files=$(grep -l "variable \"${rule_state_tf_var}\"" components/*/variables.tf)
+          if [[ -n "$component_files" ]]; then
+            component=$(echo "$component_files" | awk -F'/' '{print $2}')
+          else
+            echo "Warning: Could not find a variables.tf file containing variable '${rule_state_tf_var}'. Skipping this rule."
+            continue
+          fi
+        
           rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
-        
-          echo "rule_name: $rule_name"
-        
-          if [[ "$component" == "dms" && "${{ inputs.personal-environment }}" == "true" ]]; then continue; fi
-        
+                        
           # Check Terraform tfvars for desired state of the rule when enabling
           if [[ "${{ inputs.action }}" == "enable" ]]; then
             if [[ "${{ inputs.personal-environment }}" == "true" ]]; then
@@ -100,12 +101,12 @@ runs:
               tfvars_file="etc/env_${{ inputs.aws-region }}_${{ inputs.tf-environment }}.tfvars"
             fi
             
-            tf_cw_state=$(grep "${rule//-/_}_cw_event_state" ${tfvars_file} | cut -d '=' -f 2 | sed 's/"//g; s/^ *//')
+            tf_cw_state=$(grep "${rule_state_tf_var}" ${tfvars_file} | cut -d '=' -f 2 | sed 's/"//g; s/^ *//')
             
             echo "tfvars_file: $tfvars_file"
             echo "tf_cw_state: $tf_cw_state"
             
-            # The ${rule}_cw_event_state default is ENABLED, so only skip enabling if tfvars explicitly indicates DISABLED
+            # The ${rule_state_tf_var} default value is ENABLED, so only skip enabling if tfvars explicitly indicates DISABLED
             if [[ "$tf_cw_state" != "" ]]; then
               echo "Skipping enabling ${rule_name} as tfvars indicates it should be disabled"
               continue
