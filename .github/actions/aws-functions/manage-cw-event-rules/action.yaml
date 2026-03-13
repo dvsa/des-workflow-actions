@@ -82,9 +82,14 @@ runs:
         echo "cw_rules: ${cw_rules[@]}"
         for rule in "${cw_rules[@]}"; do
           echo "rule: $rule"
+          echo "Looking for: variable \"${rule}_cw_event_state\" in components/*/variables.tf"
+          ls -al components/*/variables.tf || echo "No variables.tf files found"
+        
           component=$(grep -l "variable \"${rule}_cw_event_state\"" components/*/variables.tf | awk -F'/' '{print $2}')
           rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
+        
           echo "rule_name: $rule_name"
+        
           if [[ "$component" == "dms" && "${{ inputs.personal-environment }}" == "true" ]]; then continue; fi
         
           # Check Terraform tfvars for desired state of the rule when enabling
