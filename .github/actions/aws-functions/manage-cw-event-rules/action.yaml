@@ -80,7 +80,7 @@ runs:
       run: |
         IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_CW_EVENT_RULES }}"
         for rule in "${cw_rules[@]}"; do
-          component=$(grep -l 'variable "${rule}_cw_event_state"' components/*/variables.tf | awk -F'/' '{print $2}')
+          component=$(grep -l "variable \"${rule}_cw_event_state\"" components/*/variables.tf | awk -F'/' '{print $2}')
           rule_name=mes-${{ inputs.tf-environment }}-${component}-${rule}
         
           if [[ "$component" == "dms" && "${{ inputs.personal-environment }}" == "true" ]]; then continue; fi
