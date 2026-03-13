@@ -83,7 +83,7 @@ runs:
           rule_state_tf_var="${rule//-/_}_cw_event_state"
         
           # Determine component from variables.tf file that contains the expected variable
-          matching_rule_file_path=$(grep -l "variable \"${rule_state_tf_var}\"" components/*/variables.tf)
+          matching_rule_file_path=$(grep -l "variable \"${rule_state_tf_var}\"" components/*/variables.tf || true)
           if [[ -n "$matching_rule_file_path" ]]; then
             component=$(echo "$matching_rule_file_path" | awk -F'/' '{print $2}')
         
@@ -106,7 +106,7 @@ runs:
               tfvars_file="etc/env_${{ inputs.aws-region }}_${{ inputs.tf-environment }}.tfvars"
             fi
             
-            tfvars_state=$(grep "${rule_state_tf_var}" ${tfvars_file})
+            tfvars_state=$(grep "${rule_state_tf_var}" ${tfvars_file} || true)
             [[ -n "$tfvars_state" ]] && desired_rule_state=$(echo "$tfvars_state" | cut -d '=' -f 2 | sed 's/"//g; s/^ *//')
                         
             # The ${rule_state_tf_var} default value is ENABLED, so only skip enabling if tfvars explicitly indicates DISABLED
