@@ -82,7 +82,7 @@ runs:
         echo "cw_rules: ${cw_rules[@]}"
         for rule in "${cw_rules[@]}"; do
           echo "rule: $rule"
-          echo "Looking for: variable \"${rule}_cw_event_state\" in components/*/variables.tf"
+          echo "Looking for: variable \"${rule//-/_}_cw_event_state\" in components/*/variables.tf"
           ls -al components/*/variables.tf || echo "No variables.tf files found"
         
           component=$(grep -l "variable \"${rule//-/_}_cw_event_state\"" components/*/variables.tf | awk -F'/' '{print $2}')
