@@ -70,11 +70,6 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         role-session-name: Terraform-GHA
 
-    - name: Debugging
-      shell: bash
-      run: |
-        ls -al
-
     - name: Manage CloudWatch Event Rules
       shell: bash
       run: |
@@ -100,18 +95,14 @@ runs:
                         
           # Check Terraform tfvars for desired state of the rule when enabling
           if [[ "${{ inputs.action }}" == "enable" ]]; then
-            if [[ "${{ inputs.personal-environment }}" == "true" ]]; then
-              tfvars_file="etc/group_nonprod.tfvars"
-            else
-              tfvars_file="etc/env_${{ inputs.aws-region }}_${{ inputs.tf-environment }}.tfvars"
-            fi
+            tfvars_file="etc/env_${{ inputs.aws-region }}_${{ inputs.tf-environment }}.tfvars"
             
             tfvars_state=$(grep "${rule_state_tf_var}" ${tfvars_file} || true)
             [[ -n "$tfvars_state" ]] && desired_rule_state=$(echo "$tfvars_state" | cut -d '=' -f 2 | sed 's/"//g; s/^ *//')
                         
             # The ${rule_state_tf_var} default value is ENABLED, so only skip enabling if tfvars explicitly indicates DISABLED
             if [[ "$desired_rule_state" == "DISABLED" ]]; then
-              echo "Skipping enabling ${rule_name} as tfvars indicates it should be disabled"
+              echo "Skipping enabling ${rule_name} as the tfvars indicate it should remain disabled"
               continue
             fi
         
