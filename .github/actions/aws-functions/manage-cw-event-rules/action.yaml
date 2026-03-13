@@ -83,9 +83,14 @@ runs:
           rule_state_tf_var="${rule//-/_}_cw_event_state"
         
           # Determine component from variables.tf file that contains the expected variable
-          component_files=$(grep -l "variable \"${rule_state_tf_var}\"" components/*/variables.tf)
-          if [[ -n "$component_files" ]]; then
-            component=$(echo "$component_files" | awk -F'/' '{print $2}')
+          matching_rule_file_path=$(grep -l "variable \"${rule_state_tf_var}\"" components/*/variables.tf)
+          if [[ -n "$matching_rule_file_path" ]]; then
+            component=$(echo "$matching_rule_file_path" | awk -F'/' '{print $2}')
+        
+            if [[ "${{ inputs.personal-environment }}" == "true" && "$component" == "dms" ]]; then
+              echo "Skipping ${rule} as it is a DMS rule and this is a personal environment"
+              continue
+            fi
           else
             echo "Warning: Could not find a variables.tf file containing variable '${rule_state_tf_var}'. Skipping this rule."
             continue
@@ -131,14 +136,23 @@ runs:
         
         IFS=" " read -ra cw_rules <<< "${{ env.DES_GLOBALS_ENV_CW_EVENT_RULES }}"
         for rule in "${cw_rules[@]}"; do
-          component=$(grep -l 'variable "${rule}_cw_event_state"' components/*/variables.tf | awk -F'/' '{print $2}')
-
+          rule_state_tf_var="${rule//-/_}_cw_event_state"
+        
+          # Determine component from variables.tf file that contains the expected variable
+          matching_rule_file_path=$(grep -l "variable \"${rule_state_tf_var}\"" components/*/variables.tf)
+          if [[ -n "$matching_rule_file_path" ]]; then
+            component=$(echo "$matching_rule_file_path" | awk -F'/' '{print $2}')
+          else
+            echo "Warning: Could not find a variables.tf file containing variable '${rule_state_tf_var}'. Skipping this rule."
+            continue
+          fi
+        
           if [[ "$component" == "api" ]]; then
-            api_tf_args+="-var='${rule//-/_}_cw_event_state=DISABLED' "
+            api_tf_args+="-var='${rule_state_tf_var}=DISABLED' "
           elif [[ "$component" == "drs" ]]; then
-            drs_tf_args+="-var='${rule//-/_}_cw_event_state=DISABLED' "
+            drs_tf_args+="-var='${rule_state_tf_var}=DISABLED' "
           elif [[ "$component" == "dms" ]]; then
-            dms_tf_args+="-var='${rule//-/_}_cw_event_state=DISABLED' "
+            dms_tf_args+="-var='${rule_state_tf_var}=DISABLED' "
           else
             echo "Warning: Could not determine component for rule '${rule}'. Skipping tf-args update for this rule."
           fi
