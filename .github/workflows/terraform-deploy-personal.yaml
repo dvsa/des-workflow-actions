@@ -342,7 +342,7 @@ jobs:
           db-script-filename: 060_createRefdataUser.sql
 
   load-mock-data:
-    name: ⏳ Load Journals & Users Test Data
+    name: ⏳ Load Mock Data
     needs: [start-ec2-runner, initialise-results-db]
     if: always() && !failure() && !cancelled() && inputs.load-dynamodb-test-data == true && inputs.tf-action == 'apply'
     uses: dvsa/des-test-data-journal/.github/workflows/upload-mock-data.yaml@MES-10946-s3-mock-data-wf
