@@ -345,7 +345,7 @@ jobs:
     name: ⏳ Load Mock Data
     needs: [start-ec2-runner, initialise-results-db]
     if: always() && !failure() && !cancelled() && inputs.load-dynamodb-test-data == true && inputs.tf-action == 'apply'
-    uses: dvsa/des-test-data-journal/.github/workflows/upload-mock-data.yaml@MES-10946-s3-mock-data-wf
+    uses: dvsa/des-test-data-journal/.github/workflows/upload-mock-data.yaml@develop
     with:
       environment: ${{ inputs.tf-environment }}
     secrets:
