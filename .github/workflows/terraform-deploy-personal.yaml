@@ -341,42 +341,21 @@ jobs:
           user-password: ${{ env.RDS_CREDENTIALS_TARS_REFDATA_USER_PASSWORD }}
           db-script-filename: 060_createRefdataUser.sql
 
-  load-test-data:
-    name: ⏳ Load Journals & Users Test Data
+  load-mock-data:
+    name: ⏳ Load Mock Data
     needs: [start-ec2-runner, initialise-results-db]
     if: always() && !failure() && !cancelled() && inputs.load-dynamodb-test-data == true && inputs.tf-action == 'apply'
-    runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
-    steps:
-      - name: 📨 Checkout Test Data Repository
-        uses: actions/checkout@v4
-        with:
-          repository: dvsa/des-test-data-journal
-          ref: ${{ inputs.dynamodb-test-data-branch }}
-          token: ${{ secrets.GH_TOKEN_TEMP }}
-
-      - name: ➕ Install Pip
-        run: sudo dnf install python3-pip -y
-
-      - name: ➕ Install Requirements
-        run: python3 -m pip install -r requirements.txt --user
-
-      - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
-          aws-region: ${{ secrets.DVSA_AWS_REGION }}
-          role-session-name: Terraform-GHA
-
-      - name: ⏳ Load Tables
-        env:
-          S3_MOCK_DATA_BUCKET: mes-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ inputs.tf-environment }}-drs-mock-data
-        run: |
-          python3 ./load_test_user_data.py ${{ inputs.tf-environment }}
-          python3 ./load_test_journal_data.py ${{ inputs.tf-environment }}
+    uses: dvsa/des-test-data-journal/.github/workflows/upload-mock-data.yaml@develop
+    with:
+      environment: ${{ inputs.tf-environment }}
+    secrets:
+      DES_TEST_DATA_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
+      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+      AWS_DES_NPD_ACC_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
 
   enable-cw-event-rules:
     name: ▶️ Enable CloudWatch Event Rules
-    needs: [start-ec2-runner, load-test-data]
+    needs: [start-ec2-runner, load-mock-data]
     if: always() && !failure() && !cancelled() && inputs.disable-cw-event-rules == true && needs.set-tf-args.outputs.first-run == 'false'
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
