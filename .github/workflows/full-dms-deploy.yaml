@@ -21,7 +21,7 @@ on:
         required: true
       full-load-sleep-time:
         description: The amount of time in seconds to sleep to allow the full load to run
-        type: string
+        type: number
         required: false
         default: 1200
 

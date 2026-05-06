@@ -19,11 +19,11 @@ on:
         required: false
         default: test
       build-simulator:
-        type: string
+        type: boolean
         required: false
         default: false
       build-ipa:
-        type: string
+        type: boolean
         required: false
         default: true
       upload_path:
