@@ -49,7 +49,7 @@ jobs:
         run: echo "$DES_IONIC_CONFIG_JSON" >> ionic.config.json
 
       - name: ⚙️ Setup Node.js ${{ steps.nvm.outputs.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ steps.nvm.outputs.node-version }}
 
