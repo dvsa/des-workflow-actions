@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: 📨 Checkout Packer Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-packer
           ref: ${{ inputs.packer-branch }}
@@ -68,7 +68,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 📨 Checkout Puppet Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-puppet
           ref: ${{ inputs.puppet-branch }}

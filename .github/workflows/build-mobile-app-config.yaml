@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout Mobile App Config Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-mobile-app-config
           ref: ${{ inputs.branch }}

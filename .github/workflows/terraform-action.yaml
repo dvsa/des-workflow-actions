@@ -53,7 +53,7 @@ jobs:
     environment: ${{ contains(fromJSON('["apply", "destroy"]'), inputs.tf-action) && inputs.tf-environment || '' }}
     steps:
       - name: 📨 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-terraform
           ref: ${{ inputs.branch }}

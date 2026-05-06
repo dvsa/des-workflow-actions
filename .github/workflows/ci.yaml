@@ -23,7 +23,7 @@ jobs:
     runs-on: MACOS-ARM64
     steps:
       - name: 📨 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-mobile-app
           ref: ${{ inputs.branch }}
