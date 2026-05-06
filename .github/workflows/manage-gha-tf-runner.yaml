@@ -59,7 +59,7 @@ jobs:
 
       - name: 🤫 Get Secrets
         if: inputs.action == 'start'
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-aws/env
           parse-json-secrets: true

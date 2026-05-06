@@ -43,7 +43,7 @@ jobs:
           role-session-name: GHA
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-globals/env
           parse-json-secrets: true

@@ -42,7 +42,7 @@ jobs:
           role-session-name: Terraform-GHA
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-globals/env
           parse-json-secrets: true
@@ -56,7 +56,7 @@ jobs:
           role-duration-seconds: 10800
 
       - name: 🤫 Get ${{ inputs.aws-account }} Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
           parse-json-secrets: true

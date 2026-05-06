@@ -271,7 +271,7 @@ jobs:
           role-session-name: Terraform-GHA
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: RDS_CREDENTIALS, des-personal-rds-credentials
           parse-json-secrets: true

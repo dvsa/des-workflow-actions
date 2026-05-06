@@ -74,7 +74,7 @@ jobs:
           role-session-name: mobile-build-${{ github.repository_id }}
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: |
             des-mobile-app/env

@@ -52,7 +52,7 @@ jobs:
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-globals/env
           parse-json-secrets: true
