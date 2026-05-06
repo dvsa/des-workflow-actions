@@ -51,7 +51,7 @@ runs:
         token: ${{ inputs.token }}
 
     - name: 🔑 Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.mgmt-role }}
         aws-region: ${{ inputs.aws-region }}
@@ -64,7 +64,7 @@ runs:
         parse-json-secrets: true
 
     - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.role-to-assume }}
         aws-region: ${{ inputs.aws-region }}

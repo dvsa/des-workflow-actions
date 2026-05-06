@@ -57,7 +57,7 @@ jobs:
           echo "aws-account=${account_id}" >> $GITHUB_OUTPUT
 
       - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ steps.get_account_id.outputs.aws-account }}:role/github-actions
           aws-region: ${{ inputs.aws-region }}

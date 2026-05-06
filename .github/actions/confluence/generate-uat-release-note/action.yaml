@@ -36,7 +36,7 @@ runs:
       uses: actions/checkout@v6
 
     - name: 🔑 Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.des-aws-role }}
         aws-region: ${{ inputs.dvsa-aws-region }}

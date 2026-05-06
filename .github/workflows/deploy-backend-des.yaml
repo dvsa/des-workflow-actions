@@ -38,7 +38,7 @@ jobs:
           echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
       - name: 🪪 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION}}
@@ -114,14 +114,14 @@ jobs:
           path: artifacts
 
       - name: 🪪 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION}}
           role-session-name: GHA
 
       - name: 🪪 Configure NonProd AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.DES_NONPROD_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🪪 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.DES_MGMT_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION}}
