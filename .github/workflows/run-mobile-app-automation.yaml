@@ -29,7 +29,7 @@ jobs:
       version: ${{ steps.set-version.outputs.version }}
     steps:
       - name: 📨 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch }}
 
@@ -46,13 +46,13 @@ jobs:
           access-token: ${{ secrets.DES_ACCESS_TOKEN }}
 
       - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-globals/env
           parse-json-secrets: true
@@ -77,7 +77,7 @@ jobs:
 
       - name: ☁️ Upload to GitHub Summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: MobileAppAutomationReport-${{ steps.set-version.outputs.version }}
           path: reports/
@@ -94,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: gh-pages
 
@@ -129,13 +129,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: gh-pages
           path: gh-pages
 
       - name: ☁️ Download Report
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: MobileAppAutomationReport-${{ needs.run-mobile-app-automation.outputs.version }}
 
@@ -148,7 +148,7 @@ jobs:
 
       - name: 🚀 Deploy Report to Github Pages
         if: always()
-        uses: peaceiris/actions-gh-pages@v2
+        uses: peaceiris/actions-gh-pages@v4
         env:
           PERSONAL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISH_BRANCH: gh-pages

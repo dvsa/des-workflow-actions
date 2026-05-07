@@ -44,27 +44,27 @@ runs:
   using: composite
   steps:
     - name: 📨 Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: dvsa/des-terraform
         ref: ${{ inputs.branch }}
         token: ${{ inputs.token }}
 
     - name: 🔑 Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.mgmt-role }}
         aws-region: ${{ inputs.aws-region }}
         role-session-name: Terraform-GHA
 
     - name: 🤫 Get Secrets
-      uses: aws-actions/aws-secretsmanager-get-secrets@v2
+      uses: aws-actions/aws-secretsmanager-get-secrets@v3
       with:
         secret-ids: des-globals/env
         parse-json-secrets: true
 
     - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.role-to-assume }}
         aws-region: ${{ inputs.aws-region }}

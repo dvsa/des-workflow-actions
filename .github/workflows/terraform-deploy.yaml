@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🔑 Assume AWS ${{ inputs.aws-account }} Role
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
@@ -223,14 +223,14 @@ jobs:
     runs-on: ${{ needs.start-ec2-runner.outputs.runner-label }}
     steps:
       - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
 
       - name: 🤫 Get Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: RDS_CREDENTIALS, des-${{ inputs.tf-environment }}-rds-credentials
           parse-json-secrets: true

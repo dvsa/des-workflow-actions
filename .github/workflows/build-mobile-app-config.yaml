@@ -19,20 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout Mobile App Config Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-mobile-app-config
           ref: ${{ inputs.branch }}
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.DES_AWS_ROLE }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
 
       - name: 🤫 Get AWS Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-globals/env
           parse-json-secrets: true
@@ -68,7 +68,7 @@ jobs:
           echo "✅ Uploaded ${{ env.ZIP_FILE }} to S3" >> $GITHUB_STEP_SUMMARY
 
       - name: ☁️ Upload to GitHub Summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ZIP_FILE }}
           path: ${{ env.ZIP_FILE }}

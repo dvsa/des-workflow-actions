@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: 📨 Checkout Packer Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-packer
           ref: ${{ inputs.packer-branch }}
@@ -68,7 +68,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 📨 Checkout Puppet Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: dvsa/des-puppet
           ref: ${{ inputs.puppet-branch }}
@@ -76,7 +76,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN_TEMP }}
 
       - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}

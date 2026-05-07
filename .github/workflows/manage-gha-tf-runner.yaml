@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: 🔑 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: 🤫 Get Secrets
         if: inputs.action == 'start'
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: des-aws/env
           parse-json-secrets: true
