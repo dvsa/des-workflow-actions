@@ -107,17 +107,17 @@ jobs:
         run: npm run build:${{ inputs.build-type }}
 
       - name: 🚀 Deploy Sentry
-        if: ${{ inputs.environment == 'prod' && inputs.build-ipa == 'true' }}
+        if: ${{ inputs.environment == 'prod' && inputs.build-ipa == true }}
         run: |
           aws secretsmanager get-secret-value --secret-id sentryclirc --query SecretString | jq . --raw-output  > .sentryclirc
           npm run sentry-deploy
           
       - name: 📱 Build Mobile Simulator (${{ inputs.environment }})
-        if: ${{ inputs.build-simulator == 'true' }}
+        if: ${{ inputs.build-simulator == true }}
         run: bundle exec fastlane build_sim
           
       - name: 📱 Build Mobile App (${{ inputs.environment }})
-        if: ${{ inputs.build-ipa == 'true' }}
+        if: ${{ inputs.build-ipa == true }}
         run: bundle exec fastlane build_ipa
 
       - name: 🔪 Kill Xcode
