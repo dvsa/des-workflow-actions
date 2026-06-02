@@ -149,7 +149,7 @@ jobs:
 
       - name: 🗑️ Clear DRS Mock TARS Data Bucket
         run: |
-          bucket="mes-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ inputs.tf-environment }}-drs-mock-tars-data"
+          bucket="mes-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ inputs.tf-environment }}-drs-mock-data"
           s3_objects=$(aws s3 ls s3://${bucket} 2>/dev/null || echo "")
           
           if [[ -n "$s3_objects" ]]; then
