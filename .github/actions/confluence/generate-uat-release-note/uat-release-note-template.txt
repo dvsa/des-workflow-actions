@@ -3,7 +3,7 @@
   <li><a href='#Scope'>Scope</a></li>
   <li><a href='#Implementation-Window'>Implementation Window</a></li>
   <li><a href='#JIRA-Issues-in-Release'>JIRA Issues in Release</a></li>
-  <li><a href='#Application-and-Component-Versions'>Application & Component Versions</a></li>
+  <li><a href='#Application-and-Component-Versions'>Application &amp; Component Versions</a></li>
   <li><a href='#Release-Steps'>Release Steps</a><ul>$RELEASE_STEPS_LIST</ul>
   </li>
 </ol>
@@ -25,7 +25,7 @@
 <ac:structured-macro ac:name='jira'>
   <ac:parameter ac:name="jqlQuery">project = MES AND fixVersion in ("$BRANCH_VERSION", "$VERSION")</ac:parameter>
 </ac:structured-macro>
-<h2 id='Application-and-Component-Versions'>Application & Component Versions</h2>
+<h2 id='Application-and-Component-Versions'>Application &amp; Component Versions</h2>
 <p>$GIT_RELEASE_TAG_SUMMARY</p>
 <table>
   <thead>
