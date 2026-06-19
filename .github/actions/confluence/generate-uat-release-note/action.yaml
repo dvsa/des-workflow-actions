@@ -60,9 +60,29 @@ runs:
         GIT_RELEASE_TAG_SUMMARY=""
         GIT_HASH_TABLE=""
         
+        # Get the minimum app version from Terraform using the release tag
+        get_minimum_app_version() {
+          local tag=$1
+        
+          MINIMUM_APP_VERSION=$(
+            gh api -H "Accept: application/vnd.github.raw+tf" -F ref=$tag \
+            -X GET /repos/dvsa/des-terraform/contents/components/api/variables.tf \
+            | grep -A 3 'minimum_app_version' \
+            | awk -F '=' '{print $2}' \
+            | tail -n 1 \
+            | tr -d ' "'
+          )
+        }
+        
         # Set variables for full and frontend releases
         if [ "${{ inputs.release-type }}" == "frontend backend" ] || [ "${{ inputs.release-type }}" == "frontend" ]; then
-          [ "${{ inputs.release-type }}" == "frontend" ] && RELEASE_TYPE="(FE Only)"
+          if [ "${{ inputs.release-type }}" == "frontend" ]; then
+            RELEASE_TYPE="(FE Only)"
+            latest_backend_release=$(gh api /repos/dvsa/des-terraform/releases/latest | jq '.tag_name' | tr -d '"')
+        
+            get_minimum_app_version $latest_backend_release
+          fi
+        
           RELEASE_STEPS_LIST+="<li><a href='#Mobile-App'>Mobile App</a></li>"
           IMPLEMENTATION_WINDOW_ROWS+="<tr><td>Mobile App</td><td><code>$(date '+%d-%h-%Y' | sed 's/-/ /g')</code></td></tr>"
           RELEASE_STEPS_SECTION+="<h3 id='Mobile-App'>Mobile App</h3><p>For UAT builds, download the IPA from the 'GHA - Build Mobile App Artefact' Teams Channel and upload to Intune</p>"
@@ -71,6 +91,9 @@ runs:
         # Set variables for full and backend releases
         if [ "${{ inputs.release-type }}" == "frontend backend" ] || [ "${{ inputs.release-type }}" == "backend" ]; then
           [ "${{ inputs.release-type }}" == "backend" ] && RELEASE_TYPE="(BE Only)"
+        
+          get_minimum_app_version $BACKEND_RELEASE_TAG
+        
           RELEASE_STEPS_LIST+="<li><a href='#Backend'>Backend</a></li>"
           IMPLEMENTATION_WINDOW_ROWS+="<tr><td>Backend</td><td><code>$(date '+%d-%h-%Y' | sed 's/-/ /g')</code></td></tr>"
           RELEASE_STEPS_SECTION+="<h3 id='Backend'>Backend</h3>\
@@ -94,6 +117,11 @@ runs:
               <tr><td>Additional Terraform Arguments</td><td>N/A</td></tr>\
             </tbody>\
           </table>"
+        fi
+        
+        # Fallback value for MINIMUM_APP_VERSION
+        if [[ -z $MINIMUM_APP_VERSION ]]; then
+          MINIMUM_APP_VERSION="TBC"
         fi
         
         # Generate the git commit hash table
@@ -121,6 +149,7 @@ runs:
             -e "s/\$VERSION/${VERSION}/g" \
             -e "s/\$BRANCH_VERSION/${BRANCH_VERSION}/g" \
             -e "s/\$RELEASE_STEPS_LIST/${RELEASE_STEPS_LIST//\//\\/}/" \
+            -e "s/\$MINIMUM_APP_VERSION/${MINIMUM_APP_VERSION//\//\\/}/" \
             -e "s/\$IMPLEMENTATION_WINDOW_ROWS/${IMPLEMENTATION_WINDOW_ROWS//\//\\/}/" \
             -e "s/\$RELEASE_STEPS_SECTION/${RELEASE_STEPS_SECTION//\//\\/}/" \
             -e "s/\$GIT_RELEASE_TAG_SUMMARY/${GIT_RELEASE_TAG_SUMMARY//\//\\/}/" \

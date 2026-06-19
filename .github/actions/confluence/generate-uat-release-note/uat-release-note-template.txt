@@ -1,6 +1,7 @@
 <h2>Table of Contents</h2>
 <ol>
   <li><a href='#Scope'>Scope</a></li>
+  <li><a href='#Config'>Config</a></li>
   <li><a href='#Implementation-Window'>Implementation Window</a></li>
   <li><a href='#JIRA-Issues-in-Release'>JIRA Issues in Release</a></li>
   <li><a href='#Application-and-Component-Versions'>Application &amp; Component Versions</a></li>
@@ -8,7 +9,20 @@
   </li>
 </ol>
 <h2 id='Scope'>Scope</h2>
-<p>&lt; INSERT ADDITIONAL INFORMATION &gt;</p>
+<p><span style="color: rgb(255,0,0);">&lt; INSERT ADDITIONAL INFORMATION &gt;</span></p>
+<h2 id='Config'>Config</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Minimum App Version</td><td>$MINIMUM_APP_VERSION</td></tr>
+    <tr><td>Mobile App Config xml file</td><td>TBC</td></tr>
+  </tbody>
+</table>
 <h2 id='Implementation-Window'>Implementation Window</h2>
 <table>
   <thead>
