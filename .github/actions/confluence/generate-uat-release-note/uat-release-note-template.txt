@@ -11,6 +11,12 @@
 <h2 id='Scope'>Scope</h2>
 <p><span style="color: rgb(255,0,0);">&lt; INSERT ADDITIONAL INFORMATION &gt;</span></p>
 <h2 id='Config'>Config</h2>
+<ac:structured-macro ac:name="note">
+  <ac:rich-text-body>
+    <p>For frontend-only releases, the minimum app version is retrieved from the des-terraform repository using the latest backend release tag.</p>
+    <p>As the UAT and production minimum app version may not be aligned, always verify that the generated value matches the version currently deployed in production.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
 <table>
   <thead>
     <tr>
