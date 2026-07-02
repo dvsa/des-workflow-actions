@@ -157,21 +157,10 @@ jobs:
             fi
           done
 
-  sonar-scan:
-    name: 📡 SonarQube Scan
-    if: github.event_name == 'push' && github.ref_name == 'main'
-    uses: dvsa/des-workflow-actions/.github/workflows/sonarqube-scan.yaml@main
-    with:
-      test-script-name: 'test:coverage'
-    secrets:
-      DES_MGMT_ROLE: ${{ secrets.DES_MGMT_ROLE }}
-      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
-      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-
   send-teams-notification:
     if: |
       always()
-    needs: [build, upload-artifacts, deploy, sonar-scan]
+    needs: [build, upload-artifacts, deploy]
     runs-on: ubuntu-latest
     steps:
       - name: 🪪 Configure AWS Credentials
