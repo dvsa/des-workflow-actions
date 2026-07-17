@@ -59,7 +59,7 @@ runs:
         fi
 
     - name: 📝 Collate & Upload Release tfvars
-      if: (inputs.environment == 'uat' && steps.s3_check.outputs.release_manifest_exists == 'false')
+      if: ((inputs.environment == 'uat' || inputs.environment == 'sit') && steps.s3_check.outputs.release_manifest_exists == 'false')
       shell: bash
       run: |
         IFS=" " read -ra services <<< "${{ env.COMPONENT_SERVICES }}"

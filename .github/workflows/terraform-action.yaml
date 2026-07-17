@@ -77,7 +77,7 @@ jobs:
         if: ${{ !contains(fromJSON('["mgmt", "nonprod", "prod"]'), inputs.tf-environment) && inputs.tf-component != 'dmsbase' }}
         uses: dvsa/des-workflow-actions/.github/actions/get-tfvars@main
         with:
-          environment: ${{ contains(fromJSON('["uat", "perf", "prep", "live"]'), inputs.tf-environment) && inputs.tf-environment || 'dev' }}
+          environment: ${{ contains(fromJSON('["sit", "uat", "perf", "prep", "live"]'), inputs.tf-environment) && inputs.tf-environment || 'dev' }}
           component: ${{ inputs.tf-component }}
           release-tag: ${{ inputs.release-tag }}
 

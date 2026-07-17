@@ -95,7 +95,7 @@ jobs:
     if: |
       always() && !failure() && !cancelled() && 
       !startsWith(github.ref_name, 'release-') && 
-      !contains(fromJSON('["live", "prod", "prep", "uat", "release"]'), inputs.environment)
+      !contains(fromJSON('["live", "prod", "prep", "uat", "sit", "release"]'), inputs.environment)
     runs-on: ubuntu-latest
     steps:
       - name: 📨 Checkout
