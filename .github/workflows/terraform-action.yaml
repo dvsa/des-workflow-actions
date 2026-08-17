@@ -134,6 +134,7 @@ jobs:
           -backend-config="bucket=dvsa.mes.tf-${{ inputs.aws-account }}-${{ secrets.DVSA_AWS_REGION }}" \
           -backend-config="key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-environment }}.tfstate" \
           -backend-config="region=${{ secrets.DVSA_AWS_REGION }}"
+          echo "key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-environment }}.tfstate"
           cat .terraform-version
           terraform version
           echo "terraform providers"
