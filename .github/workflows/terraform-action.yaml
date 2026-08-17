@@ -135,11 +135,12 @@ jobs:
           -backend-config="key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate" \
           -backend-config="region=${{ secrets.DVSA_AWS_REGION }}"
           echo "key=mes/${{ secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
+          echo "bucket=dvsa.mes.tf-${{ inputs.aws-account }}-${{ secrets.DVSA_AWS_REGION }}"
           cat .terraform-version
           terraform version
+          cat .terraform/terraform.tfstate
           echo "terraform providers"
           ls -lh tfplan
-          ls -la
           terraform show tfplan
           cd ../..
 
