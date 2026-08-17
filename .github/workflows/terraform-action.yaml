@@ -132,9 +132,9 @@ jobs:
           cd components/${{ inputs.tf-component }}
           terraform init -reconfigure \
           -backend-config="bucket=dvsa.mes.tf-${{ inputs.aws-account }}-${{ secrets.DVSA_AWS_REGION }}" \
-          -backend-config="key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-environment }}.tfstate" \
+          -backend-config="key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate" \
           -backend-config="region=${{ secrets.DVSA_AWS_REGION }}"
-          echo "key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-environment }}.tfstate"
+          echo "key=mes/${{ secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
           cat .terraform-version
           terraform version
           echo "terraform providers"
