@@ -127,7 +127,6 @@ jobs:
           cat components/${{ inputs.tf-component }}/.terraform/terraform.tfstate
           cd components/${{ inputs.tf-component }}
           terraform init -reconfigure
-          cat .terraform/terraform.tfstate
           ls -lh tfplan
           terraform show tfplan
           cd ../..
