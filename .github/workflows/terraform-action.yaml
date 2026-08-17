@@ -114,8 +114,9 @@ jobs:
           ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
           cd components/${{ inputs.tf-component }}
           terraform version
+          echo "providers including aws provider version is"
           terraform providers
-          ls -lh tfplan
+          ls -lh tfplan  
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
