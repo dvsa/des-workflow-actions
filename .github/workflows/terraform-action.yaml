@@ -111,7 +111,10 @@ jobs:
           --region ${{ secrets.DVSA_AWS_REGION }} \
           -- ${{ steps.get-tfvars.outputs.tfvars }} \
           ${{ inputs.tf-args }} \
-          ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
+          ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }} \
+          cd components/${{ inputs.tf-component }}
+          terraform show -json tfplan >/tmp/plan.json
+          echo "terraform show succeeded"
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
