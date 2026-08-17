@@ -129,7 +129,6 @@ jobs:
           terraform init -reconfigure
           cat .terraform/terraform.tfstate
           ls -lh tfplan
-          cat tfplan
           terraform show tfplan
           cd ../..
 
