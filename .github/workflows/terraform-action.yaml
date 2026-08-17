@@ -124,8 +124,8 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
-          terraform init components/${{ inputs.tf-component }}
-          terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/$filename
+          terraform -chdir=components/${{ inputs.tf-component }} init
+          terraform -chdir=components/${{ inputs.tf-component }} show -no-color tfplan > ${{ github.workspace }}/$filename
 
       - name: ☁️ Upload Plan
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
