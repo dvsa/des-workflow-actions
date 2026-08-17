@@ -124,7 +124,7 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
-          terraform -chdir=components/${{ inputs.tf-component }} init
+#          terraform -chdir=components/${{ inputs.tf-component }} init
           terraform -chdir=components/${{ inputs.tf-component }} show -no-color tfplan > ${{ github.workspace }}/$filename
 
       - name: ☁️ Upload Plan
