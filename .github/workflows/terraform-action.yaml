@@ -126,7 +126,7 @@ jobs:
           
           cd components/${{ inputs.tf-component }}
           terraform init -reconfigure
-          terraform show -no-color tfplan >  ${{ github.workspace }}/$filename
+          terraform show -no-color -json tfplan >  ${{ github.workspace }}/$filename
           cd ../..
 
       - name: ☁️ Upload Plan
