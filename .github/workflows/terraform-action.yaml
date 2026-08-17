@@ -111,7 +111,7 @@ jobs:
           --region ${{ secrets.DVSA_AWS_REGION }} \
           -- ${{ steps.get-tfvars.outputs.tfvars }} \
           ${{ inputs.tf-args }} \
-          ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }} 
+          ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
@@ -124,13 +124,10 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
-          terraform -chdir=components/${{ inputs.tf-component }} init -reconfigure
           cd components/${{ inputs.tf-component }}
-          terraform version
-          ls -la
-          ls -la .terraform
-  
-          terraform show -no-color tfplan > ${{ github.workspace }}/$filename
+          terraform init -reconfigure
+          terraform show -no-color tfplan >  ${{ github.workspace }}/$filename
+          cd ../..
 
       - name: ☁️ Upload Plan
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
