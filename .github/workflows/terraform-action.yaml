@@ -130,16 +130,25 @@ jobs:
           
           cat components/${{ inputs.tf-component }}/.terraform/terraform.tfstate
           cd components/${{ inputs.tf-component }}
-          terraform init -reconfigure \
-          -backend-config="bucket=dvsa.mes.tf-${{ inputs.aws-account }}-${{ secrets.DVSA_AWS_REGION }}" \
-          -backend-config="key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate" \
-          -backend-config="region=${{ secrets.DVSA_AWS_REGION }}"
+          cat > backend_terraformscaffold.tf <<'EOF'
+          terraform {
+          backend "s3" {
+          region = "${{ secrets.DVSA_AWS_REGION }}"
+          bucket = "dvsa.mes.tf-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ secrets.DVSA_AWS_REGION }}"
+          key    = "mes/${{ secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
+          }
+          }
+          EOF
+          echo "=== backend_terraformscaffold.tf ==="
+          cat backend_terraformscaffold.tf
+          terraform init -reconfigure 
           echo "key=mes/${{ secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
-          echo "bucket=dvsa.mes.tf-${{ inputs.aws-account }}-${{ secrets.DVSA_AWS_REGION }}"
+          echo "bucket=dvsa.mes.tf-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ secrets.DVSA_AWS_REGION }}"
           cat .terraform-version
           terraform version
           cat .terraform/terraform.tfstate
-          echo "terraform providers"
+          echo "=== terraform providers ==="
+          terraform providers
           ls -lh tfplan
           terraform show tfplan
           cd ../..
