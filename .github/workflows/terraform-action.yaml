@@ -114,8 +114,7 @@ jobs:
           ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
           cd components/${{ inputs.tf-component }}
           terraform version
-          echo "providers including aws provider version is"
-          terraform providers
+          echo "providers including aws provider version is terraform providers"
           ls -lh tfplan  
 
       - name: 🧐 Terraform Show
@@ -131,10 +130,13 @@ jobs:
           
           cat components/${{ inputs.tf-component }}/.terraform/terraform.tfstate
           cd components/${{ inputs.tf-component }}
-          terraform init -reconfigure
+          terraform init -reconfigure \
+          -backend-config="bucket=dvsa.mes.tf-${{ inputs.aws-account }}-${{ secrets.DVSA_AWS_REGION }}" \
+          -backend-config="key=mes/${{ inputs.aws-account }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-environment }}.tfstate" \
+          -backend-config="region=${{ secrets.DVSA_AWS_REGION }}"
           cat .terraform-version
           terraform version
-          terraform providers
+          ehco "terraform providers"
           ls -lh tfplan
           ls -la
           terraform show tfplan
