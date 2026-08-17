@@ -136,7 +136,7 @@ jobs:
           -backend-config="region=${{ secrets.DVSA_AWS_REGION }}"
           cat .terraform-version
           terraform version
-          ehco "terraform providers"
+          echo "terraform providers"
           ls -lh tfplan
           ls -la
           terraform show tfplan
