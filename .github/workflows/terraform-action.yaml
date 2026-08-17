@@ -114,6 +114,8 @@ jobs:
           ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
           cd components/${{ inputs.tf-component }}
           terraform version
+          terraform providers
+          ls -lh tfplan
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
@@ -131,6 +133,8 @@ jobs:
           terraform init -reconfigure
           cat .terraform-version
           terraform version
+          terraform providers
+          ls -lh tfplan
           ls -la
           terraform show tfplan
           cd ../..
