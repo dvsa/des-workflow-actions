@@ -112,7 +112,6 @@ jobs:
           -- ${{ steps.get-tfvars.outputs.tfvars }} \
           ${{ inputs.tf-args }} \
           ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
-          cd components/${{ inputs.tf-component }}
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
