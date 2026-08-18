@@ -113,9 +113,6 @@ jobs:
           ${{ inputs.tf-args }} \
           ${{ contains(fromJSON('["plan", "plan-destroy"]'), inputs.tf-action) && '-out=tfplan' || '' }}
           cd components/${{ inputs.tf-component }}
-          terraform version
-          echo "providers including aws provider version is terraform providers"
-          ls -lh tfplan  
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
@@ -128,7 +125,6 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
-          cat components/${{ inputs.tf-component }}/.terraform/terraform.tfstate
           cd components/${{ inputs.tf-component }}
           cat > backend_terraformscaffold.tf <<'EOF'
           terraform {
@@ -139,17 +135,7 @@ jobs:
           }
           }
           EOF
-          echo "=== backend_terraformscaffold.tf ==="
-          cat backend_terraformscaffold.tf
           terraform init -reconfigure 
-          echo "key=mes/${{ secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
-          echo "bucket=dvsa.mes.tf-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ secrets.DVSA_AWS_REGION }}"
-          cat .terraform-version
-          terraform version
-          cat .terraform/terraform.tfstate
-          echo "=== terraform providers ==="
-          terraform providers
-          ls -lh tfplan
           terraform show tfplan > ${{ github.workspace }}/$filename
           cd ../..
 
