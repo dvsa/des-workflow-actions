@@ -146,7 +146,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: [plan, apply]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@fix/mes_11271_passing_a_directory_was_deprecated_for_tf_1_upgrade
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -164,7 +164,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: [plan, apply]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@fix/mes_11271_passing_a_directory_was_deprecated_for_tf_1_upgrade
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -184,7 +184,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: [ plan, apply ]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@fix/mes_11271_passing_a_directory_was_deprecated_for_tf_1_upgrade
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -204,7 +204,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: [plan, apply]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@fix/mes_11271_passing_a_directory_was_deprecated_for_tf_1_upgrade
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -267,7 +267,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: [plan, apply]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@fix/mes_11271_passing_a_directory_was_deprecated_for_tf_1_upgrade
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
