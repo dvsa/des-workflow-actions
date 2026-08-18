@@ -150,7 +150,7 @@ jobs:
           echo "=== terraform providers ==="
           terraform providers
           ls -lh tfplan
-          terraform show tfplan
+          terraform show tfplan > ${{ github.workspace }}/$filename
           cd ../..
 
       - name: ☁️ Upload Plan
