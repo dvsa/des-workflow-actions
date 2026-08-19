@@ -129,8 +129,8 @@ jobs:
           terraform {
           backend "s3" {
           region = "${{ secrets.DVSA_AWS_REGION }}"
-          bucket = "dvsa.mes.tf-${{ secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ secrets.DVSA_AWS_REGION }}"
-          key    = "mes/${{ secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
+          bucket = "dvsa.mes.tf-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.DVSA_AWS_REGION }}"
+          key    = "mes/${{ secrets.AWS_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
           }
           }
           EOF
