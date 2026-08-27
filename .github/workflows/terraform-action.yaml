@@ -124,8 +124,19 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
-          terraform init components/${{ inputs.tf-component }}
-          terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/$filename
+          cd components/${{ inputs.tf-component }}
+          cat > backend_terraformscaffold.tf <<'EOF'
+          terraform {
+          backend "s3" {
+          region = "${{ secrets.DVSA_AWS_REGION }}"
+          bucket = "dvsa.mes.tf-${{ inputs.aws-account == 'prod' && secrets.AWS_PROD_ACCOUNT_ID || secrets.AWS_NONPROD_ACCOUNT_ID }}-${{ secrets.DVSA_AWS_REGION }}"
+          key    = "mes/${{ inputs.aws-account == 'prod' && secrets.AWS_PROD_ACCOUNT_ID || secrets.AWS_NONPROD_ACCOUNT_ID }}/${{ secrets.DVSA_AWS_REGION }}/${{ inputs.tf-environment }}/${{ inputs.tf-component }}.tfstate"
+          }
+          }
+          EOF
+          terraform init -reconfigure 
+          terraform show tfplan > ${{ github.workspace }}/$filename
+          cd ../..
 
       - name: ☁️ Upload Plan
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
