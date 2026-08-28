@@ -88,6 +88,7 @@ jobs:
           role-to-assume: ${{ inputs.aws-account == 'prod' && secrets.DES_AWS_ROLE_PROD || secrets.DES_AWS_ROLE_NONPROD }}
           aws-region: ${{ secrets.DVSA_AWS_REGION }}
           role-session-name: Terraform-GHA
+          role-duration-seconds: 10800
 
       - name: 🔍 Get Terraform Version
         shell: bash
