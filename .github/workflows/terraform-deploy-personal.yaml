@@ -165,7 +165,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@feat/mes-11313-add-perf-env
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -185,7 +185,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@feat/mes-11313-add-perf-env
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -205,7 +205,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@feat/mes-11313-add-perf-env
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -225,7 +225,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@feat/mes-11313-add-perf-env
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
