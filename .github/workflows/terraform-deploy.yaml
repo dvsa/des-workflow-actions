@@ -68,7 +68,7 @@ permissions:
 jobs:
   start-ec2-runner:
     name: ▶️ Start EC2 Runner
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@gha-runner-upgrade
     with:
       action: start
     secrets:
@@ -313,7 +313,7 @@ jobs:
     name: ⏹️ Stop EC2 Runner
     needs: [start-ec2-runner, enable-cw-event-rules]
     if: always()
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@gha-runner-upgrade
     with:
       action: stop
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}

@@ -67,7 +67,7 @@ jobs:
       - name: ▶️ Start EC2 Runner
         if: inputs.action == 'start'
         id: start-ec2-runner
-        uses: dvsa/aws-github-runner@develop
+        uses: dvsa/aws-github-runner@upgrade-runner-version
         with:
           mode: ${{ inputs.action }}
           github-token: ${{ secrets.GH_TOKEN_TEMP }}
@@ -88,7 +88,7 @@ jobs:
 
       - name: ⏹️ Stop EC2 Runner
         if: inputs.action == 'stop'
-        uses: dvsa/aws-github-runner@develop
+        uses: dvsa/aws-github-runner@upgrade-runner-version
         with:
           mode: ${{ inputs.action }}
           github-token: ${{ secrets.GH_TOKEN_TEMP }}
