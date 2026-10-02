@@ -372,16 +372,16 @@ jobs:
           role-to-assume: ${{ secrets.DES_AWS_ROLE_NONPROD }}
           personal-environment: true
 
-  stop-ec2-runner:
-    name: ⏹️ Stop EC2 Runner
-    needs: [start-ec2-runner, enable-cw-event-rules]
-    if: always()
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
-    with:
-      action: stop
-      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
-      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
-    secrets:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
-      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
-      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
+#  stop-ec2-runner:
+#    name: ⏹️ Stop EC2 Runner
+#    needs: [start-ec2-runner, enable-cw-event-rules]
+#    if: always()
+#    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
+#    with:
+#      action: stop
+#      runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
+#      ec2-instance-id: ${{ needs.start-ec2-runner.outputs.ec2-instance-id }}
+#    secrets:
+#      AWS_ACCOUNT_ID: ${{ secrets.AWS_NONPROD_ACCOUNT_ID }}
+#      DVSA_AWS_REGION: ${{ secrets.DVSA_AWS_REGION }}
+#      GH_TOKEN_TEMP: ${{ secrets.GH_TOKEN_TEMP }}
