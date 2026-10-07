@@ -115,6 +115,7 @@ jobs:
 
       - name: 🧐 Terraform Show
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
+        working-directory: ${{ github.workspace }}/components/${{ inputs.tf-component }}
         run: |
           # Set Filename        
           filename="${{ inputs.tf-environment }}-${{ inputs.tf-component }}-plan.txt"
@@ -124,8 +125,9 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
-          terraform init components/${{ inputs.tf-component }}
-          terraform show -no-color components/${{ inputs.tf-component }}/tfplan > ${{ github.workspace }}/$filename
+          rm -rf .terraform
+          terraform init -backend=false
+          terraform show -no-color tfplan > "${{ github.workspace }}/$filename"
 
       - name: ☁️ Upload Plan
         if: ${{ inputs.tf-action == 'plan' || inputs.tf-action == 'plan-destroy' }}
