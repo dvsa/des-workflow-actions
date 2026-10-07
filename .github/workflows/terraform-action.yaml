@@ -125,6 +125,7 @@ jobs:
           
           echo "FILE_NAME=$filename" >> $GITHUB_ENV
           
+          rm -rf .terraform
           terraform init -backend=false
           terraform show -no-color tfplan > "${{ github.workspace }}/$filename"
 
