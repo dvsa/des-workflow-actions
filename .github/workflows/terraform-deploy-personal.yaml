@@ -44,7 +44,7 @@ permissions:
 jobs:
   start-ec2-runner:
     name: ▶️ Start EC2 Runner
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@chore/chore/mes-10773-upgrade-terraform
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: start
     secrets:
@@ -165,7 +165,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@chore/chore/mes-10773-upgrade-terraform
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -185,7 +185,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@chore/chore/mes-10773-upgrade-terraform
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -205,7 +205,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@chore/chore/mes-10773-upgrade-terraform
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -225,7 +225,7 @@ jobs:
       max-parallel: 1
       matrix:
         tf-action: ["${{ needs.set-tf-args.outputs.tf-plan-action }}", "${{ inputs.tf-action }}"]
-    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@chore/chore/mes-10773-upgrade-terraform
+    uses: dvsa/des-workflow-actions/.github/workflows/terraform-action.yaml@main
     with:
       runner: ${{ needs.start-ec2-runner.outputs.runner-label }}
       branch: ${{ inputs.branch }}
@@ -376,7 +376,7 @@ jobs:
     name: ⏹️ Stop EC2 Runner
     needs: [start-ec2-runner, enable-cw-event-rules]
     if: always()
-    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@chore/chore/mes-10773-upgrade-terraform
+    uses: dvsa/des-workflow-actions/.github/workflows/manage-gha-tf-runner.yaml@main
     with:
       action: stop
       runner-label: ${{ needs.start-ec2-runner.outputs.runner-label }}
