@@ -10,7 +10,6 @@ This repository contains the shared GitHub actions used within DES repositories,
 - **🤖 CI Backend** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/🤖-CI-Backend)]
 - **🚀 Deploy Backend** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/🚀-Deploy-Backend)]
 - **📦 Publish Package** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/📦-Publish-Package)]
-- **📱 Run Mobile App Automation** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/📱-Run-Mobile-App-Automation)]
 - **👮 Snyk Security Run** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/👮-Snyk-Security-Run)]
 - **📀 Build AMI** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/📀-Build-AMI)]
 - **📑 Terraform Plan Apply** [[Docs](https://github.com/dvsa/des-workflow-actions/wiki/📑-Terraform-Plan-Apply)]
