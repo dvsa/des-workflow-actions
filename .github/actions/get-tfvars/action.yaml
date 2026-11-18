@@ -72,16 +72,6 @@ runs:
           fi
         done
         
-        # Append the post booking schema S3 key to DSP release manifest
-        if [[ "${{ inputs.component }}" == "dsp" ]]; then
-          release_branch=$(echo "${{ inputs.release-tag }}" | cut -d '.' -f1-3)
-          s3_key="releases/${release_branch}/${{ inputs.release-tag }}"
-          schema_file_name=$(aws s3 ls s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/mes/aws/api-models/post-bookings/${s3_key}/ |
-          sort -r | head -n 1 | awk '{print $4}')
-      
-          echo "post_bookings_schema_s3_key = \"${s3_key}/${schema_file_name}\"" >> "${{ env.FILE_NAME }}"
-        fi
-        
         if [[ -s ${{ env.FILE_NAME }} ]]; then
           s3_key=mes/gha/releases/${{ inputs.component }}_${{ inputs.release-tag }}.tfvars
           aws s3 cp ${{ env.FILE_NAME }} s3://${{ env.DES_GLOBALS_ENV_ARTEFACT_S3 }}/${s3_key}
